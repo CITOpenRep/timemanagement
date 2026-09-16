@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 
 /*
  * SettingsToggleItem - A settings list item with an inline Switch toggle.
@@ -134,6 +135,11 @@ Item {
                     anchors.centerIn: parent
                     checked: root.checked
                     enabled: root.enabled
+                    style: Component {
+                        SwitchStyle {
+                            checkedBackgroundColor: LomiriColors.orange
+                        }
+                    }
                     onClicked: {
                         root.checked = checked;
                         root.toggled(checked);

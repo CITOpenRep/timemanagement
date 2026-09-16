@@ -44,9 +44,14 @@ Item {
     property string filterStartDate: ""
     property string filterEndDate: ""
 
-    function reloadData(startDate, endDate) {
+    function reloadData(startDate, endDate, accountId) {
         if (startDate !== undefined) filterStartDate = startDate || "";
         if (endDate !== undefined) filterEndDate = endDate || "";
+        if (accountId !== undefined && accountId !== null) {
+            selectedAccountId = accountId;
+        } else if (selectedAccountId < 0 && typeof accountPicker !== "undefined") {
+            selectedAccountId = accountPicker.selectedAccountId;
+        }
 
         var t_proj = [];
         var maxVal = 0;
@@ -108,14 +113,34 @@ Item {
         var filterData = Global.getDateRangeFilter();
         var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
         var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
-        reloadData(sDate, eDate);
+        var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : root.selectedAccountId;
+        reloadData(sDate, eDate, accId);
     }
 
     Connections {
         target: root.autoRefreshOnAccountChange && typeof accountPicker !== "undefined" ? accountPicker : null
+        onSelectedAccountIdChanged: {
+            root.selectedAccountId = accountPicker.selectedAccountId;
+            root.displayLimit = 10;
+            reloadData(root.filterStartDate, root.filterEndDate, accountPicker.selectedAccountId);
+        }
         onAccepted: function (accountId, accountName) {
+            root.selectedAccountId = accountId;
             root.displayLimit = 10; // Reset to top 10 on account change
-            reloadData(root.filterStartDate, root.filterEndDate);
+            reloadData(root.filterStartDate, root.filterEndDate, accountId);
+        }
+    }
+
+    Connections {
+        target: root.autoRefreshOnAccountChange && typeof rootApp !== "undefined" ? rootApp : null
+        onGlobalAccountChanged: function (accountId, accountName) {
+            root.selectedAccountId = accountId;
+            root.displayLimit = 10;
+            reloadData(root.filterStartDate, root.filterEndDate, accountId);
+        }
+        onAccountDataRefreshRequested: function (accountId) {
+            root.selectedAccountId = accountId;
+            reloadData(root.filterStartDate, root.filterEndDate, accountId);
         }
     }
 

@@ -1,7 +1,7 @@
 import QtQuick 2.12
-import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
+import Lomiri.Components 1.3
 import Lomiri.Components.Pickers 1.3
 import ".."
 
@@ -17,6 +17,8 @@ Item {
     property bool readOnly: false
     property bool isStartDateValid: true
     property bool isEndDateValid: true
+
+    readonly property bool isDarkTheme: (typeof Theme !== "undefined" && Theme.name === "Ubuntu.Components.Themes.SuruDark") || (typeof theme !== "undefined" && theme.name === "Ubuntu.Components.Themes.SuruDark")
 
     /**
      * Returns the selected start date as a formatted string (yyyy-MM-dd).
@@ -106,9 +108,8 @@ Item {
                 Layout.fillWidth: true
                 spacing: units.gu(0.5)
                 TSLabel {
-                    text: "Start Date"
+                    text: i18n.dtr("ubtms", "Start Date")
                     enabled: !dateRangeSelector.readOnly
-                    // font.pixelSize: units.gu(1.8)
                 }
 
                 Item {
@@ -117,13 +118,24 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: units.gu(5)
 
-                    TextField {
+                    Rectangle {
+                        id: startDateField
                         anchors.fill: parent
-                        readOnly: true
-                        enabled: !dateRangeSelector.readOnly
-                        text: isStartDateValid ? Qt.formatDate(startDateItem.date, "dd-MM-yyyy") : ""
-                        placeholderText: isStartDateValid ? "" : "No date set"
-                        color: isStartDateValid ? "black" : "gray"
+                        radius: units.gu(0.5)
+                        color: !dateRangeSelector.readOnly ? (isDarkTheme ? "#1b1b1f" : "#ffffff") : (isDarkTheme ? "#2a2a2a" : "#eeeeee")
+                        border.width: units.gu(0.1)
+                        border.color: isDarkTheme ? "#3a3a3f" : "#c0c0c0"
+
+                        Label {
+                            anchors.fill: parent
+                            anchors.leftMargin: units.gu(1.5)
+                            anchors.rightMargin: units.gu(1.5)
+                            verticalAlignment: Text.AlignVCenter
+                            text: isStartDateValid ? Qt.formatDate(startDateItem.date, "dd-MM-yyyy") : i18n.dtr("ubtms", "No date set")
+                            color: isStartDateValid ? (isDarkTheme ? "#ebebef" : "#333333") : (isDarkTheme ? "#9a9aa2" : "#888888")
+                            font.pixelSize: units.gu(1.8)
+                            elide: Text.ElideRight
+                        }
                     }
 
                     MouseArea {
@@ -153,9 +165,8 @@ Item {
                 Layout.fillWidth: true
                 spacing: units.gu(0.5)
                 TSLabel {
-                    text: "End Date"
+                    text: i18n.dtr("ubtms", "End Date")
                     enabled: !dateRangeSelector.readOnly
-                    //  font.pixelSize: units.gu(1.8)
                 }
 
                 Item {
@@ -164,13 +175,24 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: units.gu(5)
 
-                    TextField {
+                    Rectangle {
+                        id: endDateField
                         anchors.fill: parent
-                        readOnly: true
-                        enabled: !dateRangeSelector.readOnly
-                        text: isEndDateValid ? Qt.formatDate(endDateItem.date, "dd-MM-yyyy") : ""
-                        placeholderText: isEndDateValid ? "" : "No date set"
-                        color: isEndDateValid ? "black" : "gray"
+                        radius: units.gu(0.5)
+                        color: !dateRangeSelector.readOnly ? (isDarkTheme ? "#1b1b1f" : "#ffffff") : (isDarkTheme ? "#2a2a2a" : "#eeeeee")
+                        border.width: units.gu(0.1)
+                        border.color: isDarkTheme ? "#3a3a3f" : "#c0c0c0"
+
+                        Label {
+                            anchors.fill: parent
+                            anchors.leftMargin: units.gu(1.5)
+                            anchors.rightMargin: units.gu(1.5)
+                            verticalAlignment: Text.AlignVCenter
+                            text: isEndDateValid ? Qt.formatDate(endDateItem.date, "dd-MM-yyyy") : i18n.dtr("ubtms", "No date set")
+                            color: isEndDateValid ? (isDarkTheme ? "#ebebef" : "#333333") : (isDarkTheme ? "#9a9aa2" : "#888888")
+                            font.pixelSize: units.gu(1.8)
+                            elide: Text.ElideRight
+                        }
                     }
 
                     MouseArea {

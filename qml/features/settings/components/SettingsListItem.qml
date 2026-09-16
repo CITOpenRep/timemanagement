@@ -51,6 +51,7 @@ Item {
     property bool showProgression: true
     property bool showDivider: true
     property bool active: false
+    property bool collapsed: false
 
     signal clicked()
 
@@ -84,13 +85,13 @@ Item {
 
         Row {
             anchors.fill: parent
-            anchors.leftMargin: units.gu(2)
-            anchors.rightMargin: units.gu(2)
-            spacing: units.gu(2)
+            anchors.leftMargin: root.collapsed ? 0 : units.gu(2)
+            anchors.rightMargin: root.collapsed ? 0 : units.gu(2)
+            spacing: root.collapsed ? 0 : units.gu(2)
 
             // Icon container
             Item {
-                width: units.gu(4)
+                width: root.collapsed ? parent.width : units.gu(4)
                 height: parent.height
 
                 Icon {
@@ -104,7 +105,8 @@ Item {
 
             // Label
             Item {
-                width: parent.width - units.gu(4) - units.gu(3) - units.gu(6)  // icon + chevron + margins
+                visible: !root.collapsed
+                width: root.collapsed ? 0 : (parent.width - units.gu(4) - units.gu(3) - units.gu(6))
                 height: parent.height
 
                 Text {
@@ -119,9 +121,9 @@ Item {
 
             // Chevron / progression indicator
             Item {
-                width: units.gu(3)
+                visible: !root.collapsed && root.showProgression
+                width: root.collapsed ? 0 : units.gu(3)
                 height: parent.height
-                visible: root.showProgression
 
                 Text {
                     anchors.centerIn: parent
@@ -138,7 +140,7 @@ Item {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: units.gu(8)  // Indent divider past icon area
+            anchors.leftMargin: root.collapsed ? 0 : units.gu(8)
             height: units.dp(1)
             color: root.dividerColor
         }
@@ -146,7 +148,13 @@ Item {
         MouseArea {
             id: mouseArea
             anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             onClicked: root.clicked()
+
+            ToolTip.visible: root.collapsed && mouseArea.containsMouse && root.text.length > 0
+            ToolTip.text: root.text
+            ToolTip.delay: 400
         }
     }
 }

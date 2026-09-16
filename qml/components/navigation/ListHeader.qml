@@ -6,7 +6,7 @@ import ".."
 Rectangle {
     id: topFilterBar
     width: parent ? parent.width : Screen.width
-    height: (showSearchBox ? units.gu(5) : 0) + (filterModel && filterModel.length > 0 ? units.gu(6) : 0)
+    height: (showSearchBox ? searchBar.implicitHeight : 0) + (filterModel && filterModel.length > 0 ? units.gu(6) : 0)
     color: "transparent"
 
     // Helper property to check if dark mode is active
@@ -33,6 +33,8 @@ Rectangle {
     property string filter7: ""
 
     property bool showSearchBox: true
+    property string searchPlaceholderText: i18n.dtr("ubtms", "Search...")
+    property alias searchText: searchBar.text
     property string currentFilter: ""  // Track currently selected filter
 
     signal filterSelected(string filterKey)
@@ -125,13 +127,18 @@ Rectangle {
         showSearchBox = !showSearchBox;
         if (!showSearchBox) {
             clearSearch();
+        } else {
+            searchBar.forceActiveFocus();
         }
     }
 
     // Add function to clear search and reset filters
     function clearSearch() {
-        searchField.text = "";
-        customSearch("");
+        if (searchBar.text !== "") {
+            searchBar.clear();
+        } else {
+            customSearch("");
+        }
     }
 
     Column {
@@ -139,69 +146,21 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // Search field at the top
-        Rectangle {
-            visible: topFilterBar.showSearchBox
-            height: units.gu(5)
+        // Search bar
+        TSSearchBar {
+            id: searchBar
             width: parent.width
-            anchors.left: parent.left
-            anchors.right: parent.right
-            color: topFilterBar.isDark ? "#1E1E1E" : "#FFFFFF"
-            border.width: 0
+            height: topFilterBar.showSearchBox ? implicitHeight : 0
+            visible: topFilterBar.showSearchBox
+            placeholderText: topFilterBar.searchPlaceholderText
+            bottomPadding: units.gu(1.2)
 
-            Rectangle {
-                width: parent.width
-                height: 1
-                anchors.bottom: parent.bottom
-                color: searchField.activeFocus ? "#FF6B35" : (topFilterBar.isDark ? "#48484A" : "#E0E0E0")
+            onAccepted: {
+                topFilterBar.customSearch(query);
             }
 
-            TextField {
-                id: searchField
-                anchors.fill: parent
-                anchors.rightMargin: units.gu(4) // Space for clear button
-                anchors.leftMargin: units.gu(1)
-                background: Rectangle {
-                    color: "transparent"
-                }
-                color: topFilterBar.isDark ? "#FFFFFF" : "#333333"
-                selectByMouse: true
-                onAccepted: topFilterBar.customSearch(text)
-
-                // Custom placeholder text to guarantee color on Ubuntu Touch
-                Text {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.margins: units.gu(0.5)
-                    text: i18n.dtr("ubtms", "Search...")
-                    color: topFilterBar.isDark ? "#CCCCCC" : "#888888"
-                    font: searchField.font
-                    visible: !searchField.text && !searchField.activeFocus
-                    elide: Text.ElideRight
-                }
-            }
-
-            Button {
-                id: clearButton
-                visible: searchField.text.length > 0
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.rightMargin: units.gu(0.5)
-                width: units.gu(3)
-                height: units.gu(3)
-                text: "x"
-                background: Rectangle {
-                    color: "transparent"
-                }
-                contentItem: Text {
-                    text: parent.text
-                    color: "#888888"
-                    font.pixelSize: units.gu(2)
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                onClicked: topFilterBar.clearSearch()
+            onCleared: {
+                topFilterBar.customSearch("");
             }
         }
 

@@ -52,10 +52,23 @@ Page {
 
         leadingActionBar.actions: [
             Action {
+                id: backAction
+                iconName: "back"
+                text: i18n.dtr("ubtms", "Back")
+                visible: filterByProject
+                onTriggered: {
+                    if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                        apLayout.removePages(task);
+                    } else if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                        pageStack.pop();
+                    }
+                }
+            },
+            Action {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: !isMultiColumn
+                visible: !filterByProject && !isMultiColumn
                 onTriggered: {
                     apLayout.openGlobalDrawer()
                 }
@@ -76,10 +89,17 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), {
+                    var initialData = {
                         "recordid": 0,
                         "isReadOnly": false
-                    });
+                    };
+                    if (!tasklist.flatViewMode && tasklist.currentParentId > 0) {
+                        initialData["selectedparentId"] = tasklist.currentParentId;
+                        if (tasklist.currentAccountId !== undefined && tasklist.currentAccountId !== null) {
+                            initialData["selectedparentAccountId"] = tasklist.currentAccountId;
+                        }
+                    }
+                    apLayout.addPageToNextColumn(task, Qt.resolvedUrl("Tasks.qml"), initialData);
                 }
             },
              Action {
@@ -285,6 +305,12 @@ Page {
             tasklist.filterByAssignees = task.filterByAssignees;
             tasklist.selectedAssigneeIds = task.selectedAssigneeIds;
 
+            var activeSearch = (taskListHeader.searchText !== undefined && taskListHeader.searchText !== null)
+                ? taskListHeader.searchText
+                : (task.currentSearchQuery || "");
+            task.currentSearchQuery = activeSearch;
+            tasklist.currentSearchQuery = activeSearch;
+
             // Apply the appropriate filter with assignee filtering
             if (filterByProject) {
                 tasklist.applyProjectAndTimeFilter(projectOdooRecordId, projectAccountId, filterKey);
@@ -401,7 +427,8 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: i18n.dtr("ubtms", "Task")
+                label: i18n.dtr("ubtms", "Create Task"),
+                iconName: "add"
             }
         ]
         onMenuItemSelected: {
@@ -522,7 +549,7 @@ Page {
             } else {
                 if (currentSearchQuery) {
                     // Reapply search if there was one
-                    tasklist.searchTasks(currentSearchQuery);
+                    tasklist.applySearch(currentSearchQuery);
                 } else {
                     // Reapply current filter
                     tasklist.applyFilter(currentFilter);

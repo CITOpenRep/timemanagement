@@ -72,10 +72,17 @@ Page {
                 iconName: "add"
                 text: "New"
                 onTriggered: {
-                    apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), {
+                    var initialData = {
                         "recordid": 0,
                         "isReadOnly": false
-                    });
+                    };
+                    if (!myTasksList.flatViewMode && myTasksList.currentParentId > 0) {
+                        initialData["selectedparentId"] = myTasksList.currentParentId;
+                        if (myTasksList.currentAccountId !== undefined && myTasksList.currentAccountId !== null) {
+                            initialData["selectedparentAccountId"] = myTasksList.currentAccountId;
+                        }
+                    }
+                    apLayout.addPageToNextColumn(myTasksPage, Qt.resolvedUrl("Tasks.qml"), initialData);
                 }
             },
             Action {
@@ -305,7 +312,10 @@ Page {
 
             var stageId = filterKey === "null" ? null : parseInt(filterKey);
             myTasksPage.currentPersonalStageId = stageId;
-            myTasksPage.currentSearchQuery = "";
+            var activeSearch = (myTaskListHeader.searchText !== undefined && myTaskListHeader.searchText !== null)
+                ? myTaskListHeader.searchText
+                : (myTasksPage.currentSearchQuery || "");
+            myTasksPage.currentSearchQuery = activeSearch;
 
             updateCurrentUser();
             if (currentUserOdooId > 0) {
@@ -418,7 +428,8 @@ Page {
         z: 9999
         menuModel: [
             {
-                label: i18n.dtr("ubtms", "Create")
+                label: i18n.dtr("ubtms", "Create Task"),
+                iconName: "add"
             }
         ]
 
@@ -452,6 +463,12 @@ Page {
         function onGlobalAccountChanged(accountId, accountName) {
             if (accountId >= -1 && accountId !== selectedAccountId) {
                 handleAccountChange(accountId);
+            }
+        }
+
+        function onTaskDataChanged() {
+            if (myTasksPage.visible) {
+                refreshData();
             }
         }
     }

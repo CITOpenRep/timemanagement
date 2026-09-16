@@ -24,17 +24,58 @@ Item {
     /** Persist last accepted choice (set when user taps an account) */
     property int selectedAccountId: Accounts.getDefaultAccountId()
     property string selectedAccountName: Accounts.getAccountName(Accounts.getDefaultAccountId())
+    property int lastRemoteAccountId: -1
+
+    Component.onCompleted: {
+        if (selectedAccountId > 0) {
+            lastRemoteAccountId = selectedAccountId
+        } else {
+            lastRemoteAccountId = Accounts.getDefaultRemoteAccountId()
+        }
+    }
 
     signal accepted(int accountId, string accountName)
     signal canceled()
 
     // carry initial request until dialog is visible
     property int _initialAccountId: -2   // -2 = none, -1 = "All"
+    property var activeDialog: null
 
     /** Show dialog; optionally preselect an account id */
     function open(initialAccountId) {
+        if (activeDialog)
+            return activeDialog
         _initialAccountId = (typeof initialAccountId === "number") ? initialAccountId : -2
-        PopupUtils.open(dialogComponent)
+        activeDialog = PopupUtils.open(dialogComponent)
+        return activeDialog
+    }
+
+    /** Toggle between Local Account (0) and last active remote account */
+    function toggleLocalMode(enableLocal) {
+        if (enableLocal) {
+            if (selectedAccountId !== 0) {
+                selectedAccountId = 0
+                selectedAccountName = Accounts.getAccountName(0)
+                accepted(0, selectedAccountName)
+            }
+            return true
+        } else {
+            var targetId = (lastRemoteAccountId > 0 && Accounts.getAccountName(lastRemoteAccountId))
+                           ? lastRemoteAccountId
+                           : Accounts.getDefaultRemoteAccountId()
+            if (targetId > 0 && selectedAccountId !== targetId) {
+                selectedAccountId = targetId
+                selectedAccountName = Accounts.getAccountName(targetId)
+                accepted(targetId, selectedAccountName)
+                return true
+            } else if (targetId <= 0) {
+                if (typeof notifPopup !== "undefined") {
+                    notifPopup.open(i18n.dtr("ubtms", "Notice"), i18n.dtr("ubtms", "You don't have any account logged in"), "warning")
+                }
+                return false
+            }
+            return true
+        }
     }
 
     // ---------- Private ----------
@@ -45,11 +86,6 @@ Item {
             id: dlg
             title: root.titleText
             modal: true
-
-            StyleHints {
-                backgroundColor: theme.palette.normal.background
-                foregroundColor: theme.palette.normal.backgroundText
-            }
 
             property bool isLoadingAccounts: false
             property int preselectedId: -2
@@ -178,6 +214,9 @@ Item {
                             onClicked: {
                                 var accountId = model.accountId
                                 var accountName = model.name
+                                if (accountId > 0) {
+                                    root.lastRemoteAccountId = accountId
+                                }
                                 root.selectedAccountId = accountId
                                 root.selectedAccountName = accountName
                                 PopupUtils.close(dlg)
@@ -257,6 +296,10 @@ Item {
                     }
                     loadAccounts()
                 }
+            }
+
+            Component.onDestruction: {
+                root.activeDialog = null
             }
         }
     }

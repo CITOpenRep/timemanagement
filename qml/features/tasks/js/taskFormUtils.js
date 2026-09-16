@@ -21,7 +21,7 @@ function restoreWorkItemSelection(workItem, snapshot) {
     var subtaskId = normalizeIdForRestore(snapshot.subtaskId);
     var assigneeId = normalizeIdForRestore(snapshot.assigneeId);
 
-    if (accountId > 0 || projectId > 0) {
+    if ((accountId !== null && accountId !== undefined && accountId >= 0) || projectId > 0) {
         workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, assigneeId);
 
         if (workItem.enableMultipleAssignees && snapshot.multipleAssignees) {
@@ -129,17 +129,29 @@ function buildSaveData(params) {
         plannedHours: Utils.convertDurationToFloat(params.plannedHours),
         description: params.description,
         assigneeUserId: params.ids.assignee_id,
-        status: "updated"
+        status: (params.ids && params.ids.account_id === 0) ? "saved" : "updated"
     };
 
+    var isLocalAccount = (params.ids && params.ids.account_id === 0);
     var stageToAssign = params.selectedStageOdooRecordId;
-    if (params.recordId === 0 && stageToAssign <= 0 && params.stageListCount > 0) {
-        var firstStage = params.firstStage;
-        stageToAssign = firstStage ? firstStage.odoo_record_id : stageToAssign;
+
+    if (params.recordId === 0 && params.stageListCount > 0) {
+        var hasNoValidStage = isLocalAccount
+            ? (stageToAssign === undefined || stageToAssign === null || stageToAssign === 0)
+            : (stageToAssign === undefined || stageToAssign === null || stageToAssign <= 0);
+
+        if (hasNoValidStage && params.firstStage) {
+            stageToAssign = params.firstStage.odoo_record_id;
+        }
     }
 
-    if (stageToAssign > 0)
+    if (isLocalAccount) {
+        if (stageToAssign !== undefined && stageToAssign !== null && stageToAssign !== 0) {
+            saveData.stageOdooRecordId = stageToAssign;
+        }
+    } else if (stageToAssign > 0) {
         saveData.stageOdooRecordId = stageToAssign;
+    }
 
     if (params.selectedPersonalStageOdooRecordId !== undefined && params.selectedPersonalStageOdooRecordId !== null) {
         saveData.personalStageOdooRecordId = params.selectedPersonalStageOdooRecordId > 0

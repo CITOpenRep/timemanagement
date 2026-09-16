@@ -40,9 +40,14 @@ Page {
 
     // Properties for filtering by project
     property bool filterByProject: false
-    property string projectOdooRecordId: ""
+    property var projectOdooRecordId: ""
+    property var projectRecordId: projectOdooRecordId
     property int projectAccountId: accountPicker.selectedAccountId
     property string projectName: ""
+
+    readonly property var effectiveProjectId: (projectRecordId !== undefined && projectRecordId !== "" && projectRecordId !== null)
+                                              ? projectRecordId
+                                              : projectOdooRecordId
 
     // Use numeric -1 as default (All accounts). Do NOT initialize from default account (that's for creation only).
     property int selectedAccountId: accountPicker.selectedAccountId
@@ -65,10 +70,23 @@ Page {
 
         leadingActionBar.actions: [
             Action {
+                id: backAction
+                iconName: "back"
+                text: i18n.dtr("ubtms", "Back")
+                visible: filterByProject
+                onTriggered: {
+                    if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                        apLayout.removePages(updates);
+                    } else if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                        pageStack.pop();
+                    }
+                }
+            },
+            Action {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: !isMultiColumn
+                visible: !filterByProject && !isMultiColumn
                 onTriggered: {
                     apLayout.openGlobalDrawer()
                 }
@@ -87,11 +105,11 @@ Page {
                 iconName: "add"
                 text: i18n.dtr("ubtms", "New")
                 onTriggered: {
-                    if (filterByProject && projectOdooRecordId && projectAccountId >= 0) {
+                    if (filterByProject && effectiveProjectId && projectAccountId >= 0) {
                         // Direct creation when viewing updates for a specific project
                         var newUpdate = {
                             account_id: projectAccountId,
-                            project_id: projectOdooRecordId,
+                            project_id: effectiveProjectId,
                             name: "",
                             description: "",
                             project_status: "on_track",
@@ -136,6 +154,27 @@ Page {
 
     // React to global account changes (numeric normalization)
     Connections {
+        target: typeof accountPicker !== "undefined" ? accountPicker : null
+
+        onAccepted: function (id, name) {
+            if (!filterByProject) {
+                selectedAccountId = id;
+                fetchupdates();
+            }
+        }
+
+        onSelectedAccountIdChanged: {
+            if (!filterByProject && typeof accountPicker !== "undefined" && accountPicker) {
+                var activeId = accountPicker.selectedAccountId;
+                if (selectedAccountId !== activeId) {
+                    selectedAccountId = activeId;
+                    fetchupdates();
+                }
+            }
+        }
+    }
+
+    Connections {
         target: mainView
         onAccountDataRefreshRequested: function (accountId) {
             var acctNum = -1;
@@ -149,8 +188,9 @@ Page {
             } catch (e) {
                 acctNum = -1;
             }
-            console.log("Updates_Page: AccountDataRefreshRequested ->", acctNum);
-            selectedAccountId = acctNum;
+            if (!filterByProject) {
+                selectedAccountId = acctNum;
+            }
             fetchupdates();
         }
         onGlobalAccountChanged: function (accountId, accountName) {
@@ -165,8 +205,9 @@ Page {
             } catch (e) {
                 acctNum = -1;
             }
-            console.log("Updates_Page: GlobalAccountChanged ->", acctNum, accountName);
-            selectedAccountId = acctNum;
+            if (!filterByProject) {
+                selectedAccountId = acctNum;
+            }
             fetchupdates();
         }
     }
@@ -204,8 +245,8 @@ Page {
         var filterAccountId = (filterByProject && projectAccountId >= 0) ? projectAccountId : selectedAccountId;
 
         try {
-            if (filterByProject && projectOdooRecordId && filterAccountId >= 0) {
-                updates_list = Project.getProjectUpdatesByProject(projectOdooRecordId, filterAccountId);
+            if (filterByProject && effectiveProjectId && filterAccountId >= 0) {
+                updates_list = Project.getProjectUpdatesByProject(effectiveProjectId, filterAccountId);
             } else {
                 updates_list = Project.getAllProjectUpdates(filterAccountId);
             }
@@ -285,6 +326,10 @@ Page {
         
         onFilterSelected: {
             updates.currentStatusFilter = filterKey;
+            var activeSearch = (updatesListHeader.searchText !== undefined && updatesListHeader.searchText !== null)
+                ? updatesListHeader.searchText
+                : (updates.currentSearchQuery || "");
+            updates.currentSearchQuery = activeSearch;
             fetchupdates();
         }
         
@@ -356,12 +401,17 @@ Page {
 
     onVisibleChanged: {
         if (visible) {
+            if (!filterByProject && typeof accountPicker !== "undefined" && accountPicker) {
+                selectedAccountId = accountPicker.selectedAccountId;
+            }
             fetchupdates();
         }
     }
 
     Component.onCompleted: {
-        selectedAccountId = accountPicker.selectedAccountId;
+        if (!filterByProject && typeof accountPicker !== "undefined" && accountPicker) {
+            selectedAccountId = accountPicker.selectedAccountId;
+        }
         fetchupdates();
     }
 

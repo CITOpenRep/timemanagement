@@ -50,10 +50,23 @@ Page {
 
         leadingActionBar.actions: [
             Action {
+                id: backAction
+                iconName: "back"
+                text: i18n.dtr("ubtms", "Back")
+                visible: filterByProject || filterByTasks
+                onTriggered: {
+                    if (typeof apLayout !== "undefined" && apLayout && apLayout.removePages) {
+                        apLayout.removePages(activity);
+                    } else if (typeof pageStack !== "undefined" && pageStack && pageStack.pop) {
+                        pageStack.pop();
+                    }
+                }
+            },
+            Action {
                 id: drawerAction
                 iconName: "navigation-menu"
                 text: i18n.dtr("ubtms", "Menu")
-                visible: !isMultiColumn
+                visible: !filterByProject && !filterByTasks && !isMultiColumn
                 onTriggered: {
                     apLayout.openGlobalDrawer()
                 }
@@ -292,18 +305,37 @@ Page {
                 for (let i = 0; i < allActivities.length; i++) {
                     var item = allActivities[i];
                     var matchesSelectedAssignee = false;
+                    var itemUserId = (item.user_id !== undefined && item.user_id !== null && item.user_id !== "") ? parseInt(item.user_id) : -1;
+                    var itemAccountId = (item.account_id !== undefined && item.account_id !== null && item.account_id !== "") ? parseInt(item.account_id) : -1;
+
                     for (let j = 0; j < menuSelectedIds.length; j++) {
                         var selectedId = menuSelectedIds[j];
-                        if (typeof selectedId === 'object') {
-                            if (item.user_id && item.account_id && parseInt(item.user_id) === selectedId.user_id && parseInt(item.account_id) === selectedId.account_id) {
-                                matchesSelectedAssignee = true;
-                                break;
-                            }
-                        } else {
-                            if (item.user_id && parseInt(item.user_id) === parseInt(selectedId)) {
-                                matchesSelectedAssignee = true;
-                                break;
-                            }
+                        var selUserId = -1;
+                        var selAccountId = -1;
+
+                        if (typeof selectedId === 'object' && selectedId !== null) {
+                            selUserId = (selectedId.user_id !== undefined && selectedId.user_id !== null && selectedId.user_id !== "") ? parseInt(selectedId.user_id) : -1;
+                            selAccountId = (selectedId.account_id !== undefined && selectedId.account_id !== null && selectedId.account_id !== "") ? parseInt(selectedId.account_id) : -1;
+                        } else if (selectedId !== undefined && selectedId !== null && selectedId !== "") {
+                            selUserId = parseInt(selectedId);
+                        }
+
+                        if (selUserId === -1) {
+                            continue;
+                        }
+
+                        // Check account match if account was specified in selection
+                        var accountMatches = (selAccountId === -1 || itemAccountId === -1 || itemAccountId === selAccountId);
+
+                        // Check user match (handle local account where user_id could be 1 or -1)
+                        var userMatches = (itemUserId !== -1 && (
+                            itemUserId === selUserId ||
+                            (itemAccountId === 0 && (itemUserId === 1 || itemUserId === -1) && (selUserId === 1 || selUserId === -1))
+                        ));
+
+                        if (accountMatches && userMatches) {
+                            matchesSelectedAssignee = true;
+                            break;
                         }
                     }
                     if (matchesSelectedAssignee) {
@@ -337,7 +369,7 @@ Page {
                     summary: item.summary,
                     due_date: item.due_date,
                     notes: item.notes,
-                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id),
+                    activity_type_name: Activity.getActivityTypeName(item.activity_type_id, item.account_id),
                     state: item.state,
                     task_id: safeTaskId,
                     task_name: taskName,
@@ -403,12 +435,11 @@ Page {
                 for (var i = 0; i < rawAssignees.length; i++) {
                     var assignee = rawAssignees[i];
                     var id = (projectAccountId === 0) ? assignee.id : assignee.odoo_record_id;
-                    if (id > 0) {
-                        // Skip invalid/placeholder entries
+                    if (id > 0 && assignee.name && String(assignee.name).trim() !== "") {
                         filteredAssignees.push({
                             id: id,
                             odoo_record_id: id,
-                            name: assignee.name,
+                            name: String(assignee.name).trim(),
                             email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: projectAccountId
@@ -428,12 +459,11 @@ Page {
                 for (var i = 0; i < rawAssignees.length; i++) {
                     var assignee = rawAssignees[i];
                     var id = (currentAccountId === 0) ? assignee.id : assignee.odoo_record_id;
-                    if (id > 0) {
-                        // Skip invalid/placeholder entries
+                    if (id > 0 && assignee.name && String(assignee.name).trim() !== "") {
                         filteredAssignees.push({
                             id: id,
                             odoo_record_id: id,
-                            name: assignee.name,
+                            name: String(assignee.name).trim(),
                             email: assignee.email || "",
                             account_name: assignee.account_name || "",
                             account_id: currentAccountId
@@ -575,7 +605,7 @@ Page {
         }
 
         // Search in activity type name
-        var activityTypeName = Activity.getActivityTypeName(item.activity_type_id);
+        var activityTypeName = Activity.getActivityTypeName(item.activity_type_id, item.account_id);
         if (activityTypeName && activityTypeName.toLowerCase().indexOf(query) >= 0) {
             return true;
         }
@@ -640,6 +670,10 @@ Page {
             }
 
             activity.currentFilter = nextFilter;
+            var activeSearch = (listheader.searchText !== undefined && listheader.searchText !== null)
+                ? listheader.searchText
+                : (activity.currentSearchQuery || "");
+            activity.currentSearchQuery = activeSearch;
 
             get_activity_list();
         }

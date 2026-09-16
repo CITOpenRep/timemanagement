@@ -132,7 +132,7 @@ Rectangle {
     signal multiAssigneesChanged(var assignees)
 
     // Selected IDs
-    property int selectedAccountId: -1
+    property alias selectedAccountId: account_component.selectedId
     property int selectedProjectId: -1
     property int selectedSubProjectId: -1
     property int selectedTaskId: -1
@@ -390,6 +390,12 @@ Rectangle {
                 username: accounts[i].username,
                 is_default: accounts[i].is_default || 0
             });
+        }
+
+        // Fallback to the first available account if default_id was invalid/unmatched
+        if (default_name === "" && accountList.length > 0) {
+            default_id = accountList[0].id;
+            default_name = accountList[0].name;
         }
 
         selectorModelMap["Account"] = accountList;
@@ -681,15 +687,20 @@ Rectangle {
             let id = (accountId === 0) ? rawAssignees[i].id : rawAssignees[i].odoo_record_id;
             let name = rawAssignees[i].name;
 
+            if (!name || String(name).trim() === "") {
+                continue;
+            }
+
+            let cleanName = String(name).trim();
             assigneeList.push({
                 id: id,
-                name: name,
+                name: cleanName,
                 parent_id: null // no hierarchy for assignees
             });
 
             if (selectedId === id) {
                 default_id = id;
-                default_name = name;
+                default_name = cleanName;
             }
         }
 

@@ -26,6 +26,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import Pparent.Notifications 1.0
 import "../components"
 import "../../../components"
@@ -164,6 +165,11 @@ Page {
                             id: autoSyncSwitch
                             checked: getAutoSyncSetting("autosync_enabled") === "true"
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
                             onCheckedChanged: {
                                 saveAutoSyncSetting("autosync_enabled", checked ? "true" : "false");
                             }

@@ -97,7 +97,7 @@ Page {
         }
 
         SettingsListItem {
-            iconName: "preferences-desktop-theme"
+            iconName: "preferences-color-symbolic"
             iconColor: "#8e44ad"
             text: i18n.dtr("ubtms", "Theme Settings")
             active: settings.selectedSettingsPageUrl === "Settings_Theme.qml"

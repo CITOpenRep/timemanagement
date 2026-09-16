@@ -119,10 +119,46 @@ Page {
                 color: LomiriColors.red
                 onClicked: {
                     if (accountToDelete !== -1) {
-                        Accounts.deleteAccountAndRelatedData(accountToDelete);
+                        var deletedId = accountToDelete;
+                        Accounts.deleteAccountAndRelatedData(deletedId);
                         if (accountIndexToDelete !== -1) {
                             accountListModel.remove(accountIndexToDelete);
                         }
+
+                        // Cleanup orphan attachment files from disk
+                        if (typeof backend_bridge !== "undefined" && backend_bridge) {
+                            backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                if (path) {
+                                    backend_bridge.call("backend.cleanup_orphan_attachment_files", [path], function (res) {
+                                        // Cleanup completed
+                                    });
+                                }
+                            });
+                        }
+
+                        // Check if the deleted account was the active account or no longer exists
+                        var currentActiveId = (typeof accountPicker !== "undefined" && accountPicker) ? accountPicker.selectedAccountId : -1;
+                        if (currentActiveId === deletedId || !Accounts.getAccountName(currentActiveId)) {
+                            var nextAccountId = Accounts.getDefaultAccountId();
+                            if (nextAccountId === -1) nextAccountId = 0;
+                            var nextAccountName = Accounts.getAccountName(nextAccountId) || "Local Account";
+
+                            if (typeof accountPicker !== "undefined" && accountPicker) {
+                                accountPicker.selectedAccountId = nextAccountId;
+                                accountPicker.selectedAccountName = nextAccountName;
+                                accountPicker.accepted(nextAccountId, nextAccountName);
+                            }
+                        } else {
+                            if (typeof mainView !== "undefined" && mainView) {
+                                mainView.accountDataRefreshRequested(currentActiveId);
+                            }
+                        }
+
+                        if (typeof mainView !== "undefined" && mainView) {
+                            mainView.projectDataChanged();
+                            mainView.taskDataChanged();
+                        }
+
                         accountToDelete = -1;
                         accountIndexToDelete = -1;
                     }
@@ -282,13 +318,14 @@ Page {
                         });
                     }
                 }
+                leadingActions: model.id === 0 ? null : accountLeadingActions
 
-                // ── Swipe Left → Edit ──
-                leadingActions: ListItemActions {
+                ListItemActions {
+                    id: accountLeadingActions
                     actions: [
                         Action {
                             iconName: "edit"
-                            enabled: model.id !== 0
+                            text: i18n.dtr("ubtms", "Edit")
                             onTriggered: {
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl('Account_Page.qml'), {
                                     "accountId": model.id,
@@ -298,14 +335,14 @@ Page {
                         }
                     ]
                 }
+                trailingActions: model.id === 0 ? null : accountTrailingActions
 
-                // ── Swipe Right → Log, Delete ──
-                trailingActions: ListItemActions {
+                ListItemActions {
+                    id: accountTrailingActions
                     actions: [
                         Action {
                             iconName: "note"
                             text: i18n.dtr("ubtms", "Log")
-                            enabled: model.id !== 0
                             onTriggered: {
                                 apLayout.addPageToNextColumn(accountsSettingsPage, Qt.resolvedUrl("SyncLog.qml"), {
                                     "recordid": model.id
@@ -315,7 +352,6 @@ Page {
                         Action {
                             iconName: "delete"
                             text: i18n.dtr("ubtms", "Delete")
-                            enabled: model.id !== 0
                             onTriggered: {
                                 accountToDelete = model.id;
                                 accountIndexToDelete = index;

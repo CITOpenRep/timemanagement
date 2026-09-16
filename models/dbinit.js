@@ -231,6 +231,8 @@ function initializeDatabase() {
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'name TEXT', 'status TEXT DEFAULT ""', 'odoo_record_id INTEGER']
                                  );
+    // Ensure default activity types for Local Account
+    DBCommon.ensureDefaultLocalActivityTypes();
 
 
     DBCommon.createOrUpdateTable("ir_model_app",
@@ -430,6 +432,8 @@ function initializeDatabase() {
         'has_draft INTEGER DEFAULT 0'
       ]
     );
+    // Ensure default task stages for Local Account
+    DBCommon.ensureDefaultLocalTaskStages();
 
     DBCommon.createOrUpdateTable("project_project_stage_app",
       'CREATE TABLE IF NOT EXISTS project_project_stage_app (\
@@ -468,6 +472,8 @@ function initializeDatabase() {
         'has_draft INTEGER DEFAULT 0'
       ]
     );
+    // Ensure default project stages for Local Account
+    DBCommon.ensureDefaultLocalProjectStages();
 
     DBCommon.createOrUpdateTable("dl_cache_app",
       'CREATE TABLE IF NOT EXISTS dl_cache_app (\
@@ -641,10 +647,15 @@ function initializeDatabase() {
     }
 
 
+    Logger.debug("Dbinit", "Database initialization complete")
+}
+
+function performPostStartupMaintenance() {
+    Logger.debug("Dbinit", "Performing post-startup database maintenance...")
     purgeCache();
     syncDraftFlags();
-    
-    Logger.debug("Dbinit", "Database initialization complete")
+    cleanupOrphanAccountData();
+    Logger.debug("Dbinit", "Post-startup database maintenance complete")
 }
 
 /**
@@ -796,3 +807,46 @@ function syncDraftFlags() {
         }
     }
 }
+
+function cleanupOrphanAccountData() {
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(
+            DBCommon.NAME,
+            DBCommon.VERSION,
+            DBCommon.DISPLAY_NAME,
+            DBCommon.SIZE
+        );
+        db.transaction(function (tx) {
+            var tables = [
+                "sync_report",
+                "project_project_app",
+                "project_task_app",
+                "account_analytic_line_app",
+                "res_users_app",
+                "mail_activity_type_app",
+                "ir_model_app",
+                "mail_activity_app",
+                "ir_attachment_app",
+                "project_task_assignee_app",
+                "project_update_app",
+                "project_task_type_app",
+                "project_project_stage_app",
+                "attachment_download_app",
+                "form_drafts",
+                "notification"
+            ];
+
+            for (var i = 0; i < tables.length; i++) {
+                try {
+                    tx.executeSql("DELETE FROM " + tables[i] + " WHERE account_id NOT IN (SELECT id FROM users)");
+                } catch (tableErr) {
+                    Logger.debug("Dbinit", "Could not purge orphan data from " + tables[i] + ": " + tableErr);
+                }
+            }
+        });
+        Logger.debug("Dbinit", "Orphan account data cleanup complete");
+    } catch (e) {
+        Logger.error("Dbinit", "cleanupOrphanAccountData failed:", e);
+    }
+}
+

@@ -33,10 +33,14 @@ Item {
         id: modelDownloadTimerWidget
         z: 9999
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0) + units.gu(1)
+        anchors.bottomMargin: ((Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0) + units.gu(1)) + (globalTimerWidget.visible ? (globalTimerWidget.height + units.gu(1)) : 0)
         visible: false
         showNotification: function (title, message, type) {
             notifPopup.open(title, message, type);
+        }
+
+        Behavior on anchors.bottomMargin {
+            NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
         }
     }
 
@@ -65,13 +69,17 @@ Item {
                 return;
             }
 
-            if (rootApp.currentAccountId === id) {
-                return;
+            if (id > 0) {
+                accountPicker.lastRemoteAccountId = id;
             }
 
+            var accountChanged = (rootApp.currentAccountId !== id);
             rootApp.currentAccountId = id;
             rootApp.currentAccountName = name;
-            rootApp.globalAccountChanged(id, name);
+
+            if (accountChanged) {
+                rootApp.globalAccountChanged(id, name);
+            }
             rootApp.accountDataRefreshRequested(id);
         }
     }

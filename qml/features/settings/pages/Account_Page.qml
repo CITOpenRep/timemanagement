@@ -25,6 +25,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import Lomiri.Components 1.3
+import Lomiri.Components.Themes.Ambiance 1.3
 import QtQuick.Window 2.2
 import QtQuick.LocalStorage 2.7 as Sql
 import io.thp.pyotherside 1.4
@@ -63,7 +64,7 @@ Page {
         }
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms","Save")
                 
@@ -87,6 +88,7 @@ Page {
     }
 
     function handleAccountSave() {
+        accountNameInput.text = (accountNameInput.text || "").trim();
         if (!accountNameInput.text) {
             notifPopup.open("Error", "Account name cannot be empty", "error");
             return;
@@ -94,27 +96,38 @@ Page {
 
         var dbname = "";
         if (isManualDbMode) {
-            dbname = manualDbInput.text;
+            dbname = manualDbInput.text || "";
         } else {
-            dbname = databaseSelector.selectedName;
+            dbname = databaseSelector.selectedName || "";
         }
 
-        if (!linkInput.text.trim()) {
+        if (!linkInput.text || !linkInput.text.trim()) {
             notifPopup.open("Error", "Server URL cannot be empty", "error");
             return;
         }
 
-        if (!usernameInput.text.trim()) {
+        var urlResult = Utils.validateAndCleanOdooURL(linkInput.text);
+        if (!urlResult.isValid) {
+            notifPopup.open("Error", "The Odoo Server URL is Wrong", "error");
+            return;
+        }
+
+        linkInput.text = urlResult.cleanedUrl;
+        usernameInput.text = (usernameInput.text || "").trim();
+        passwordInput.text = (passwordInput.text || "").trim();
+        dbname = dbname.trim();
+
+        if (!usernameInput.text) {
             notifPopup.open("Error", "Username cannot be empty", "error");
             return;
         }
 
-        if (!passwordInput.text.trim()) {
+        if (!passwordInput.text) {
             notifPopup.open("Error", "Password/API Key cannot be empty", "error");
             return;
         }
 
-        if (!dbname.trim()) {
+        if (!dbname) {
             notifPopup.open("Error", "Database name cannot be empty", "error");
             return;
         }
@@ -601,6 +614,11 @@ Page {
                             checked: useCustomSyncSettings
                             enabled: !isReadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
                             onCheckedChanged: {
                                 useCustomSyncSettings = checked;
                             }
@@ -635,6 +653,11 @@ Page {
                             checked: true
                             enabled: !isReadOnly
                             anchors.verticalCenter: parent.verticalCenter
+                            style: Component {
+                                SwitchStyle {
+                                    checkedBackgroundColor: LomiriColors.orange
+                                }
+                            }
                         }
                     }
 

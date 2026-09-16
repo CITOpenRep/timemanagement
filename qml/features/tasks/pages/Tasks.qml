@@ -67,7 +67,7 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 visible: !isReadOnly
                 text: i18n.dtr("ubtms", "Save")
                 onTriggered: {
@@ -96,12 +96,14 @@ Page {
     }
     property var recordid: 0 //0 means creation mode
     property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
+    property int tempAttachmentId: recordid === 0 ? -(Math.floor(Date.now() % 100000000) + 1) : 0
 
     property string currentEditingField: ""
     property bool workpersonaSwitchState: true
     property bool isReadOnly: recordid != 0 // Set read-only immediately based on recordid
     property int selectedProjectId: 0
     property int selectedparentId: 0
+    property int selectedparentAccountId: -1
     property int selectedTaskId: 0
     property int priority: 0
     property bool editVisible: true   
@@ -310,7 +312,7 @@ Page {
             var projectId = TaskFormUtils.normalizeIdForRestore(draftData.projectId);
             
             if (TaskFormUtils.restoreWorkItemSelection(workItem, draftData)) {
-                if (projectId > 0 && accountId > 0) {
+                if (projectId > 0 && accountId !== null && accountId !== undefined && accountId >= 0) {
                     var savedStageId = draftData.selectedStageOdooRecordId;
                     var savedPersonalStageId = draftData.selectedPersonalStageOdooRecordId;
                     
@@ -369,6 +371,11 @@ Page {
         }
         if (originalData.selectedPersonalStageOdooRecordId !== undefined) {
             selectedPersonalStageOdooRecordId = originalData.selectedPersonalStageOdooRecordId;
+        }
+
+        if (recordid === 0 && tempAttachmentId !== 0) {
+            Task.cleanupTemporaryAttachments("project.task", tempAttachmentId, workItem ? workItem.selectedAccountId : 0);
+            attachments_widget.clearAttachments();
         }
     }
     
@@ -479,6 +486,10 @@ Page {
                 notifPopup.open("Error", "Unable to Save the Task", "error");
                 return false;
             } else {
+                if (recordid === 0 && result.taskId && tempAttachmentId !== 0) {
+                    var accIdToLink = ids.account_id !== null && ids.account_id !== undefined ? ids.account_id : 0;
+                    Task.updateAttachmentResourceId("project.task", tempAttachmentId, result.taskId, accIdToLink);
+                }
                 notifPopup.open("Saved", "Task has been saved successfully", "success");
 
                 // Prevent programmatic UI normalization from creating a fresh draft.
@@ -494,6 +505,10 @@ Page {
                 draftHandler.updateOriginalData(getCurrentFormData());
                 draftHandler.trackingSuspended = false;
                 
+                if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                    mainView.taskDataChanged();
+                }
+
                 // Navigate back to list view after successful save (unless skipNavigation is true)
                 if (!skipNavigation) {
                     navigateBack();
@@ -561,6 +576,10 @@ Page {
             // Reload the task to reflect changes
             loadTask();
 
+            if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                mainView.taskDataChanged();
+            }
+
             notifPopup.open("Success", "Task stage changed to: " + stageName, "success");
         } else {
             notifPopup.open("Error", "Failed to change stage: " + (result.error || "Unknown error"), "error");
@@ -585,6 +604,10 @@ Page {
             // Reload the task to reflect changes
             loadTask();
 
+            if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
+                mainView.taskDataChanged();
+            }
+
             var message = personalStageOdooRecordId === null ? "Personal stage cleared" : "Personal stage changed to: " + personalStageName;
             notifPopup.open("Success", message, "success");
         } else {
@@ -594,7 +617,7 @@ Page {
 
     function loadStagesForProject(projectOdooRecordId, accountId) {
 
-        if (projectOdooRecordId <= 0 || accountId <= 0) {
+        if (!projectOdooRecordId || projectOdooRecordId <= 0 || accountId === undefined || accountId === null || accountId < 0) {
             initialStageSelector.model.clear();
             initialStageSelector.currentIndex = -1;
             selectedStageOdooRecordId = -1;
@@ -615,6 +638,7 @@ Page {
 
         // Automatically select first stage as default (user can change it)
         if (initialStageSelector.model.count > 0) {
+            initialStageSelector.currentIndex = -1;
             initialStageSelector.currentIndex = 0;
             var firstStage = initialStageSelector.model.get(0);
             selectedStageOdooRecordId = firstStage.odoo_record_id;
@@ -702,12 +726,16 @@ Page {
                                 var ids = workItem.getIds();
                                 var projectId = data.id;
                                 var accountId = ids.account_id;
-                                if (projectId > 0 && accountId > 0) {
+                                if (projectId > 0 && accountId !== null && accountId !== undefined && accountId >= 0) {
                                     loadStagesForProject(projectId, accountId);
+                                } else {
+                                    initialStageSelector.model.clear();
+                                    initialStageSelector.currentIndex = -1;
+                                    selectedStageOdooRecordId = -1;
                                 }
                             } else if (newState === "SubprojectSelected") {
                                 var ids2 = workItem.getIds();
-                                if (ids2.project_id > 0 && ids2.account_id > 0) {
+                                if (ids2.project_id > 0 && ids2.account_id !== null && ids2.account_id !== undefined && ids2.account_id >= 0) {
                                     loadStagesForProject(ids2.project_id, ids2.account_id);
                                 }
                             } else if (newState === "AccountSelected") {
@@ -819,7 +847,8 @@ Page {
                 });
             }
             onCreateActivityRequested: {
-                let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, currentTask.odoo_record_id);
+                let taskEffectiveId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                let result = Activity.createActivityFromProjectOrTask(false, currentTask.account_id, taskEffectiveId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                         "recordid": result.record_id,
@@ -831,16 +860,18 @@ Page {
                 }
             }
             onViewActivitiesRequested: {
-                Logger.debug("Tasks", "Viewing activities for task:", currentTask.id, "odoo_record_id:", currentTask.odoo_record_id)
+                let taskEffectiveId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                Logger.debug("Tasks", "Viewing activities for task:", currentTask.id, "effectiveId:", taskEffectiveId)
                 apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                     "filterByTasks": true,
-                    "taskOdooRecordId": currentTask.odoo_record_id,
+                    "taskOdooRecordId": taskEffectiveId,
                     "projectAccountId": currentTask.account_id,
                     "projectName": currentTask.name || "Task"
                 });
             }
             onCreateTimesheetRequested: {
-                const result = Timesheet.createTimesheetFromTask(currentTask.odoo_record_id);
+                var effectiveTaskId = (currentTask.account_id === 0 || !currentTask.odoo_record_id) ? currentTask.id : currentTask.odoo_record_id;
+                const result = Timesheet.createTimesheetFromTask(effectiveTaskId);
                 if (result.success) {
                     apLayout.addPageToNextColumn(taskCreate, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                         "recordid": result.id,
@@ -886,7 +917,6 @@ Page {
         //changed the attachment color
         Rectangle {
                 id: attachmentRow
-                anchors.top: deadlineRow.bottom
                 height: units.gu(50)
                 width: parent.width
                 anchors.margins: units.gu(0.1)
@@ -894,14 +924,23 @@ Page {
                 AttachmentManager {
                 id: attachments_widget
                 anchors.fill: parent
-                resource_type: "project.task"   // keep as-is if that's your default
-                resource_id: (currentTask && currentTask.odoo_record_id) ? currentTask.odoo_record_id : 0
-                account_id: (currentTask && currentTask.account_id) ? currentTask.account_id : 0
+                resource_type: "project.task"
+                resource_id: (currentTask && currentTask.odoo_record_id > 0)
+                    ? currentTask.odoo_record_id
+                    : ((currentTask && currentTask.id) ? currentTask.id : (recordid !== 0 ? recordid : tempAttachmentId))
+                account_id: (currentTask && currentTask.account_id !== undefined && currentTask.account_id !== null)
+                    ? currentTask.account_id
+                    : (workItem && workItem.selectedAccountId !== -1 ? workItem.selectedAccountId : 0)
                 notifier: infobar
 
                 onUploadCompleted: {
-                    //kinda refresh
-                    attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
+                    var resId = (currentTask && currentTask.odoo_record_id > 0)
+                        ? currentTask.odoo_record_id
+                        : ((currentTask && currentTask.id) ? currentTask.id : (recordid !== 0 ? recordid : tempAttachmentId));
+                    var accId = (currentTask && currentTask.account_id !== undefined && currentTask.account_id !== null)
+                        ? currentTask.account_id
+                        : (workItem && workItem.selectedAccountId !== -1 ? workItem.selectedAccountId : 0);
+                    attachments_widget.setAttachments(Task.getAttachmentsForTask(resId, accId));
                 }
 
                 onItemClicked: function (rec) {
@@ -999,10 +1038,12 @@ Page {
                     workItem.setMultipleAssignees(existingAssignees);
                 }
 
-                attachments_widget.setAttachments(Task.getAttachmentsForTask(currentTask.odoo_record_id, currentTask.account_id));
+                var attResId = (currentTask.odoo_record_id && currentTask.odoo_record_id > 0) ? currentTask.odoo_record_id : (currentTask.id || recordid);
+                attachments_widget.setAttachments(Task.getAttachmentsForTask(attResId, currentTask.account_id !== undefined ? currentTask.account_id : 0));
             });
         } else {
             // We are creating a new task
+            attachments_widget.clearAttachments();
             workItem.loadAccounts();
             taskScheduleFields.deadlineText = "Not set";
 
@@ -1019,9 +1060,47 @@ Page {
                 }
 
                 // Load stages for the prefilled project
-                if (mainProjectId > 0 && prefilledAccountId > 0) {
+                if (mainProjectId > 0 && prefilledAccountId !== null && prefilledAccountId !== undefined && prefilledAccountId >= 0) {
                     Logger.debug("Tasks", "Loading stages for prefilled project:", mainProjectId, "account:", prefilledAccountId)
                     loadStagesForProject(mainProjectId, prefilledAccountId);
+                }
+            } else if (selectedparentId > 0) {
+                // Prefill parent task when creating subtask while drilled down
+                var parentTaskDetails = null;
+                if (selectedparentAccountId > 0) {
+                    parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId, selectedparentAccountId);
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetails(selectedparentId);
+                    }
+                } else if (selectedparentAccountId === 0) {
+                    parentTaskDetails = Task.getTaskDetails(selectedparentId);
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId);
+                    }
+                } else {
+                    var activeAcc = (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId >= 0) ? accountPicker.selectedAccountId : -1;
+                    if (activeAcc > 0) {
+                        parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId, activeAcc);
+                    }
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetails(selectedparentId);
+                    }
+                    if (!parentTaskDetails || !parentTaskDetails.id) {
+                        parentTaskDetails = Task.getTaskDetailsByOdooId(selectedparentId);
+                    }
+                }
+                if (parentTaskDetails && parentTaskDetails.id) {
+                    var pAccountId = (parentTaskDetails.account_id !== undefined && parentTaskDetails.account_id !== null) ? parentTaskDetails.account_id : -1;
+                    var pProjectId = (parentTaskDetails.project_id !== undefined && parentTaskDetails.project_id !== null && parentTaskDetails.project_id > 0) ? parentTaskDetails.project_id : -1;
+                    var pSubProjectId = (parentTaskDetails.sub_project_id !== undefined && parentTaskDetails.sub_project_id !== null) ? parentTaskDetails.sub_project_id : -1;
+                    var pTaskId = (parentTaskDetails.odoo_record_id && parentTaskDetails.odoo_record_id > 0) ? parentTaskDetails.odoo_record_id : parentTaskDetails.id;
+
+                    if (workItem.deferredLoadExistingRecordSet) {
+                        workItem.deferredLoadExistingRecordSet(pAccountId, pProjectId, pSubProjectId, pTaskId, -1, -1);
+                    }
+                    if (pProjectId > 0 && pAccountId >= 0) {
+                        loadStagesForProject(pProjectId, pAccountId);
+                    }
                 }
             }
         }

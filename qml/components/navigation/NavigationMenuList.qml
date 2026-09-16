@@ -8,6 +8,7 @@ Column {
     width: parent ? parent.width : 0
 
     property var menuItems: []
+    property bool collapsed: false
     property string selectedPageUrl: ""
     signal itemSelected(var item)
 
@@ -16,6 +17,7 @@ Column {
 
         SettingsComponents.SettingsListItem {
             width: root.width
+            collapsed: root.collapsed
             iconName: modelData.iconName
             iconColor: modelData.iconColor
             text: i18n.dtr("ubtms", modelData.textKey)

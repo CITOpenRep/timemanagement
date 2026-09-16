@@ -65,70 +65,11 @@ Page {
 
         trailingActionBar.actions: [
             Action {
-                iconSource: "../../../images/save.svg"
+                iconName: "tick"
                 text: i18n.dtr("ubtms", "Save")
                 visible: !isReadOnly
                 onTriggered: {
-                    const ids = workItem.getIds();
-
-                    if (!ids.assignee_id) {
-                        notifPopup.open("Error", "Please select the assignee", "error");
-                        return;
-                    }
-
-                    // Validate hours format before saving
-                    if (!hours_text.isValid) {
-                        notifPopup.open("Error", "Please enter allocated hours in HH:MM format (e.g., 1000:30 for large projects)", "error");
-                        return;
-                    }
-
-                    // isReadOnly = !isReadOnly
-                    // Preserve existing favorites value when editing, default to 0 for new projects
-                    var currentFavorites = (project && project.favorites !== undefined) ? project.favorites : 0;
-                    
-                    var project_data = {
-                        'account_id': ids.account_id >= 0 ? ids.account_id : 0,
-                        'name': project_name.text,
-                        'planned_start_date': date_range_widget.formattedStartDate(),
-                        'planned_end_date': date_range_widget.formattedEndDate(),
-                        'parent_id': ids.project_id,
-                        'allocated_hours': hours_text.text,
-                        'description': description_text.getFormattedText ? description_text.getFormattedText() : description_text.text,
-                        'favorites': currentFavorites,
-                        'color': project_color,
-                        'stage': (project && project.stage !== undefined) ? project.stage : 0,
-                        'status': "updated",
-                        'user_id': ids.assignee_id
-                    };
-                    //  console.log(JSON.stringify(project_data, null, 4));
-
-                    // Use the current recordid (0 for new projects, existing ID for updates)
-                    var response = Project.createUpdateProject(project_data, recordid);
-                    if (response) {
-                        if (response.is_success) {
-                            notifPopup.open("Saved", response.message, "success");
-
-                            // Update recordid if it was a new project creation
-                            if (recordid === 0 && response.record_id) {
-                                recordid = response.record_id;
-                            }
-
-                            // Reload the project data to reflect the saved state
-                            if (recordid !== 0) {
-                                loadProjectData(recordid);
-                            }
-                            
-                            // Clear draft after successful save
-                            draftHandler.clearDraft();
-                            
-                            // Switch back to read-only mode after saving
-                            isReadOnly = true;
-                        } else {
-                            notifPopup.open("Failed", response.message, "error");
-                        }
-                    } else {
-                        notifPopup.open("Failed", "Unable to save project", "error");
-                    }
+                    saveProjectData();
                 }
             },
             Action {
@@ -454,6 +395,10 @@ Page {
                     loadProjectData(recordid);
                 }
                 
+                if (typeof mainView !== "undefined" && mainView && mainView.projectDataChanged) {
+                    mainView.projectDataChanged();
+                }
+
                 draftHandler.clearDraft();
                 isReadOnly = true;
                 return true;
@@ -530,7 +475,8 @@ Page {
             project_color_label.color = colorpicker.getColorByIndex(projectColor);
             date_range_widget.setDateRange(project.planned_start_date || "", project.planned_end_date || "");
             hours_text.text = project.allocated_hours !== undefined && project.allocated_hours !== null ? String(project.allocated_hours) : "01:00";
-            attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
+            var attResId = (project.odoo_record_id && project.odoo_record_id > 0) ? project.odoo_record_id : (project.id || recordid);
+            attachments_widget.setAttachments(Project.getAttachmentsForProject(attResId, project.account_id !== undefined ? project.account_id : 0));
             return true;
         }
         return false;
@@ -656,7 +602,7 @@ Page {
                 }
 
                 TSLabel {
-                    text: project && project.stage ? Project.getProjectStageName(project.stage) : i18n.dtr("ubtms", "Not set")
+                    text: project && project.stage ? Project.getProjectStageName(project.stage, project.account_id) : i18n.dtr("ubtms", "Not set")
                     width: (parent.width - (2 * parent.spacing)) / 3
                     height: units.gu(6)
                     fontBold: true
@@ -664,7 +610,7 @@ Page {
                         if (!project || !project.stage) {
                             return theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#666";
                         }
-                        var stageName = Project.getProjectStageName(project.stage).toLowerCase();
+                        var stageName = Project.getProjectStageName(project.stage, project.account_id).toLowerCase();
                         if (stageName === "completed" || stageName === "finished" || stageName === "closed" || stageName === "verified" || stageName === "done") {
                             return "green";
                         }
@@ -695,7 +641,7 @@ Page {
 
                         var dialog = PopupUtils.open(projectStageSelector, projectCreate, {
                             projectId: project.id,
-                            accountId: project.account_id,
+                            accountId: (project && project.account_id !== undefined) ? project.account_id : (selectedAccountId !== undefined ? selectedAccountId : 0),
                             currentStageOdooRecordId: project.stage || -1
                         });
                     }
@@ -734,7 +680,8 @@ Page {
                     text: i18n.dtr("ubtms","Create")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        let result = Activity.createActivityFromProjectOrTask(true, project.account_id, project.odoo_record_id);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
+                        let result = Activity.createActivityFromProjectOrTask(true, project.account_id, projectRecordId);
                         if (result.success) {
                             apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                                 "recordid": result.record_id,
@@ -760,9 +707,10 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../activities/pages/Activity_Page.qml"), {
                             "filterByProject": true,
-                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectOdooRecordId": projectRecordId,
                             "projectAccountId": project.account_id,
                             "projectName": project.name
                         });
@@ -795,13 +743,14 @@ Page {
                         let project = Project.getProjectDetails(recordid);
                         let isSubProject = project.parent_id && project.parent_id > 0;
                         let parentProjectId = isSubProject ? project.parent_id : -1;
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
 
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                             "recordid": 0,
                             "isReadOnly": false,
                             "prefilledAccountId": project.account_id,
-                            "prefilledProjectId": isSubProject ? -1 : project.odoo_record_id,
-                            "prefilledSubProjectId": isSubProject ? project.odoo_record_id : -1,
+                            "prefilledProjectId": isSubProject ? -1 : projectRecordId,
+                            "prefilledSubProjectId": isSubProject ? projectRecordId : -1,
                             "prefilledParentProjectId": parentProjectId,
                             "prefilledProjectName": project.name
                         });
@@ -821,9 +770,10 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../tasks/pages/Task_Page.qml"), {
                             "filterByProject": true,
-                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectOdooRecordId": projectRecordId,
                             "projectAccountId": project.account_id,
                             "projectName": project.name
                         });
@@ -854,18 +804,21 @@ Page {
                     text: i18n.dtr("ubtms","Create")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
-                        Global.createUpdateCallback = function(updateData) {
-                            let result = Project.createUpdateSnapShot(updateData);
-                            if (result['is_success'] === false) {
-                                notifPopup.open("Failed", result['message'], "error");
-                            } else {
-                                notifPopup.open("Saved", "Project update has been saved", "success");
-                            }
-                            Global.createUpdateCallback = null;
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
+                        var newUpdate = {
+                            account_id: project.account_id,
+                            project_id: projectRecordId,
+                            name: "",
+                            description: "",
+                            project_status: "on_track",
+                            progress: 0,
+                            user_id: Accounts.getCurrentUserOdooId(project.account_id)
                         };
-                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../../components/CreateUpdatePage.qml"), {
-                            "projectId": project.odoo_record_id,
-                            "accountId": project.account_id
+                        apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../updates/pages/Updates.qml"), {
+                            "recordid": 0,
+                            "accountid": project.account_id,
+                            "currentUpdate": newUpdate,
+                            "isReadOnly": false
                         });
                     }
                 }
@@ -883,9 +836,11 @@ Page {
                     text: i18n.dtr("ubtms","View")
                     onClicked: {
                         let project = Project.getProjectDetails(recordid);
+                        let projectRecordId = (project.account_id === 0 || !project.odoo_record_id) ? project.id : project.odoo_record_id;
                         apLayout.addPageToNextColumn(projectCreate, Qt.resolvedUrl("../../updates/pages/Updates_Page.qml"), {
                             "filterByProject": true,
-                            "projectOdooRecordId": project.odoo_record_id,
+                            "projectRecordId": projectRecordId,
+                            "projectOdooRecordId": projectRecordId,
                             "projectAccountId": project.account_id,
                             "projectName": project.name
                         });
@@ -997,11 +952,13 @@ Page {
                 width: parent.width
                 height: units.gu(50)
                 resource_type: "project.project"
-                resource_id: project.odoo_record_id
-                account_id: project.account_id
+                resource_id: (project && project.odoo_record_id > 0) ? project.odoo_record_id : (project && project.id ? project.id : recordid)
+                account_id: (project && project.account_id !== undefined) ? project.account_id : 0
                 notifier: infobar
                 onUploadCompleted: {
-                    attachments_widget.setAttachments(Project.getAttachmentsForProject(project.odoo_record_id, project.account_id));
+                    var resId = (project && project.odoo_record_id > 0) ? project.odoo_record_id : (project && project.id ? project.id : recordid);
+                    var accId = (project && project.account_id !== undefined) ? project.account_id : 0;
+                    attachments_widget.setAttachments(Project.getAttachmentsForProject(resId, accId));
                 }
             }
         }
@@ -1048,6 +1005,10 @@ Page {
             // Reload project data to ensure UI is updated
             loadProjectData(recordid);
             
+            if (typeof mainView !== "undefined" && mainView && mainView.projectDataChanged) {
+                mainView.projectDataChanged();
+            }
+
             notifPopup.open("Success", "Project stage changed to: " + stageName, "success");
         } else {
             notifPopup.open("Error", "Failed to update project stage: " + (result.error || "Unknown error"), "error");

@@ -37,6 +37,8 @@ Item {
     property string type: "info"     // "success", "error", "warning", "info"
     property string titleText: "Notice"
     property string messageText: "Something happened."
+    property var activeDialog: null
+    readonly property bool isOpen: activeDialog !== null
     signal closed
 
     Component {
@@ -45,12 +47,7 @@ Item {
         Dialog {
             id: popupDialog
             title: popupWrapper.titleText
-
-            // Dark mode friendly styling
-            StyleHints {
-                backgroundColor: theme.palette.normal.background
-                foregroundColor: theme.palette.normal.backgroundText
-            }
+            modal: true
 
             Text {
                 id: messageText
@@ -68,7 +65,11 @@ Item {
             // Color logic based on type (optional, add custom styling if needed)
             Button {
                 text: "OK"
-                onClicked: PopupUtils.close(popupDialog)
+                onClicked: {
+                    PopupUtils.close(popupDialog);
+                    popupWrapper.activeDialog = null;
+                    popupWrapper.closed();
+                }
 
                 // Dark mode friendly button styling
                 StyleHints {
@@ -76,6 +77,10 @@ Item {
 
                     backgroundColor: LomiriColors.orange
                 }
+            }
+
+            Component.onDestruction: {
+                popupWrapper.activeDialog = null;
             }
         }
     }
@@ -87,6 +92,11 @@ Item {
             messageText = messageArg;
         if (typeArg)
             type = typeArg;
-        PopupUtils.open(dialogComponent);
+
+        if (activeDialog)
+            return activeDialog;
+
+        activeDialog = PopupUtils.open(dialogComponent);
+        return activeDialog;
     }
 }

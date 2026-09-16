@@ -161,8 +161,8 @@ function getUserInfoByOdooId(accountId, odooUserId) {
 
     db.transaction(function (tx) {
         var rs = tx.executeSql(
-            'SELECT name, avatar_128, odoo_record_id, login, job_title FROM res_users_app WHERE account_id = ? AND odoo_record_id = ?',
-            [accountId, odooUserId]
+            'SELECT name, avatar_128, odoo_record_id, login, job_title FROM res_users_app WHERE account_id = ? AND (odoo_record_id = ? OR (account_id = 0 AND id = ?))',
+            [accountId, odooUserId, odooUserId]
         );
         if (rs.rows.length > 0) {
             var row = rs.rows.item(0);
@@ -204,8 +204,8 @@ function getTaskAssignerName(accountId, taskId) {
             var createUid = taskRs.rows.item(0).create_uid;
             // Now look up the user name
             var userRs = tx.executeSql(
-                'SELECT name FROM res_users_app WHERE account_id = ? AND odoo_record_id = ?',
-                [accountId, createUid]
+                'SELECT name FROM res_users_app WHERE account_id = ? AND (odoo_record_id = ? OR (account_id = 0 AND id = ?))',
+                [accountId, createUid, createUid]
             );
             if (userRs.rows.length > 0) {
                 assignerName = userRs.rows.item(0).name;
@@ -241,8 +241,8 @@ function getActivityAssignerInfo(accountId, activityId) {
             var createUid = activityRs.rows.item(0).create_uid;
             // Now look up the user info
             var userRs = tx.executeSql(
-                'SELECT name, avatar_128 FROM res_users_app WHERE account_id = ? AND odoo_record_id = ?',
-                [accountId, createUid]
+                'SELECT name, avatar_128 FROM res_users_app WHERE account_id = ? AND (odoo_record_id = ? OR (account_id = 0 AND id = ?))',
+                [accountId, createUid, createUid]
             );
             if (userRs.rows.length > 0) {
                 var row = userRs.rows.item(0);
@@ -280,14 +280,37 @@ function fetch_subtasks(instance_id, parent_task_id) {
 }
 
 function validateAndCleanOdooURL(url) {
-    // Strip trailing slash
-    if (url.endsWith("/")) {
+    if (!url || typeof url !== "string") {
+        return {
+            isValid: false,
+            cleanedUrl: ""
+        };
+    }
+
+    url = url.trim();
+    if (url.length === 0 || url === "http://" || url === "https://") {
+        return {
+            isValid: false,
+            cleanedUrl: ""
+        };
+    }
+
+    // Add https:// if protocol is missing
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        if (!url.includes("://")) {
+            url = "https://" + url;
+        }
+    }
+
+    // Strip trailing slashes beyond the protocol
+    while (url.endsWith("/") && url !== "http://" && url !== "https://") {
         url = url.slice(0, -1);
     }
 
     const pattern = new RegExp(
                       '^(https?:\\/\\/)?' +
-                      '(([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,4})|' +
+                      '(([a-zA-Z0-9\\-\\.]+)\\.([a-zA-Z]{2,63})|' +
+                      'localhost|' +
                       '(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})|' +
                       '\\[([a-fA-F0-9:\\.]+)\\])' +
                       '(\\:\\d+)?(\\/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?$',

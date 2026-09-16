@@ -30,6 +30,7 @@ import ".." as Components
 import QtQuick.LocalStorage 2.7 as Sql
 import "../../../models/accounts.js" as Accounts
 import "../../../models/project.js" as Project
+import "../../../models/constants.js" as AppConst
 import ".."
 
 /*
@@ -90,29 +91,86 @@ Item {
     id: projectList
     anchors.fill: parent
 
+    function getSelectedAccountId() {
+        if (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined) {
+            return accountPicker.selectedAccountId;
+        }
+        if (typeof rootApp !== "undefined" && rootApp && rootApp.currentAccountId !== undefined) {
+            return rootApp.currentAccountId;
+        }
+        if (typeof mainView !== "undefined" && mainView && mainView.currentAccountId !== undefined) {
+            return mainView.currentAccountId;
+        }
+        return -1;
+    }
+
+    function handleAccountChanged(id) {
+        currentAccountId = id;
+        navigationStackModel.clear();
+        currentParentId = -1;
+        currentParentName = "";
+
+        // Reset pagination
+        currentOffset = 0;
+        hasMoreItems = true;
+        isLoadingMore = false;
+
+        // Reset to default "Open" filter
+        stageFilter.enabled = true;
+        stageFilter.odoo_record_id = -2;
+        stageFilter.is_stage = false;
+        stageFilter.name = "Open";
+
+        // Clear search
+        searchQuery = "";
+
+        populateProjectChildrenMap();
+    }
+
     Connections {
-        target: accountPicker
+        target: typeof accountPicker !== "undefined" ? accountPicker : null
 
         onAccepted: function (id, name) {
-            console.log("Projects getting updated for Account chosen:", id, name);
-            currentAccountId = id;
-            navigationStackModel.clear();
-            currentParentId = -1;
+            handleAccountChanged(id);
+        }
 
-            // Reset to default "Open" filter
-            stageFilter.enabled = true;
-            stageFilter.odoo_record_id = -2;
-            stageFilter.name = "Open";
+        onSelectedAccountIdChanged: {
+            var activeId = getSelectedAccountId();
+            if (currentParentId === -1 && currentAccountId !== activeId) {
+                handleAccountChanged(activeId);
+            }
+        }
+    }
 
-            // Clear search
-            searchQuery = "";
+    Connections {
+        target: typeof rootApp !== "undefined" ? rootApp : (typeof mainView !== "undefined" ? mainView : null)
 
+        onGlobalAccountChanged: function (id, name) {
+            if (currentParentId === -1 && currentAccountId !== id) {
+                handleAccountChanged(id);
+            }
+        }
+
+        onAccountDataRefreshRequested: function (id) {
+            if (currentParentId === -1) {
+                if (currentAccountId !== id) {
+                    currentAccountId = id;
+                }
+                populateProjectChildrenMap();
+            }
+        }
+
+        onProjectDataChanged: {
+            if (currentParentId === -1) {
+                currentAccountId = getSelectedAccountId();
+            }
             populateProjectChildrenMap();
         }
     }
 
     property int currentParentId: -1
-    property int currentAccountId: accountPicker.selectedAccountId
+    property int currentAccountId: getSelectedAccountId()
+    property string currentParentName: ""
     property ListModel navigationStackModel: ListModel {}
     property var childrenMap: ({})
     property bool childrenMapReady: false
@@ -147,7 +205,7 @@ Item {
     signal projectTimesheetRequested(int localId)
     signal customSearch(string query)
 
-    function navigateToProject(projectId, accountId) {
+    function navigateToProject(projectId, accountId, projectName) {
         // Ensure we have valid IDs before proceeding
         if (projectId === undefined || accountId === undefined) {
             console.error("navigateToProject called with undefined values:", projectId, accountId);
@@ -156,10 +214,26 @@ Item {
 
         navigationStackModel.append({
             parentId: currentParentId !== undefined ? currentParentId : -1,
-            accountId: currentAccountId !== undefined ? currentAccountId : -1
+            accountId: currentAccountId !== undefined ? currentAccountId : -1,
+            parentName: currentParentName || ""
         });
         currentParentId = projectId;
         currentAccountId = accountId;
+        currentParentName = projectName || "";
+    }
+
+    function navigateBackInHierarchy() {
+        if (navigationStackModel.count > 0) {
+            var last = navigationStackModel.get(navigationStackModel.count - 1);
+            navigationStackModel.remove(navigationStackModel.count - 1);
+            currentParentId = last.parentId !== undefined ? last.parentId : -1;
+            if (currentParentId === -1) {
+                currentAccountId = getSelectedAccountId();
+            } else {
+                currentAccountId = last.accountId !== undefined ? last.accountId : -1;
+            }
+            currentParentName = (last.parentName !== undefined) ? last.parentName : "";
+        }
     }
 
     function selectProject(localId) {
@@ -177,7 +251,8 @@ Item {
     function refresh() {
         navigationStackModel.clear();
         currentParentId = -1;
-        currentAccountId = accountPicker.selectedAccountId;
+        currentParentName = "";
+        currentAccountId = getSelectedAccountId();
 
         // Reset pagination
         currentOffset = 0;
@@ -187,6 +262,7 @@ Item {
         // Reset to default "Open" filter
         stageFilter.enabled = true;
         stageFilter.odoo_record_id = -2;
+        stageFilter.is_stage = false;
         stageFilter.name = "Open";
 
         // Clear search
@@ -202,6 +278,7 @@ Item {
         if (flatViewMode) {
             navigationStackModel.clear();
             currentParentId = -1;
+            currentParentName = "";
         }
         
         // Refresh the model
@@ -213,19 +290,34 @@ Item {
     // Search functions
     function toggleSearchVisibility() {
         showSearchBox = !showSearchBox;
+        if (!showSearchBox) {
+            if (searchQuery !== "" || searchBar.text !== "") {
+                clearSearch();
+            }
+        } else {
+            searchBar.forceActiveFocus();
+        }
     }
 
     function clearSearch() {
-        searchField.text = "";
-        searchQuery = "";
-        customSearch("");
-        // Reload from DB without search filter
-        populateProjectChildrenMap();
+        if (searchBar.text !== "") {
+            searchBar.clear();
+        }
+        if (searchQuery !== "") {
+            searchQuery = "";
+            customSearch("");
+            // Reload from DB without search filter
+            populateProjectChildrenMap();
+        }
     }
 
     function performSearch(query) {
-        searchQuery = query;
-        customSearch(query);
+        var trimmed = query ? query.trim() : "";
+        if (trimmed === searchQuery) {
+            return;
+        }
+        searchQuery = trimmed;
+        customSearch(trimmed);
         // Reload from DB with search filter applied at SQL level
         populateProjectChildrenMap();
     }
@@ -267,16 +359,23 @@ Item {
     }
 
     function _doPaginatedProjectLoad() {
+        if (currentParentId === -1) {
+            currentAccountId = getSelectedAccountId();
+        }
+
         // Determine which stage filter to pass to SQL
         var sqlStageId = undefined; // undefined = no stage filter
+        var isStage = false;
         if (stageFilter.enabled) {
-            sqlStageId = stageFilter.odoo_record_id; // -2 = open, >=0 = specific
+            sqlStageId = stageFilter.odoo_record_id; // -2 = open, specific stage otherwise
+            isStage = stageFilter.is_stage || false;
         }
 
         var result = Project.getProjectsFilteredPaginated({
             accountId: currentAccountId,
             searchQuery: searchQuery || "",
             stageId: sqlStageId,
+            isStage: isStage,
             openStageIds: _getOpenStageIds(),
             limit: pageSize,
             offset: currentOffset
@@ -318,15 +417,17 @@ Item {
         }
 
         var tempMap = {};
+        var taskCountMap = Project.getProjectTaskCountMap ? Project.getProjectTaskCountMap(currentAccountId) : {};
 
         // First pass: Create project color map for inheritance lookup
         var projectColorMap = {};
         allProjects.forEach(function (row) {
-            projectColorMap[row.odoo_record_id] = row.color_pallet ? parseInt(row.color_pallet) : 0;
+            var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
+            projectColorMap[effectiveId] = row.color_pallet ? parseInt(row.color_pallet) : 0;
         });
 
         allProjects.forEach(function (row) {
-            var odooId = row.odoo_record_id;
+            var effectiveId = (row.account_id === 0 || !row.odoo_record_id) ? row.id : row.odoo_record_id;
             var parentOdooId = (row.parent_id === null || row.parent_id === 0) ? -1 : row.parent_id;
             var accountId = row.account_id;
 
@@ -340,15 +441,17 @@ Item {
                 inheritedColor = projectColorMap[parentOdooId] || 0;
             }
 
+            var taskCount = taskCountMap[effectiveId] || (taskCountMap[row.id] || 0);
+
             var item = {
-                id_val: odooId,
+                id_val: effectiveId,
                 local_id: row.id,
                 parent_id: parentOdooId,
                 account_id: accountId,
                 name: row.name || "Untitled",
                 projectName: row.name || "Untitled",
                 accountName: accountName,
-                recordId: odooId,
+                recordId: effectiveId,
                 allocatedHours: row.allocated_hours ? row.allocated_hours : 0,
                 remainingHours: row.remaining_hours ? row.remaining_hours : 0,
                 startDate: row.planned_start_date || "",
@@ -356,10 +459,11 @@ Item {
                 deadline: row.planned_end_date || "",
                 description: row.description || "",
                 colorPallet: inheritedColor,
-                stage: row.stage,
+                stage: row.stage || 0,
                 isFavorite: row.favorites === 1,
                 hasDraft: row.has_draft === 1,
-                hasChildren: false
+                hasChildren: false,
+                taskCount: taskCount
             };
 
             // Use compound key: parent_id + account_id for proper hierarchy grouping
@@ -415,11 +519,14 @@ Item {
             var flatModel = Qt.createQmlObject('import QtQuick 2.0; ListModel {}', projectList);
             var allFlatProjects = [];
             
-            // Collect all projects from childrenMap
+            // Collect projects matching current account filter from childrenMap
             for (var key in childrenMap) {
                 var model = childrenMap[key];
                 for (var i = 0; i < model.count; i++) {
-                    allFlatProjects.push(model.get(i));
+                    var proj = model.get(i);
+                    if (currentAccountId === -1 || currentAccountId === undefined || proj.account_id === currentAccountId) {
+                        allFlatProjects.push(proj);
+                    }
                 }
             }
             
@@ -442,8 +549,17 @@ Item {
                 return true;
             }
 
-            // Special case for "Open" filter (odoo_record_id = -2)
-            if (stageFilter.odoo_record_id === -2) {
+            // Special case for "Open" filter (odoo_record_id = -2 and not a specific stage)
+            if (!stageFilter.is_stage && stageFilter.odoo_record_id === -2) {
+                if (!project.stage || project.stage === 0) {
+                    return true;
+                }
+
+                // For local projects, stage -1 (Planning) and -2 (In Progress) are open stages
+                if (project.account_id === 0 && (project.stage === -1 || project.stage === -2)) {
+                    return true;
+                }
+
                 // Check if the project's stage is in the list of open stages (fold = 0)
                 for (var i = 0; i < openStagesList.length; i++) {
                     if (openStagesList[i].odoo_record_id === project.stage) {
@@ -488,6 +604,9 @@ Item {
                     var childModel = childrenMap[mapKey];
                     for (var j = 0; j < childModel.count; j++) {
                         var childProject = childModel.get(j);
+                        if (currentAccountId >= 0 && childProject.account_id !== currentAccountId) {
+                            continue;
+                        }
                         if (matchesStageFilter(childProject)) {
                             // Mark its parent to be included
                             var parentId = childProject.parent_id;
@@ -535,13 +654,19 @@ Item {
                 }
             }
 
-            // Gather all root level projects
+            // Gather root level projects matching current account
             for (var key in childrenMap) {
                 if (key.startsWith("-1_")) {
+                    if (currentAccountId >= 0 && key !== ("-1_" + currentAccountId)) {
+                        continue;
+                    }
                     // Root level projects
                     var model = childrenMap[key];
                     for (var i = 0; i < model.count; i++) {
-                        allRootProjects.push(model.get(i));
+                        var p = model.get(i);
+                        if (currentAccountId === -1 || currentAccountId === undefined || p.account_id === currentAccountId) {
+                            allRootProjects.push(p);
+                        }
                     }
                 }
             }
@@ -553,7 +678,8 @@ Item {
 
             // Apply filter or include if it's a parent of a matching project
             allRootProjects.forEach(function (project) {
-                if ((!stageFilter.enabled || matchesStageFilter(project) || includeParentIds[project.id_val + "_" + project.account_id]) && matchesSearchQuery(project)) {
+                var accountMatches = (currentAccountId === -1 || currentAccountId === undefined || project.account_id === currentAccountId);
+                if (accountMatches && (!stageFilter.enabled || matchesStageFilter(project) || includeParentIds[project.id_val + "_" + project.account_id]) && matchesSearchQuery(project)) {
                     combinedModel.append(project);
                 }
             });
@@ -703,85 +829,200 @@ Item {
         }
     }
 
-    // Timer for debounced search
-    Timer {
-        id: searchTimer
-        interval: 2000 // 2 sec delay
-        repeat: false
-        onTriggered: performSearch(searchField.text)
-    }
-
     Column {
         anchors.fill: parent
         spacing: units.gu(1)
 
-        // Search field
-
-        TextField {
-            id: searchField
-            visible: showSearchBox
-            height: units.gu(5)
+        // Search field container
+        Components.TSSearchBar {
+            id: searchBar
             width: parent.width
-            anchors.rightMargin: units.gu(4) // Space for clear button
-            placeholderText: i18n.dtr("ubtms", "Search projects")
-            selectByMouse: true
-            onAccepted: performSearch(text)
-            //Todo: Later Experiment with Debouncing search , solve performance issues causing the crash 
-            // onTextChanged: {
-            //     searchQuery = text;
-            //     //  Debounced search - only search after user stops typing
-            //     searchTimer.restart();
-            // }
+            height: showSearchBox ? implicitHeight : 0
+            visible: showSearchBox
+            placeholderText: i18n.dtr("ubtms", "Search projects...")
+            bottomPadding: units.gu(0.4)
 
-            Rectangle {
+            onAccepted: {
+                performSearch(query);
+            }
 
-                height: parent.height
-                width: parent.width
-                anchors.left: parent.left
-                anchors.right: parent.right
-                color: "transparent"
-                border.color: searchField.activeFocus ? "#FF6B35" : "#CCCCCC"
-                border.width: searchField.activeFocus ? 2 : 1
+            onCleared: {
+                if (searchQuery !== "") {
+                    clearSearch();
+                }
+            }
+        }
 
-                Button {
-                    id: clearSearchButton
-                    z: 10
-                    visible: searchField.text.length > 0
-                    anchors.right: parent.right
+        // Hierarchical breadcrumb navigation bar
+        Rectangle {
+            id: breadcrumbBar
+            width: parent.width
+            height: visible ? units.gu(5) : 0
+            visible: !flatViewMode && navigationStackModel.count > 0
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1e1e1e" : "#f8fafc"
+            radius: units.gu(0.6)
+            border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d2d2d" : "#e2e8f0"
+            border.width: units.gu(0.1)
+            clip: true
+
+            Row {
+                anchors.fill: parent
+                anchors.leftMargin: units.gu(1)
+                anchors.rightMargin: units.gu(1)
+                spacing: units.gu(1)
+
+                // Back button with tactile styling
+                Rectangle {
+                    id: backBtn
+                    width: units.gu(9)
+                    height: units.gu(3.6)
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.rightMargin: units.gu(0.5)
-                    width: units.gu(3)
-                    height: units.gu(3)
-                    text: "×"
-                    onClicked: {
-                        clearSearch();
+                    radius: units.gu(0.5)
+                    color: backMouseArea.pressed ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#333333" : "#e2e8f0")
+                         : (backMouseArea.containsMouse ? (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#262626" : "#edf2f7")
+                         : (theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#222222" : "#ffffff"))
+                    border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#3d3d3d" : "#cbd5e1"
+                    border.width: 1
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: units.gu(0.5)
+
+                        Icon {
+                            name: "back"
+                            width: units.gu(1.6)
+                            height: units.gu(1.6)
+                            color: AppConst.Colors.Orange
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: i18n.dtr("ubtms", "Back")
+                            font.pixelSize: units.gu(1.4)
+                            font.bold: true
+                            color: AppConst.Colors.Orange
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    MouseArea {
+                        id: backMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: navigateBackInHierarchy()
+                    }
+                }
+
+                // Breadcrumb path display
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: units.gu(0.6)
+                    width: parent.width - backBtn.width - units.gu(2)
+                    clip: true
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Projects")
+                        font.pixelSize: units.gu(1.3)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#9ca3af" : "#64748b"
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                navigationStackModel.clear();
+                                currentParentId = -1;
+                                currentParentName = "";
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: "/"
+                        font.pixelSize: units.gu(1.3)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#6b7280" : "#94a3b8"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: currentParentName !== "" ? currentParentName : i18n.dtr("ubtms", "Subprojects")
+                        font.pixelSize: units.gu(1.4)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#f3f4f6" : "#1e293b"
+                        anchors.verticalCenter: parent.verticalCenter
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        width: Math.min(implicitWidth, parent.width - units.gu(12))
+                    }
+
+                    // Count badge
+                    Rectangle {
+                        visible: projectListView.count > 0
+                        height: units.gu(2)
+                        width: childCountBadgeText.width + units.gu(1)
+                        radius: height / 2
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2d2013" : "#fff7ed"
+                        border.color: AppConst.Colors.Orange
+                        border.width: 1
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Text {
+                            id: childCountBadgeText
+                            text: String(projectListView.count)
+                            font.pixelSize: units.gu(1.1)
+                            font.bold: true
+                            color: AppConst.Colors.Orange
+                            anchors.centerIn: parent
+                        }
                     }
                 }
             }
         }
 
-        // Header row with back button
-        TSButton {
-            id: backbutton
-            text: "← Back"
-            width: parent.width
-            height: units.gu(4)
-            visible: !flatViewMode && navigationStackModel.count
-            onClicked: {
-                if (navigationStackModel.count > 0) {
-                    var last = navigationStackModel.get(navigationStackModel.count - 1);
-                    navigationStackModel.remove(navigationStackModel.count - 1);
-                    currentParentId = last.parentId !== undefined ? last.parentId : -1;
-                    currentAccountId = last.accountId !== undefined ? last.accountId : -1;
-                }
-            }
-        }
         LomiriListView {
             id: projectListView
             width: parent.width
-            height: parent.height - (backbutton.visible ? units.gu(4) : 0) - (showSearchBox ? units.gu(6) : 0) // Account for back button and search field heights
+            height: parent.height - (breadcrumbBar.visible ? breadcrumbBar.height + units.gu(1) : 0) - (showSearchBox ? searchBar.height + units.gu(1) : 0)
             clip: true
+            spacing: 0
             model: getCurrentModel()
+
+            // Empty search results indicator
+            Item {
+                anchors.centerIn: parent
+                visible: searchQuery !== "" && projectListView.count === 0 && !isLoading
+                width: parent.width - units.gu(4)
+                height: units.gu(12)
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: units.gu(0.8)
+
+                    Icon {
+                        name: "search"
+                        width: units.gu(3.5)
+                        height: units.gu(3.5)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#52525b" : "#cbd5e1"
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "No projects found")
+                        font.pixelSize: units.gu(1.8)
+                        font.bold: true
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#a1a1aa" : "#64748b"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Try searching with a different term")
+                        font.pixelSize: units.gu(1.4)
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#71717a" : "#94a3b8"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+            }
 
             footer: LoadMoreFooter {
                 isLoading: isLoadingMore
@@ -795,57 +1036,53 @@ Item {
                 }
             }
 
-            delegate: Item {
-                width: parent.width
-                height: units.gu(13)
+            delegate: ProjectDetailsCard {
+                id: projectCard
+                width: projectListView.width
+                height: units.gu(8.8)
+                recordId: model.recordId
+                projectName: model.projectName
+                allocatedHours: model.allocatedHours
+                remainingHours: model.remainingHours
+                deadline: model.deadline
+                startDate: model.startDate
+                endDate: model.endDate
+                accountName: model.accountName
+                accountId: model.account_id
+                description: model.description
+                colorPallet: model.colorPallet
+                isFavorite: model.isFavorite
+                hasDraft: model.hasDraft
+                // Hide children navigation in flat view mode
+                hasChildren: flatViewMode ? false : (model.hasChildren || false)
+                stage: model.stage
+                childCount: (model.hasChildren) ? model.childCount : 0
+                localId: model.local_id
+                taskCount: model.taskCount !== undefined ? model.taskCount : 0
 
-                ProjectDetailsCard {
-                    id: projectCard
-                    height: parent.height
-                    width: parent.width
-                    recordId: model.recordId
-                    projectName: model.projectName
-                    allocatedHours: model.allocatedHours
-                    remainingHours: model.remainingHours
-                    deadline: model.deadline
-                    startDate: model.startDate
-                    endDate: model.endDate
-                    accountName: model.accountName
-                    accountId: model.account_id
-                    description: model.description
-                    colorPallet: model.colorPallet
-                    isFavorite: model.isFavorite
-                    hasDraft: model.hasDraft
-                    // Hide children navigation in flat view mode
-                    hasChildren: flatViewMode ? false : (model.hasChildren || false)
-                    stage: model.stage
-                    childCount: (model.hasChildren) ? model.childCount : 0
-                    localId: model.local_id
+                // Store model properties in the delegate scope for signal handlers
+                property bool projectHasChildren: model.hasChildren || false
+                property int projectIdVal: model.id_val || 0
+                property int projectAccountId: model.account_id || 0
+                property int projectLocalId: model.local_id || 0
 
-                    // Store model properties in the delegate scope for signal handlers
-                    property bool projectHasChildren: model.hasChildren || false
-                    property int projectIdVal: model.id_val || 0
-                    property int projectAccountId: model.account_id || 0
-                    property int projectLocalId: model.local_id || 0
+                onEditRequested: id => {
+                    editProject(projectLocalId);
+                }
+                onViewRequested: id => {
+                    selectProject(projectLocalId);
+                }
 
-                    onEditRequested: id => {
-                        editProject(projectLocalId);
+                onNavigationRequested: (projectId, accountId, projectName) => {
+                    // Disable navigation in flat view mode
+                    if (!flatViewMode) {
+                        console.log("Navigation requested - projectId:", projectId, "accountId:", accountId, "projectName:", projectName);
+                        navigateToProject(projectId, accountId, projectName);
                     }
-                    onViewRequested: id => {
-                        selectProject(projectLocalId);
-                    }
-
-                    onNavigationRequested: (projectId, accountId) => {
-                        // Disable navigation in flat view mode
-                        if (!flatViewMode) {
-                            console.log("Navigation requested - projectId:", projectId, "accountId:", accountId);
-                            navigateToProject(projectId, accountId);
-                        }
-                    }
-                    onTimesheetRequested: localId => {
-                        // Forward the signal to the parent page
-                        requestTimesheet(localId);
-                    }
+                }
+                onTimesheetRequested: localId => {
+                    projectTimesheetRequested(localId);
+                    requestTimesheet(localId);
                 }
             }
         }
@@ -861,12 +1098,14 @@ Item {
             // Add "Open" as the first option
             menuModel.push({
                 label: "Open Projects",
-                value: -2
+                value: -2,
+                is_stage: false
             });
 
             menuModel.push({
                 label: "All Stages",
-                value: -1
+                value: -1,
+                is_stage: false
             });
 
             // Track both unique odoo_record_id+name combinations
@@ -892,7 +1131,9 @@ Item {
                 // Add stage to menu model with its odoo_record_id as value
                 menuModel.push({
                     label: label,
-                    value: s.odoo_record_id
+                    value: s.odoo_record_id,
+                    account_id: s.account_id,
+                    is_stage: true
                 });
             }
             return menuModel;
@@ -904,12 +1145,12 @@ Item {
             if (!selectedItem)
                 return;
 
-            if (selectedItem.value === -2) {
+            if (!selectedItem.is_stage && selectedItem.value === -2) {
                 // Open Projects filter
                 stageFilter.enabled = true;
                 stageFilter.odoo_record_id = -2;
                 stageFilter.name = "Open";
-            } else if (selectedItem.value === -1) {
+            } else if (!selectedItem.is_stage && selectedItem.value === -1) {
                 stageFilter.enabled = false;
                 stageFilter.odoo_record_id = -1;
                 stageFilter.account_id = -1;
@@ -917,7 +1158,7 @@ Item {
             } else {
                 stageFilter.enabled = true;
                 stageFilter.odoo_record_id = selectedItem.value;
-                stageFilter.account_id = selectedItem.account_id || 0;
+                stageFilter.account_id = (selectedItem.account_id !== undefined) ? selectedItem.account_id : 0;
                 stageFilter.name = selectedItem.label;
             }
 
