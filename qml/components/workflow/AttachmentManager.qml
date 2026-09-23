@@ -405,6 +405,7 @@ Item {
     }
 
     function openContentPicker() {
+        Qt.inputMethod.hide();
         if (_busy) {
             return;
         }

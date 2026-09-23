@@ -92,7 +92,14 @@ Item {
         id: infobar
         anchors.bottom: parent.bottom
         anchors.left: parent.left
-        width: parent.width
+        anchors.right: parent.right
+        anchors.bottomMargin: (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height : 0)
+            + (modelDownloadTimerWidget.visible ? (modelDownloadTimerWidget.height + units.gu(1)) : 0)
+            + (globalTimerWidget.visible ? (globalTimerWidget.height + units.gu(1)) : 0)
         height: units.gu(10)
+
+        Behavior on anchors.bottomMargin {
+            NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+        }
     }
 }
