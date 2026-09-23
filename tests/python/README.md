@@ -20,12 +20,11 @@ To run a specific test file:
 
 ```bash
 pytest tests/python/test_storage.py -v
-```
-
-To run a specific test case class or method:
-
-```bash
-pytest tests/python/test_storage.py -k "TestSafeExtFor"
+pytest tests/python/test_auth.py -v
+pytest tests/python/test_voice.py -v
+pytest tests/python/test_attachments.py -v
+pytest tests/python/test_sync.py -v
+pytest tests/python/test_backend_facade.py -v
 ```
 
 ## Test Directory Structure
@@ -33,9 +32,14 @@ pytest tests/python/test_storage.py -k "TestSafeExtFor"
 ```
 tests/
 └── python/
-    ├── README.md             # This guide
-    ├── conftest.py           # pytest configuration and sys.path setup
-    └── test_storage.py       # Unit tests for storage and attachment utilities
+    ├── README.md                 # This guide
+    ├── conftest.py               # pytest configuration and sys.path setup
+    ├── test_attachments.py       # Unit tests for attachment downloads and operations
+    ├── test_auth.py              # Unit tests for reachability, db discovery, and auth
+    ├── test_backend_facade.py    # Unit tests for QML API backward compatibility
+    ├── test_storage.py           # Unit tests for storage and attachment path utilities
+    ├── test_sync.py              # Unit tests for synchronization concurrency and locks
+    └── test_voice.py             # Unit tests for voice models layout and signals
 ```
 
 ## Guidelines for New Backend Tests
