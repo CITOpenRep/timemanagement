@@ -48,6 +48,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install clickable-ut
 
+      - name: Prepare build directory
+        run: mkdir -p build/x86_64-linux-gnu/app
+
       - name: Run QML Component Tests
         run: |
           clickable test --non-interactive --arch amd64
