@@ -21,8 +21,10 @@ clickable test -- -functions test_openDisplaysMessageAndEmitsSignal
 ```
 tests/
 ├── qml/
-│   ├── README.md             # This guide
-│   └── tst_infobar.qml       # Example test suite for InfoBar component
+│   ├── README.md                  # This guide
+│   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
+│   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
+│   └── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
 ```
 
 Clickable automatically discovers all files matching `tst_*.qml` under `tests/qml/` as configured in `clickable.yaml`.

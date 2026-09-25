@@ -1,0 +1,59 @@
+name: QML Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+      - 'refactor/**'
+      - 'fix/**'
+    paths:
+      - 'qml/**'
+      - 'tests/qml/**'
+      - 'models/**'
+      - '.github/workflows/qml-tests.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+    paths:
+      - 'qml/**'
+      - 'tests/qml/**'
+      - 'models/**'
+      - '.github/workflows/qml-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qml-component-tests:
+    name: QML Component Tests
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Qt5 & Lomiri test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            qtdeclarative5-dev-tools \
+            qml-module-qttest \
+            qml-module-lomiri-components \
+            qml-module-lomiri-components-labs \
+            qml-module-qtquick-controls2 \
+            qml-module-qtquick-layouts \
+            qml-module-qtquick-localstorage \
+            suru-icon-theme \
+            lomiri-ui-toolkit-theme \
+            xvfb
+          echo "/usr/lib/qt5/bin" >> $GITHUB_PATH
+
+      - name: Run QML Component Tests
+        run: |
+          xvfb-run -a qmltestrunner -input tests/qml
