@@ -25,6 +25,7 @@ tests/
 │   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
 │   ├── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
+│   ├── tst_tslabel.qml            # Test suite for TSLabel styled text component
 │   └── tst_tssearchbar.qml        # Test suite for TSSearchBar search input component
 ```
 
