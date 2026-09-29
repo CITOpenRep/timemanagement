@@ -24,7 +24,8 @@ tests/
 │   ├── README.md                  # This guide
 │   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
-│   └── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
+│   ├── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
+│   └── tst_tssearchbar.qml        # Test suite for TSSearchBar search input component
 ```
 
 Clickable automatically discovers all files matching `tst_*.qml` under `tests/qml/` as configured in `clickable.yaml`.
