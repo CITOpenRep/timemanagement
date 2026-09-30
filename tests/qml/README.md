@@ -29,7 +29,8 @@ tests/
 │   ├── tst_tsiconbutton.qml       # Test suite for TSIconButton circular icon button component
 │   ├── tst_tslabel.qml            # Test suite for TSLabel styled text component
 │   ├── tst_tsprogressbar.qml      # Test suite for TSProgressbar progress indicator
-│   └── tst_tssearchbar.qml        # Test suite for TSSearchBar search input component
+│   ├── tst_tssearchbar.qml        # Test suite for TSSearchBar search input component
+│   └── tst_tsswitch.qml           # Test suite for TSSwitch toggle switch component
 ```
 
 Clickable automatically discovers all files matching `tst_*.qml` under `tests/qml/` as configured in `clickable.yaml`.
