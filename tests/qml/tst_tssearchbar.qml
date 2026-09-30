@@ -223,11 +223,19 @@ Item {
         }
 
         function test_searchTriggerSignalMultipleQueries() {
-            testSearchBar.accepted("First Query");
+            var field = findSearchField();
+            verify(field !== null, "TextInput field should exist");
+
+            field.forceActiveFocus();
+            tryCompare(field, "activeFocus", true, 500);
+
+            testSearchBar.text = "First Query";
+            keyClick(Qt.Key_Return);
             compare(acceptedSpy.count, 1);
             compare(acceptedSpy.signalArguments[0][0], "First Query");
 
-            testSearchBar.accepted("Second Query");
+            testSearchBar.text = "Second Query";
+            keyClick(Qt.Key_Return);
             compare(acceptedSpy.count, 2);
             compare(acceptedSpy.signalArguments[1][0], "Second Query");
         }

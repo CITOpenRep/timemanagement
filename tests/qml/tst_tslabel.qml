@@ -12,6 +12,8 @@ Item {
         id: testLabel
     }
 
+    property int defaultFontSize: testLabel.fontSize
+
     TestCase {
         name: "TSLabelTests"
         when: windowShown
@@ -24,7 +26,7 @@ Item {
             return null;
         }
 
-        function init() {
+        function cleanup() {
             testLabel.text = "";
             testLabel.wrapMode = Text.WordWrap;
             testLabel.elide = Text.ElideRight;
@@ -33,6 +35,10 @@ Item {
             testLabel.fontBold = false;
             testLabel.horizontalAlignment = Text.AlignLeft;
             testLabel.verticalAlignment = Text.AlignVCenter;
+            testLabel.width = undefined;
+            if (defaultFontSize > 0) {
+                testLabel.fontSize = defaultFontSize;
+            }
         }
 
         //Initial State & Property Defaults
