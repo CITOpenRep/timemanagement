@@ -22,16 +22,20 @@ clickable test -- -functions test_openDisplaysMessageAndEmitsSignal
 tests/
 ├── qml/
 │   ├── README.md                  # This guide
-│   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
+│   ├── tst_constants.qml          # Test suite for constants and quadrant color configuration
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
 │   ├── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
+│   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
+│   ├── tst_logger.qml             # Test suite for logger levels, formatting, and PII sanitization
 │   ├── tst_outlinedtextfield.qml # Test suite for OutlinedTextField text input component
+│   ├── tst_timer_service.qml      # Test suite for timer service state transitions and duration
 │   ├── tst_tsbutton.qml           # Test suite for TSButton action button component
 │   ├── tst_tsiconbutton.qml       # Test suite for TSIconButton circular icon button component
 │   ├── tst_tslabel.qml            # Test suite for TSLabel styled text component
 │   ├── tst_tsprogressbar.qml      # Test suite for TSProgressbar progress indicator
 │   ├── tst_tssearchbar.qml        # Test suite for TSSearchBar search input component
-│   └── tst_tsswitch.qml           # Test suite for TSSwitch toggle switch component
+│   ├── tst_tsswitch.qml           # Test suite for TSSwitch toggle switch component
+│   └── tst_utils.qml              # Test suite for date, time, duration, and URL utilities
 ```
 
 Clickable automatically discovers all files matching `tst_*.qml` under `tests/qml/` as configured in `clickable.yaml`.
