@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+      - 'refactor/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-unit-tests:
+    name: Python Unit Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest urllib3 requests
+
+      - name: Run Backend Unit Tests
+        run: |
+          pytest tests/python -v

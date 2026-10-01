@@ -1,0 +1,56 @@
+name: QML Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+      - 'refactor/**'
+      - 'fix/**'
+    paths:
+      - 'qml/**'
+      - 'tests/qml/**'
+      - 'models/**'
+      - '.github/workflows/qml-tests.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+      - 'release/**'
+    paths:
+      - 'qml/**'
+      - 'tests/qml/**'
+      - 'models/**'
+      - '.github/workflows/qml-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qml-component-tests:
+    name: QML Component Tests
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Clickable
+        run: |
+          python -m pip install --upgrade pip
+          pip install clickable-ut
+
+      - name: Prepare build directory
+        run: mkdir -p build/x86_64-linux-gnu/app
+
+      - name: Run QML Component Tests
+        run: |
+          clickable test --non-interactive --arch amd64
