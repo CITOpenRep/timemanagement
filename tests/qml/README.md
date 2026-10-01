@@ -22,9 +22,14 @@ clickable test -- -functions test_openDisplaysMessageAndEmitsSignal
 tests/
 ├── qml/
 │   ├── README.md                  # This guide
-│   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
+│   ├── models/                    # JavaScript core and model test suites
+│   │   ├── tst_constants.qml      # Test suite for constants and quadrant color configuration
+│   │   ├── tst_logger.qml         # Test suite for logger levels, formatting, and PII sanitization
+│   │   ├── tst_timer_service.qml  # Test suite for timer service state transitions and duration
+│   │   └── tst_utils.qml          # Test suite for date, time, duration, and URL utilities
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
 │   ├── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
+│   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
 │   ├── tst_outlinedtextfield.qml # Test suite for OutlinedTextField text input component
 │   ├── tst_tsbutton.qml           # Test suite for TSButton action button component
 │   ├── tst_tsiconbutton.qml       # Test suite for TSIconButton circular icon button component
