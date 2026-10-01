@@ -1,11 +1,11 @@
 import QtQuick 2.7
 import QtTest 1.0
 import QtQuick.LocalStorage 2.7 as Sql
-import "../../models/constants.js" as Constants
-import "../../models/logger.js" as Logger
-import "../../models/database.js" as DBCommon
-import "../../models/timesheet.js" as Model
-import "../../models/timer_service.js" as TimerService
+import "../../../models/constants.js" as Constants
+import "../../../models/logger.js" as Logger
+import "../../../models/database.js" as DBCommon
+import "../../../models/timesheet.js" as Model
+import "../../../models/timer_service.js" as TimerService
 
 Item {
     width: 200

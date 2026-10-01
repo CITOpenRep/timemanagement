@@ -1,6 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
-import "../../models/constants.js" as Constants
+import "../../../models/constants.js" as Constants
 
 Item {
     width: 200

@@ -1,6 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
-import "../../models/logger.js" as Logger
+import "../../../models/logger.js" as Logger
 
 Item {
     width: 200

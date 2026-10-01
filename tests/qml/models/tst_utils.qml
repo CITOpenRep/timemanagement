@@ -1,6 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
-import "../../models/utils.js" as Utils
+import "../../../models/utils.js" as Utils
 
 Item {
     width: 200
