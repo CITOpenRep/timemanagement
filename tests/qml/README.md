@@ -24,6 +24,10 @@ tests/
 │   ├── README.md                  # This guide
 │   ├── models/                    # JavaScript core and model test suites
 │   │   ├── tst_constants.qml      # Test suite for constants and quadrant color configuration
+│   │   ├── tst_database.qml       # Test suite for database constants, row conversions, and local seeders
+│   │   ├── tst_dbinit.qml         # Test suite for database table initialization and auto-sync settings
+│   │   ├── tst_draft_manager.qml  # Test suite for form draft saving, loading, diffing, and cleanup
+│   │   ├── tst_global.qml         # Test suite for global assignee filtering and date range persistence
 │   │   ├── tst_logger.qml         # Test suite for logger levels, formatting, and PII sanitization
 │   │   ├── tst_timer_service.qml  # Test suite for timer service state transitions and duration
 │   │   └── tst_utils.qml          # Test suite for date, time, duration, and URL utilities
