@@ -11,6 +11,18 @@ Page {
     property var taskData: ({})
     property string projectName: ""
 
+    readonly property real taskSpentHours: {
+        if (!taskData) return 0;
+        if (taskData.logs && taskData.logs.length > 0) {
+            var sum = 0;
+            for (var i = 0; i < taskData.logs.length; i++) {
+                sum += Number(taskData.logs[i].hours || 0);
+            }
+            return sum;
+        }
+        return Number(taskData.totalHours || 0);
+    }
+
     header: PageHeader {
         id: pageHeader
         title: taskData ? taskData.name : ""
@@ -40,12 +52,12 @@ Page {
                     model: [
                         {
                             label: i18n.dtr("ubtms", "Time spent"),
-                            value: ChartUtils.formatHours(taskData ? taskData.totalHours : 0)
+                            value: ChartUtils.formatHours(root.taskSpentHours)
                         },
                         {
                             label: i18n.dtr("ubtms", "% of project"),
                             value: taskData && taskData.projectTotalHours ?
-                                       ChartUtils.percentLabel(taskData.totalHours, taskData.projectTotalHours) :
+                                       ChartUtils.percentLabel(root.taskSpentHours, taskData.projectTotalHours) :
                                        i18n.dtr("ubtms", "0.0%")
                         }
                     ]
@@ -180,11 +192,11 @@ Page {
                                 }
 
                                 Label {
-                                    Layout.fillWidth: true
+                                    width: parent.width
                                     text: modelData.note || i18n.dtr("ubtms", "No note")
                                     color: Theme.palette.normal.backgroundText
                                     font.pixelSize: units.dp(12)
-                                    elide: Text.ElideRight
+                                    wrapMode: Text.WordWrap
                                 }
                             }
 

@@ -1,8 +1,8 @@
 .import "logger.js" as Logger
-    .import QtQuick.LocalStorage 2.7 as Sql
-        .import "database.js" as DBCommon
-            .import "utils.js" as Utils
-                .import "accounts.js" as Account
+.import QtQuick.LocalStorage 2.7 as Sql
+.import "database.js" as DBCommon
+.import "utils.js" as Utils
+.import "accounts.js" as Account
 
 /**
  * Get local project ID from Odoo record ID

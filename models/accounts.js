@@ -648,6 +648,7 @@ function getAccountName(accountId) {
  *
  * @function getUserNameByOdooId
  * @param {number} odoo_record_id - The user ID from Odoo (remote system).
+ * @param {number} [accountId=-1] - The account ID to scope the lookup.
  * @returns {string} - The user's name if found; otherwise, an empty string.
  *
  * @description
@@ -656,15 +657,24 @@ function getAccountName(accountId) {
  * If a match is found, extracts and returns the `name` field.
  * Logs any exceptions using `DBCommon.logException()` to ensure safe failure handling.
  */
-function getUserNameByOdooId(odoo_record_id) {
+function getUserNameByOdooId(odoo_record_id, accountId) {
     var userName = "";
 
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            var query = "SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1";
-            var result = tx.executeSql(query, [odoo_record_id, odoo_record_id]);
+            var numAccId = (accountId !== undefined && accountId !== null) ? Number(accountId) : -1;
+            var query = "";
+            var params = [];
+            if (numAccId !== -1) {
+                query = "SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?)) AND account_id = ? LIMIT 1";
+                params = [odoo_record_id, odoo_record_id, numAccId];
+            } else {
+                query = "SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1";
+                params = [odoo_record_id, odoo_record_id];
+            }
+            var result = tx.executeSql(query, params);
 
             if (result.rows.length > 0) {
                 userName = result.rows.item(0).name;
@@ -701,10 +711,12 @@ function combineUsersByEmail(userList, tx) {
         var key = "";
         if (email !== "") {
             key = "email:" + email;
-        } else if (login !== "") {
-            key = "login:" + login;
+        } else if (login !== "" && login.indexOf("@") !== -1) {
+            key = "email:" + login;
         } else {
-            key = "id:" + u.id;
+            var accId = (u.accountId !== undefined && u.accountId !== null) ? u.accountId :
+                        ((u.account_id !== undefined && u.account_id !== null) ? u.account_id : "0");
+            key = "account:" + accId + ":id:" + u.id;
         }
 
         if (!groups[key]) {
@@ -831,186 +843,298 @@ function getUserFilterAccountPairs(userId, accountId) {
 
     var numAccountId = (accountId !== undefined && accountId !== null) ? Number(accountId) : -1;
 
-    // Handle single selection object as array
+    // Helper: query res_users_app for matching users in other accounts by email
+    function findMatchingUsersByEmail(tx, email, excludeAccountId) {
+        var matches = [];
+        if (!email || email.trim() === "") {
+            return matches;
+        }
+        var em = email.trim().toLowerCase();
+        var sql = "SELECT account_id, (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid " +
+            "FROM res_users_app WHERE (LOWER(TRIM(email)) = ? OR LOWER(TRIM(work_email)) = ?) ";
+        var params = [em, em];
+        if (excludeAccountId !== undefined && excludeAccountId !== null && excludeAccountId >= 0) {
+            sql += "AND account_id != ? ";
+            params.push(excludeAccountId);
+        }
+        var res = tx.executeSql(sql, params);
+        for (var i = 0; i < res.rows.length; i++) {
+            matches.push({
+                accountId: Number(res.rows.item(i).account_id),
+                userId: Number(res.rows.item(i).uid)
+            });
+        }
+        return matches;
+    }
+
+    // Helper: add pair if not already in list
+    var seenPairs = {};
+    function addPair(accId, uId) {
+        var a = Number(accId);
+        var u = Number(uId);
+        if (isNaN(u) || u < 0) return;
+        var k = a + ":" + u;
+        if (!seenPairs[k]) {
+            seenPairs[k] = true;
+            pairs.push({ accountId: a, userId: u });
+        }
+    }
+
+    // Normalize single selection object as array
     if (typeof userId === "object" && !Array.isArray(userId)) {
-        var objUid = (userId.user_id !== undefined) ? userId.user_id : userId.userId;
+        var objUid = (userId.user_id !== undefined) ? userId.user_id : (userId.id !== undefined ? userId.id : userId.userId);
         if (objUid === -1 || objUid === "-1") {
             return pairs;
         }
         userId = [userId];
     }
 
-    // Handle Array of users/selections
-    if (Array.isArray(userId)) {
-        if (userId.length === 0) {
-            return pairs;
-        }
-        var seenMapArr = {};
-        for (var a = 0; a < userId.length; a++) {
-            var item = userId[a];
-            if (item === undefined || item === null || item === -1 || item === "-1") {
-                continue;
-            }
-            if (typeof item === "object") {
-                var itemUid = (item.user_id !== undefined) ? item.user_id : item.userId;
-                var itemAccId = (item.account_id !== undefined) ? item.account_id : item.accountId;
-                if (itemUid === undefined || itemUid === null || itemUid === -1 || itemUid === "-1") {
-                    continue;
-                }
-                var nItemUid = Number(itemUid);
-                var nItemAccId = (itemAccId !== undefined && itemAccId !== null) ? Number(itemAccId) : -1;
-                if (nItemAccId >= 0 && (numAccountId === -1 || numAccountId === nItemAccId)) {
-                    var k = nItemAccId + ":" + nItemUid;
-                    if (!seenMapArr[k]) {
-                        seenMapArr[k] = true;
-                        pairs.push({ accountId: nItemAccId, userId: nItemUid });
-                    }
-                } else {
-                    var subPairs = getUserFilterAccountPairs(nItemUid, accountId);
-                    for (var s = 0; s < subPairs.length; s++) {
-                        var kSub = subPairs[s].accountId + ":" + subPairs[s].userId;
-                        if (!seenMapArr[kSub]) {
-                            seenMapArr[kSub] = true;
-                            pairs.push(subPairs[s]);
-                        }
-                    }
-                }
-            } else {
-                var subPairsScalar = getUserFilterAccountPairs(item, accountId);
-                for (var ss = 0; ss < subPairsScalar.length; ss++) {
-                    var kSubSc = subPairsScalar[ss].accountId + ":" + subPairsScalar[ss].userId;
-                    if (!seenMapArr[kSubSc]) {
-                        seenMapArr[kSubSc] = true;
-                        pairs.push(subPairsScalar[ss]);
-                    }
-                }
-            }
-        }
-        return pairs;
-    }
-
-    var numUserId = Number(userId);
-    if (isNaN(numUserId) || numUserId < 0) {
-        return pairs;
-    }
-
     try {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
-            // 1. Look up res_users_app records for the given numUserId
-            var userRecords = [];
-            var findSql = "SELECT account_id, (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid, email, work_email, login " +
-                "FROM res_users_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?))";
-            var findRes = tx.executeSql(findSql, [numUserId, numUserId]);
-            for (var i = 0; i < findRes.rows.length; i++) {
-                userRecords.push(findRes.rows.item(i));
-            }
+            function resolveScalar(t, sId) {
+                if (isNaN(sId) || sId < 0) return;
 
-            // Collect non-empty emails and logins
-            var emails = [];
-            var logins = [];
-            for (var j = 0; j < userRecords.length; j++) {
-                var r = userRecords[j];
-                var em = (r.email || r.work_email || "").trim().toLowerCase();
-                var lg = (r.login || "").trim().toLowerCase();
-                if (em !== "" && emails.indexOf(em) === -1) {
-                    emails.push(em);
-                }
-                if (lg !== "" && logins.indexOf(lg) === -1) {
-                    logins.push(lg);
-                }
-            }
+                // If querying a specific account, strictly scope to that account
+                if (numAccountId !== -1) {
+                    var sRes = t.executeSql(
+                        "SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid " +
+                        "FROM res_users_app WHERE account_id = ? AND (odoo_record_id = ? OR (account_id = 0 AND id = ?)) LIMIT 1",
+                        [numAccountId, sId, sId]
+                    );
+                    if (sRes.rows.length > 0) {
+                        addPair(numAccountId, Number(sRes.rows.item(0).uid));
+                        return;
+                    }
 
-            // 2. If single account target (numAccountId !== -1):
-            if (numAccountId !== -1) {
-                for (var k = 0; k < userRecords.length; k++) {
-                    if (Number(userRecords[k].account_id) === numAccountId) {
-                        pairs.push({ accountId: numAccountId, userId: Number(userRecords[k].uid) });
+                    // Not directly in this account: check if sId exists in another account with an email
+                    var otherRes = t.executeSql(
+                        "SELECT email, work_email FROM res_users_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?))",
+                        [sId, sId]
+                    );
+                    var matchedOther = false;
+                    for (var o = 0; o < otherRes.rows.length; o++) {
+                        var oEmail = (otherRes.rows.item(o).email || otherRes.rows.item(o).work_email || "").trim().toLowerCase();
+                        if (oEmail !== "") {
+                            var targetMatch = t.executeSql(
+                                "SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid " +
+                                "FROM res_users_app WHERE account_id = ? AND (LOWER(TRIM(email)) = ? OR LOWER(TRIM(work_email)) = ?) LIMIT 1",
+                                [numAccountId, oEmail, oEmail]
+                            );
+                            if (targetMatch.rows.length > 0) {
+                                addPair(numAccountId, Number(targetMatch.rows.item(0).uid));
+                                matchedOther = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!matchedOther) {
+                        addPair(numAccountId, sId);
+                    }
+                    return;
+                }
+
+                // Querying All Accounts (-1):
+                // Find res_users_app records with this ID
+                var allRes = t.executeSql(
+                    "SELECT account_id, (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid, email, work_email " +
+                    "FROM res_users_app WHERE (odoo_record_id = ? OR (account_id = 0 AND id = ?))",
+                    [sId, sId]
+                );
+
+                if (allRes.rows.length === 0) {
+                    addPair(-1, sId);
+                    return;
+                }
+
+                if (allRes.rows.length === 1) {
+                    var singleRow = allRes.rows.item(0);
+                    var singleAcc = Number(singleRow.account_id);
+                    var singleUid = Number(singleRow.uid);
+                    addPair(singleAcc, singleUid);
+
+                    var singleEmail = (singleRow.email || singleRow.work_email || "").trim().toLowerCase();
+                    if (singleEmail !== "") {
+                        var singleMatches = findMatchingUsersByEmail(t, singleEmail, singleAcc);
+                        for (var sm = 0; sm < singleMatches.length; sm++) {
+                            addPair(singleMatches[sm].accountId, singleMatches[sm].userId);
+                        }
+                    }
+                    return;
+                }
+
+                // Multiple accounts have a user with this ID number (e.g. ID 2 or 6 on different servers)
+                // Check if they all share the exact same non-empty email
+                var distinctEmails = [];
+                for (var r = 0; r < allRes.rows.length; r++) {
+                    var rEmail = (allRes.rows.item(r).email || allRes.rows.item(r).work_email || "").trim().toLowerCase();
+                    if (rEmail !== "" && distinctEmails.indexOf(rEmail) === -1) {
+                        distinctEmails.push(rEmail);
+                    }
+                }
+
+                if (distinctEmails.length === 1) {
+                    var allShareEmail = true;
+                    for (var rr = 0; rr < allRes.rows.length; rr++) {
+                        var rrEmail = (allRes.rows.item(rr).email || allRes.rows.item(rr).work_email || "").trim().toLowerCase();
+                        if (rrEmail !== distinctEmails[0]) {
+                            allShareEmail = false;
+                            break;
+                        }
+                    }
+
+                    if (allShareEmail) {
+                        for (var m = 0; m < allRes.rows.length; m++) {
+                            addPair(Number(allRes.rows.item(m).account_id), Number(allRes.rows.item(m).uid));
+                        }
+                        var emailMatches = findMatchingUsersByEmail(t, distinctEmails[0], -1);
+                        for (var emIdx = 0; emIdx < emailMatches.length; emIdx++) {
+                            addPair(emailMatches[emIdx].accountId, emailMatches[emIdx].userId);
+                        }
                         return;
                     }
                 }
 
-                // If not directly matching this account by ID, match by email or login within this account
-                if (emails.length > 0 || logins.length > 0) {
-                    var matchConds = [];
-                    var matchParams = [];
-                    if (emails.length > 0) {
-                        var emPl = emails.map(function () { return "?"; }).join(",");
-                        matchConds.push("(NULLIF(TRIM(email), '') IS NOT NULL AND LOWER(TRIM(email)) IN (" + emPl + "))");
-                        matchConds.push("(NULLIF(TRIM(work_email), '') IS NOT NULL AND LOWER(TRIM(work_email)) IN (" + emPl + "))");
-                        matchParams = matchParams.concat(emails).concat(emails);
-                    }
-                    if (logins.length > 0) {
-                        var lgPl = logins.map(function () { return "?"; }).join(",");
-                        matchConds.push("LOWER(TRIM(login)) IN (" + lgPl + ")");
-                        matchParams = matchParams.concat(logins);
-                    }
-
-                    var accSql = "SELECT account_id, (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid " +
-                        "FROM res_users_app WHERE account_id = ? AND (" + matchConds.join(" OR ") + ") LIMIT 1";
-                    var accRes = tx.executeSql(accSql, [numAccountId].concat(matchParams));
-                    if (accRes.rows.length > 0) {
-                        pairs.push({ accountId: numAccountId, userId: Number(accRes.rows.item(0).uid) });
-                        return;
-                    }
+                // Different users sharing the same ID number on different servers!
+                // DO NOT mix them up! Scope to the default account (or first record).
+                var defAccId = -1;
+                var defRes = t.executeSql("SELECT id FROM users WHERE is_default = 1 LIMIT 1");
+                if (defRes.rows.length > 0) {
+                    defAccId = Number(defRes.rows.item(0).id);
                 }
 
-                // Fallback for single account
-                pairs.push({ accountId: numAccountId, userId: numUserId });
+                var chosenRow = null;
+                for (var c = 0; c < allRes.rows.length; c++) {
+                    if (Number(allRes.rows.item(c).account_id) === defAccId) {
+                        chosenRow = allRes.rows.item(c);
+                        break;
+                    }
+                }
+                if (!chosenRow) {
+                    chosenRow = allRes.rows.item(0);
+                }
+
+                var chosenAcc = Number(chosenRow.account_id);
+                var chosenUid = Number(chosenRow.uid);
+                addPair(chosenAcc, chosenUid);
+
+                var chosenEmail = (chosenRow.email || chosenRow.work_email || "").trim().toLowerCase();
+                if (chosenEmail !== "") {
+                    var chosenMatches = findMatchingUsersByEmail(t, chosenEmail, chosenAcc);
+                    for (var cm = 0; cm < chosenMatches.length; cm++) {
+                        addPair(chosenMatches[cm].accountId, chosenMatches[cm].userId);
+                    }
+                }
+            }
+
+            // Handle Array of users/selections
+            if (Array.isArray(userId)) {
+                if (userId.length === 0) {
+                    return;
+                }
+
+                for (var a = 0; a < userId.length; a++) {
+                    var item = userId[a];
+                    if (item === undefined || item === null || item === -1 || item === "-1") {
+                        continue;
+                    }
+
+                    if (typeof item === "object") {
+                        var itemUid = (item.user_id !== undefined) ? item.user_id : (item.id !== undefined ? item.id : item.userId);
+                        var itemAccId = (item.account_id !== undefined && item.account_id !== null) ? item.account_id :
+                            ((item.accountId !== undefined && item.accountId !== null) ? item.accountId : -1);
+
+                        if (itemUid === undefined || itemUid === null || itemUid === -1 || itemUid === "-1") {
+                            continue;
+                        }
+
+                        // Case 1: Pre-combined user with allUserIds and allAccountIds
+                        if (item.allUserIds && item.allAccountIds && item.allUserIds.length > 0) {
+                            for (var uIdx = 0; uIdx < item.allUserIds.length; uIdx++) {
+                                var uAcc = Number(item.allAccountIds[uIdx]);
+                                var uVal = Number(item.allUserIds[uIdx]);
+                                if (numAccountId === -1 || numAccountId === uAcc) {
+                                    addPair(uAcc, uVal);
+                                }
+                            }
+                            continue;
+                        }
+
+                        var nItemUid = Number(itemUid);
+                        var nItemAccId = (itemAccId !== undefined && itemAccId !== null) ? Number(itemAccId) : -1;
+
+                        // Case 2: Object with known account_id
+                        if (nItemAccId >= 0) {
+                            if (numAccountId !== -1) {
+                                if (numAccountId === nItemAccId) {
+                                    addPair(nItemAccId, nItemUid);
+                                } else {
+                                    // Target account is different from item's account:
+                                    // Match in target account by email only
+                                    var uRes = tx.executeSql(
+                                        "SELECT email, work_email FROM res_users_app WHERE account_id = ? AND (odoo_record_id = ? OR (account_id = 0 AND id = ?)) LIMIT 1",
+                                        [nItemAccId, nItemUid, nItemUid]
+                                    );
+                                    if (uRes.rows.length > 0) {
+                                        var emSingle = (uRes.rows.item(0).email || uRes.rows.item(0).work_email || "").trim().toLowerCase();
+                                        if (emSingle !== "") {
+                                            var targetMatch = tx.executeSql(
+                                                "SELECT (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid " +
+                                                "FROM res_users_app WHERE account_id = ? AND (LOWER(TRIM(email)) = ? OR LOWER(TRIM(work_email)) = ?) LIMIT 1",
+                                                [numAccountId, emSingle, emSingle]
+                                            );
+                                            if (targetMatch.rows.length > 0) {
+                                                addPair(numAccountId, Number(targetMatch.rows.item(0).uid));
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                // All accounts: add this user, and match other accounts by email ONLY
+                                addPair(nItemAccId, nItemUid);
+                                var uResAll = tx.executeSql(
+                                    "SELECT email, work_email FROM res_users_app WHERE account_id = ? AND (odoo_record_id = ? OR (account_id = 0 AND id = ?)) LIMIT 1",
+                                    [nItemAccId, nItemUid, nItemUid]
+                                );
+                                if (uResAll.rows.length > 0) {
+                                    var emAll = (uResAll.rows.item(0).email || uResAll.rows.item(0).work_email || "").trim().toLowerCase();
+                                    if (emAll !== "") {
+                                        var otherMatches = findMatchingUsersByEmail(tx, emAll, nItemAccId);
+                                        for (var om = 0; om < otherMatches.length; om++) {
+                                            addPair(otherMatches[om].accountId, otherMatches[om].userId);
+                                        }
+                                    }
+                                }
+                            }
+                            continue;
+                        }
+
+                        // Case 3: Object without known account_id -> resolve as scalar ID
+                        resolveScalar(tx, nItemUid);
+                    } else {
+                        // Scalar item in array
+                        resolveScalar(tx, Number(item));
+                    }
+                }
                 return;
             }
 
-            // 3. All accounts (numAccountId === -1):
-            var seenMap = {};
-            if (emails.length > 0 || logins.length > 0) {
-                var allConds = [];
-                var allParams = [];
-                if (emails.length > 0) {
-                    var emPlAll = emails.map(function () { return "?"; }).join(",");
-                    allConds.push("(NULLIF(TRIM(email), '') IS NOT NULL AND LOWER(TRIM(email)) IN (" + emPlAll + "))");
-                    allConds.push("(NULLIF(TRIM(work_email), '') IS NOT NULL AND LOWER(TRIM(work_email)) IN (" + emPlAll + "))");
-                    allParams = allParams.concat(emails).concat(emails);
-                }
-                if (logins.length > 0) {
-                    var lgPlAll = logins.map(function () { return "?"; }).join(",");
-                    allConds.push("LOWER(TRIM(login)) IN (" + lgPlAll + ")");
-                    allParams = allParams.concat(logins);
-                }
-
-                var allSql = "SELECT account_id, (CASE WHEN account_id = 0 OR odoo_record_id IS NULL OR odoo_record_id <= 0 THEN id ELSE odoo_record_id END) AS uid " +
-                    "FROM res_users_app WHERE " + allConds.join(" OR ");
-                var allRes = tx.executeSql(allSql, allParams);
-                for (var m = 0; m < allRes.rows.length; m++) {
-                    var itm = allRes.rows.item(m);
-                    var acctId = Number(itm.account_id);
-                    var uId = Number(itm.uid);
-                    var key = acctId + ":" + uId;
-                    if (!seenMap[key]) {
-                        seenMap[key] = true;
-                        pairs.push({ accountId: acctId, userId: uId });
-                    }
-                }
-            }
-
-            // If no pairs found via email/login, include records from initial lookup
-            if (pairs.length === 0 && userRecords.length > 0) {
-                for (var n = 0; n < userRecords.length; n++) {
-                    var uRec = userRecords[n];
-                    var keyU = Number(uRec.account_id) + ":" + Number(uRec.uid);
-                    if (!seenMap[keyU]) {
-                        seenMap[keyU] = true;
-                        pairs.push({ accountId: Number(uRec.account_id), userId: Number(uRec.uid) });
-                    }
-                }
+            // Direct scalar userId
+            var numScalarId = Number(userId);
+            if (!isNaN(numScalarId) && numScalarId >= 0) {
+                resolveScalar(tx, numScalarId);
             }
         });
     } catch (e) {
         DBCommon.logException("getUserFilterAccountPairs", e);
     }
 
-    if (pairs.length === 0) {
-        pairs.push({ accountId: numAccountId, userId: numUserId });
+    if (pairs.length === 0 && numAccountId !== -1) {
+        var fallbackUid = Number(userId);
+        if (!isNaN(fallbackUid) && fallbackUid >= 0) {
+            pairs.push({ accountId: numAccountId, userId: fallbackUid });
+        }
     }
 
     return pairs;
@@ -1224,7 +1348,7 @@ function getDashboardFilterUsers(accountId) {
                         var accIdVal = row.account_id !== undefined ? row.account_id : target.accountId;
                         users.push({
                             id: target.userId,
-                            name: row.name || row.login || getUserNameByOdooId(target.userId) || ("User #" + target.userId),
+                            name: row.name || row.login || getUserNameByOdooId(target.userId, target.accountId) || ("User #" + target.userId),
                             login: row.login || "",
                             email: row.email || row.work_email || "",
                             avatar: row.avatar_128 || "",
@@ -1235,7 +1359,7 @@ function getDashboardFilterUsers(accountId) {
                     } else {
                         users.push({
                             id: target.userId,
-                            name: getUserNameByOdooId(target.userId) || ("User #" + target.userId),
+                            name: getUserNameByOdooId(target.userId, target.accountId) || ("User #" + target.userId),
                             login: "",
                             email: "",
                             avatar: "",
@@ -1332,7 +1456,7 @@ function getDashboardSingleUserDefault(accountId, availableUsers) {
                     }
                 }
             }
-            var userName = getUserNameByOdooId(loggedInUid);
+            var userName = getUserNameByOdooId(loggedInUid, parsedAccountId);
             return {
                 id: loggedInUid,
                 name: userName || ("User #" + loggedInUid)
@@ -1343,9 +1467,11 @@ function getDashboardSingleUserDefault(accountId, availableUsers) {
     // All Accounts (-1): Try to default to currently logged-in user of default account or any active account
     if (parsedAccountId === -1) {
         var targetUid = -1;
+        var sourceAccId = -1;
         var defAccId = getDefaultRemoteAccountId();
         if (defAccId > 0) {
             targetUid = getCurrentUserOdooId(defAccId);
+            sourceAccId = defAccId;
         }
         if (targetUid <= 0) {
             var allAccs = getActiveAccounts();
@@ -1353,6 +1479,7 @@ function getDashboardSingleUserDefault(accountId, availableUsers) {
                 var aUid = getCurrentUserOdooId(allAccs[a].id);
                 if (aUid > 0) {
                     targetUid = aUid;
+                    sourceAccId = allAccs[a].id;
                     break;
                 }
             }
@@ -1360,8 +1487,17 @@ function getDashboardSingleUserDefault(accountId, availableUsers) {
         if (targetUid > 0 && availableUsers && availableUsers.length > 0) {
             for (var m = 0; m < availableUsers.length; m++) {
                 var cand = availableUsers[m];
-                if (cand.id === targetUid || (cand.allUserIds && cand.allUserIds.indexOf(targetUid) !== -1)) {
-                    return cand;
+                if (cand.allUserIds && cand.allAccountIds) {
+                    for (var u = 0; u < cand.allUserIds.length; u++) {
+                        if (cand.allUserIds[u] === targetUid && (sourceAccId <= 0 || cand.allAccountIds[u] === sourceAccId)) {
+                            return cand;
+                        }
+                    }
+                } else if (cand.id === targetUid) {
+                    var cAcc = (cand.accountId !== undefined) ? cand.accountId : cand.account_id;
+                    if (sourceAccId <= 0 || cAcc === undefined || cAcc === sourceAccId) {
+                        return cand;
+                    }
                 }
             }
         }

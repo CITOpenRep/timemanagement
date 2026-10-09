@@ -1,7 +1,7 @@
 .import "database.js" as DBCommon
-    .import QtQuick.LocalStorage 2.7 as Sql
-        .import "accounts.js" as Account
-            .import "../models/dbinit.js" as DbInit
+.import QtQuick.LocalStorage 2.7 as Sql
+.import "accounts.js" as Account
+.import "../models/dbinit.js" as DbInit
 
 /* Name: get_quadrant_current_week
  * This function will return total of spent time for current week based on quadrants from timesheet entries

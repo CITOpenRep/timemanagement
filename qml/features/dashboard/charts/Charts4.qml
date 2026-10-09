@@ -34,6 +34,9 @@ Item {
             selectedUserId = userId;
         }
         projectsModel = buildProjectsModel(filterStartDate, filterEndDate);
+        if (chartFlow && typeof chartFlow.refreshCurrentView === "function") {
+            chartFlow.refreshCurrentView();
+        }
     }
 
     function buildProjectsModel(startDate, endDate) {
@@ -91,14 +94,32 @@ Item {
         return mappedTasks;
     }
 
-    function loadLogsForTask(projectId, taskId) {
+    function loadLogsForTask(projectId, taskId, taskObj) {
         var project = findProject(projectId);
-        var task = findTask(project, taskId);
-        if (!project || !task) {
+        if (!project) {
             return [];
         }
 
-        var timesheets = TimesheetModel.getTimesheetsForTask(task.odooRecordId, project.accountId, "all", filterStartDate, filterEndDate, selectedUserId);
+        var task = findTask(project, taskId);
+        if (!project.tasks || project.tasks.length === 0 || !task) {
+            loadTasksForProject(projectId);
+            task = findTask(project, taskId);
+        }
+        var targetTask = task || taskObj;
+        if (!targetTask) {
+            return [];
+        }
+
+        var targetTaskId = (project.accountId === 0 || !targetTask.odooRecordId) ? targetTask.localId : targetTask.odooRecordId;
+        if (!targetTaskId && taskId !== undefined && taskId !== null) {
+            var parts = String(taskId).split(":");
+            targetTaskId = Number(parts[parts.length - 1]);
+        }
+        if (!targetTaskId) {
+            return [];
+        }
+
+        var timesheets = TimesheetModel.getTimesheetsForTask(targetTaskId, project.accountId, "all", filterStartDate, filterEndDate, selectedUserId);
         var logs = [];
 
         for (var i = 0; i < timesheets.length; i++) {
@@ -112,15 +133,19 @@ Item {
             });
         }
 
-        task.logs = logs;
-        task._logsLoaded = true;
+        if (task) {
+            task.logs = logs;
+            task._logsLoaded = true;
+        }
         return logs;
     }
 
     function findProject(projectId) {
+        if (!projectsModel) return null;
         for (var i = 0; i < projectsModel.length; i++) {
-            if (projectsModel[i].id === projectId) {
-                return projectsModel[i];
+            var p = projectsModel[i];
+            if (p.id === projectId || String(p.odooRecordId) === String(projectId) || String(p.localId) === String(projectId)) {
+                return p;
             }
         }
         return null;
@@ -132,8 +157,9 @@ Item {
         }
 
         for (var i = 0; i < project.tasks.length; i++) {
-            if (project.tasks[i].id === taskId) {
-                return project.tasks[i];
+            var t = project.tasks[i];
+            if (t.id === taskId || String(t.localId) === String(taskId) || (t.odooRecordId && String(t.odooRecordId) === String(taskId))) {
+                return t;
             }
         }
         return null;

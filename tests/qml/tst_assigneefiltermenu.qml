@@ -156,6 +156,22 @@ Item {
             verify(!testMenu.isAssigneeSelected(-1, -1));
         }
 
+        function test_removeSelection_allAccountsMode() {
+            testMenu.showAllUsersOption = true;
+            // Case 1: Existing selection has account_id: -1 (All Accounts mode), target has account_id: 1
+            testMenu.selectedAssigneeIds = [testMenu.createSelection(10, -1)];
+            compare(testMenu.selectedAssigneeIds.length, 1);
+            verify(testMenu.isAssigneeSelected(10, 1));
+            testMenu.removeSelectionIfPresent(testMenu.createSelection(10, 1));
+            compare(testMenu.selectedAssigneeIds.length, 0);
+
+            // Case 2: Existing selection has account_id: 1, target has account_id: -1
+            testMenu.selectedAssigneeIds = [testMenu.createSelection(10, 1)];
+            compare(testMenu.selectedAssigneeIds.length, 1);
+            testMenu.removeSelectionIfPresent(testMenu.createSelection(10, -1));
+            compare(testMenu.selectedAssigneeIds.length, 0);
+        }
+
         function test_noUserSelected_doesNotSelectAllUsers() {
             testMenu.showAllUsersOption = true;
             testMenu.selectedAssigneeIds = [];
@@ -245,9 +261,37 @@ Item {
             wait(100);
             verify(testMenu.isOnlyAllUsersSelected());
 
+            // 5. Query fresh Alice delegate and click directly on its checkbox
+            aliceLabel = findItemWithText(listView.contentItem, "Alice");
+            verify(aliceLabel !== null, "Alice label should be found");
+            var delegateItem = aliceLabel.parent;
+            while (delegateItem && delegateItem.itemAssigneeId === undefined) {
+                delegateItem = delegateItem.parent;
+            }
+            verify(delegateItem !== null, "Delegate root should be found");
 
+            var aliceCheckbox = null;
+            for (var c = 0; c < delegateItem.children.length; c++) {
+                var ch = delegateItem.children[c];
+                if (ch && ch.hasOwnProperty("checked") && ch.hasOwnProperty("checkState")) {
+                    aliceCheckbox = ch;
+                    break;
+                }
+            }
+            verify(aliceCheckbox !== null, "Alice checkbox should be found");
 
+            // Direct click on checkbox selects Alice
+            testMenu.selectedAssigneeIds = [];
+            wait(50);
+            mouseClick(aliceCheckbox, 5, 5);
+            wait(100);
+            compare(testMenu.selectedAssigneeIds.length, 1);
+            verify(testMenu.isAssigneeSelected(10, 1));
 
+            // Direct click on checkbox deselects Alice (does not uncheck and instantly re-check)
+            mouseClick(aliceCheckbox, 5, 5);
+            wait(100);
+            compare(testMenu.selectedAssigneeIds.length, 0);
         }
     }
 }

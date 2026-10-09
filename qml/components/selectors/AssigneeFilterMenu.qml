@@ -125,7 +125,7 @@ Item {
         for (var i = selectedAssigneeIds.length - 1; i >= 0; i--) {
             var existingId = selectedAssigneeIds[i];
             if (typeof existingId === 'object') {
-                if (existingId.user_id === selection.user_id && (selection.account_id === undefined || selection.account_id === -1 || existingId.account_id === selection.account_id)) {
+                if (existingId.user_id === selection.user_id && (selection.account_id === undefined || selection.account_id === -1 || existingId.account_id === -1 || existingId.account_id === selection.account_id)) {
                     selectedAssigneeIds.splice(i, 1);
                 }
             } else if (existingId === selection.user_id) {
@@ -627,7 +627,6 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            propagateComposedEvents: true
                             onClicked: {
                                 delegateRoot.toggleSelection();
                                 mouse.accepted = true;

@@ -771,5 +771,73 @@ Item {
             isVisible = Account.hasManagerOrAdminAccess(activeAccountId);
             compare(isVisible, true);
         }
+
+        // --- 11. Cross-Server User ID Isolation ---
+        function test_usersSharingSameIdAcrossServers_notMixedUp() {
+            var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+            db.transaction(function(tx) {
+                // Two distinct servers / accounts
+                tx.executeSql("INSERT INTO users (id, name, link, database, username, is_default) VALUES (1, 'Server 1', 'https://s1.com', 'db1', 'admin1', 1)");
+                tx.executeSql("INSERT INTO users (id, name, link, database, username, is_default) VALUES (2, 'Server 2', 'https://s2.com', 'db2', 'admin2', 0)");
+
+                // Both servers have users with ID 2 and ID 6, but DIFFERENT people and emails!
+                // Server 1: User 2 is Alice (alice@server1.com), User 6 is Alan (alan@server1.com)
+                tx.executeSql("INSERT INTO res_users_app (account_id, odoo_record_id, name, email, login, active) VALUES (1, 2, 'Alice S1', 'alice@server1.com', 'alice', 1)");
+                tx.executeSql("INSERT INTO res_users_app (account_id, odoo_record_id, name, email, login, active) VALUES (1, 6, 'Alan S1', 'alan@server1.com', 'alan', 1)");
+
+                // Server 2: User 2 is Bob (bob@server2.com), User 6 is Brian (brian@server2.com)
+                tx.executeSql("INSERT INTO res_users_app (account_id, odoo_record_id, name, email, login, active) VALUES (2, 2, 'Bob S2', 'bob@server2.com', 'bob', 1)");
+                tx.executeSql("INSERT INTO res_users_app (account_id, odoo_record_id, name, email, login, active) VALUES (2, 6, 'Brian S2', 'brian@server2.com', 'brian', 1)");
+
+                // Projects and timesheets
+                tx.executeSql("INSERT INTO project_project_app (id, account_id, odoo_record_id, name) VALUES (1, 1, 101, 'Proj 1')");
+                tx.executeSql("INSERT INTO project_project_app (id, account_id, odoo_record_id, name) VALUES (2, 2, 202, 'Proj 2')");
+
+                // Alice (Server 1, user 2): 3 hrs
+                tx.executeSql("INSERT INTO account_analytic_line_app (account_id, project_id, task_id, user_id, unit_amount, record_date, status) VALUES (1, 101, 1, 2, 3.0, '2026-10-01', 'synced')");
+                // Bob (Server 2, user 2): 7 hrs
+                tx.executeSql("INSERT INTO account_analytic_line_app (account_id, project_id, task_id, user_id, unit_amount, record_date, status) VALUES (2, 202, 2, 2, 7.0, '2026-10-01', 'synced')");
+            });
+
+            // 1. In combineUsersByEmail across all accounts:
+            // Alice (S1) and Bob (S2) should be separate users (not combined into one)!
+            var allUsers = Account.getDashboardFilterUsers(-1);
+            var aliceEntry = null;
+            var bobEntry = null;
+            for (var u = 0; u < allUsers.length; u++) {
+                if (allUsers[u].email === "alice@server1.com") aliceEntry = allUsers[u];
+                if (allUsers[u].email === "bob@server2.com") bobEntry = allUsers[u];
+            }
+            verify(aliceEntry !== null);
+            verify(bobEntry !== null);
+            compare(aliceEntry.name, "Alice S1");
+            compare(bobEntry.name, "Bob S2");
+            compare(aliceEntry.allAccountIds.length, 1);
+            compare(bobEntry.allAccountIds.length, 1);
+
+            // 2. Filter for Alice using her selection object { user_id: 2, account_id: 1 } across All Accounts (-1):
+            // Spent hours must ONLY be 3.0 (from Server 1), NOT 10.0 (mixed with Bob)!
+            var aliceHours = Project.getProjectSpentHoursList(true, -1, "", "", [{ user_id: 2, account_id: 1 }]);
+            var aliceTotal = 0;
+            for (var a = 0; a < aliceHours.length; a++) {
+                aliceTotal += aliceHours[a].spentHours;
+            }
+            compare(aliceTotal, 3.0);
+
+            // 3. Filter for Bob using selection { user_id: 2, account_id: 2 } across All Accounts (-1):
+            // Spent hours must ONLY be 7.0 (from Server 2), NOT 10.0 (mixed with Alice)!
+            var bobHours = Project.getProjectSpentHoursList(true, -1, "", "", [{ user_id: 2, account_id: 2 }]);
+            var bobTotal = 0;
+            for (var b = 0; b < bobHours.length; b++) {
+                bobTotal += bobHours[b].spentHours;
+            }
+            compare(bobTotal, 7.0);
+
+            // 4. getUserNameByOdooId with accountId scopes correctly:
+            compare(Account.getUserNameByOdooId(2, 1), "Alice S1");
+            compare(Account.getUserNameByOdooId(2, 2), "Bob S2");
+            compare(Account.getUserNameByOdooId(6, 1), "Alan S1");
+            compare(Account.getUserNameByOdooId(6, 2), "Brian S2");
+        }
     }
 }
