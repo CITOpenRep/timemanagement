@@ -137,10 +137,11 @@ Page {
 
                     delegate: UbuntuShape {
                         width: parent.width
-                        height: units.gu(7)
+                        implicitHeight: Math.max(units.gu(7), logDetailRowLayout.implicitHeight + units.gu(2))
                         color: Theme.palette.normal.base
 
                         RowLayout {
+                            id: logDetailRowLayout
                             anchors.fill: parent
                             anchors.leftMargin: units.gu(1.5)
                             anchors.rightMargin: units.gu(1.5)
@@ -154,12 +155,37 @@ Page {
                                 elide: Text.ElideRight
                             }
 
-                            Label {
+                            Column {
                                 Layout.fillWidth: true
-                                text: modelData.note || i18n.dtr("ubtms", "No note")
-                                color: Theme.palette.normal.backgroundText
-                                font.pixelSize: units.dp(12)
-                                elide: Text.ElideRight
+                                spacing: units.gu(0.3)
+
+                                RowLayout {
+                                    spacing: units.gu(0.5)
+                                    visible: !!modelData.user && modelData.user !== ""
+
+                                    Icon {
+                                        name: "contact"
+                                        width: units.gu(1.3)
+                                        height: units.gu(1.3)
+                                        color: Theme.palette.normal.backgroundText
+                                    }
+
+                                    Label {
+                                        text: modelData.user || ""
+                                        color: Theme.palette.normal.baseText
+                                        font.pixelSize: units.dp(11)
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                    }
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.note || i18n.dtr("ubtms", "No note")
+                                    color: Theme.palette.normal.backgroundText
+                                    font.pixelSize: units.dp(12)
+                                    elide: Text.ElideRight
+                                }
                             }
 
                             Label {

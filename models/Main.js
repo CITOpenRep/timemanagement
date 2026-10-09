@@ -1,16 +1,16 @@
 .import "database.js" as DBCommon
-.import QtQuick.LocalStorage 2.7 as Sql
+    .import QtQuick.LocalStorage 2.7 as Sql
+        .import "accounts.js" as Account
+            .import "../models/dbinit.js" as DbInit
 
 /* Name: get_quadrant_current_week
-    * This function will return total of spent time for current week based on quadrants from timesheet entries
-    * 4 quadrants are as following
-    * 0 -> Urgent and Important
-    * 1 -> Import but not Urgent
-    * 2 -> Not Important but Urgent
-    * 3 -> Not Important and Not Urgent
-    */
-
-.import "../models/dbinit.js" as DbInit
+ * This function will return total of spent time for current week based on quadrants from timesheet entries
+ * 4 quadrants are as following
+ * 0 -> Urgent and Important
+ * 1 -> Import but not Urgent
+ * 2 -> Not Important but Urgent
+ * 3 -> Not Important and Not Urgent
+ */
 DbInit.initializeDatabase();
 
 function get_quadrant_difference() {
@@ -74,7 +74,7 @@ function get_quadrant_current_month() {
 * return format {<project name>: <spent hours>}
 */
 
-function get_projects_spent_hours(account, startDate, endDate) {
+function get_projects_spent_hours(account, startDate, endDate, userId) {
     var project_details = [];
 
     try {
@@ -121,6 +121,13 @@ function get_projects_spent_hours(account, startDate, endDate) {
                 conditions.push("DATE(a.record_date) <= DATE(?)");
                 params.push(endDate);
             }
+            if (userId !== undefined && userId !== null && userId !== -1 && userId !== "-1") {
+                var userFilter = Account.buildUserFilterSQL(userId, account, "a");
+                if (userFilter.clause) {
+                    conditions.push(userFilter.clause);
+                    params = params.concat(userFilter.params);
+                }
+            }
 
             query += "WHERE " + conditions.join(" AND ") + " ";
             query += "GROUP BY p.account_id, p.id, p.name, parent.name, s.name ORDER BY total DESC";
@@ -148,7 +155,7 @@ function get_projects_spent_hours(account, startDate, endDate) {
 * return format {<task name>: <spent hours>}
 */
 
-function get_tasks_spent_hours(account, startDate, endDate) {
+function get_tasks_spent_hours(account, startDate, endDate, userId) {
     var task_details = {};
 
     try {
@@ -185,6 +192,13 @@ function get_tasks_spent_hours(account, startDate, endDate) {
             if (endDate) {
                 conditions.push("DATE(a.record_date) <= DATE(?)");
                 params.push(endDate);
+            }
+            if (userId !== undefined && userId !== null && userId !== -1 && userId !== "-1") {
+                var userFilterTask = Account.buildUserFilterSQL(userId, account, "a");
+                if (userFilterTask.clause) {
+                    conditions.push(userFilterTask.clause);
+                    params = params.concat(userFilterTask.params);
+                }
             }
 
             query += "WHERE " + conditions.join(" AND ") + " ";

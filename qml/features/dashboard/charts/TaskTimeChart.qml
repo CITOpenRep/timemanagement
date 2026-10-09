@@ -706,12 +706,37 @@ Item {
                                     }
                                 }
 
-                                Label {
+                                Column {
                                     Layout.fillWidth: true
-                                    text: modelData.note || i18n.dtr("ubtms", "No note")
-                                    color: Theme.palette.normal.backgroundText
-                                    font.pixelSize: units.dp(13)
-                                    wrapMode: Text.WordWrap
+                                    spacing: units.gu(0.4)
+
+                                    RowLayout {
+                                        spacing: units.gu(0.6)
+                                        visible: !!modelData.user && modelData.user !== ""
+
+                                        Icon {
+                                            name: "contact"
+                                            width: units.gu(1.4)
+                                            height: units.gu(1.4)
+                                            color: root.activeAccent
+                                        }
+
+                                        Label {
+                                            text: modelData.user || ""
+                                            color: Theme.palette.normal.baseText
+                                            font.pixelSize: units.dp(12)
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.note || i18n.dtr("ubtms", "No note")
+                                        color: Theme.palette.normal.backgroundText
+                                        font.pixelSize: units.dp(13)
+                                        wrapMode: Text.WordWrap
+                                    }
                                 }
 
                                 Label {

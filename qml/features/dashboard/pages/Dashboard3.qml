@@ -133,7 +133,9 @@ Page {
                 var filterData = Global.getDateRangeFilter();
                 var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
                 var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
-                var quadrant_data = Model.get_tasks_spent_hours(accountId, sDate, eDate);
+                var userFilter = Global.getDashboardUserFilter();
+                var uid = userFilter ? userFilter.userId : -1;
+                var quadrant_data = Model.get_tasks_spent_hours(accountId, sDate, eDate, uid);
                 var count = 0;
                 var timeval;
                 var timecat = [];
@@ -175,6 +177,13 @@ Page {
             Connections {
                 target: typeof mainView !== "undefined" ? mainView : null
                 onGlobalDateRangeChanged: function (presetId, startDate, endDate, presetLabel) {
+                    reloadData();
+                }
+            }
+
+            Connections {
+                target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
+                onGlobalDashboardUserChanged: function (userId, userName) {
                     reloadData();
                 }
             }

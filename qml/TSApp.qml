@@ -33,6 +33,7 @@ MainView {
     objectName: "TS"
     applicationName: "ubtms"
     property bool init: true
+    property var rootApp: mainView
     property alias globalTimerWidget: globalWidgets.globalTimerWidget
     property alias modelDownloadTimerWidget: globalWidgets.modelDownloadTimerWidget
     property alias backend_bridge: globalWidgets.backend_bridge
@@ -72,6 +73,7 @@ MainView {
     signal globalAccountChanged(int accountId, string accountName)
     signal accountDataRefreshRequested(int accountId)
     signal globalDateRangeChanged(int presetId, string startDate, string endDate, string presetLabel)
+    signal globalDashboardUserChanged(var userId, string userName)
     signal projectDataChanged()
     signal taskDataChanged()
     // Keep-alive heartbeat: Ensures Qt SceneGraph render thread remains active to safely process
