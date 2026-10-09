@@ -30,6 +30,7 @@ import Qt.labs.settings 1.0
 import "../../../models/constants.js" as AppConst
 import QtQuick.LocalStorage 2.7 as Sql
 import "../../../models/accounts.js" as Accounts
+import "../../../models/global.js" as Global
 import ".."
 
 Item {
@@ -37,15 +38,36 @@ Item {
     width: parent.width
     height: parent.height
     signal quadrantClicked(int quadrant)
-    property int selectedAccountId: accountPicker.selectedAccountId
+    property int selectedAccountId: (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined) ? accountPicker.selectedAccountId : -1
+    property var selectedUserId: -1
     property bool autoRefreshOnAccountChange: true
     property string quadrant1Hours: "0"
     property string quadrant2Hours: "0"
     property string quadrant3Hours: "0"
     property string quadrant4Hours: "0"
 
-    function refreshQuadrants(startDate, endDate) {
-        var result = getQuadrantHoursFromAllInstances(selectedAccountId, startDate, endDate);
+    function refreshQuadrants(startDate, endDate, userId, accountId) {
+        if (accountId !== undefined && accountId !== null) {
+            selectedAccountId = Number(accountId);
+        } else if (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined) {
+            selectedAccountId = Number(accountPicker.selectedAccountId);
+        }
+        if (userId !== undefined && userId !== null) {
+            selectedUserId = userId;
+        } else {
+            var userFilter = Global.getDashboardUserFilter();
+            if (userFilter && userFilter.userId !== undefined && userFilter.userId !== null) {
+                selectedUserId = userFilter.userId;
+            }
+        }
+        var sDate = startDate;
+        var eDate = endDate;
+        if (sDate === undefined || eDate === undefined) {
+            var filterData = Global.getDateRangeFilter();
+            sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+        }
+        var result = getQuadrantHoursFromAllInstances(selectedAccountId, sDate, eDate, selectedUserId);
         quadrant1Hours = result[1] + "H";
         quadrant2Hours = result[2] + "H";
         quadrant3Hours = result[3] + "H";
@@ -53,7 +75,7 @@ Item {
     }
 
     // TODO: Move it to Utils
-    function getQuadrantHoursFromAllInstances(accountId, startDate, endDate) {
+    function getQuadrantHoursFromAllInstances(accountId, startDate, endDate, userId) {
         var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
         var quadrantHours = {
             1: 0.0,
@@ -68,9 +90,10 @@ Item {
                 var conditions = ["(status IS NULL OR status != 'deleted')"];
                 var params = [];
 
-                if (accountId !== -1 && accountId !== undefined && accountId !== null) {
+                var targetAccountId = (accountId !== undefined && accountId !== null) ? accountId : selectedAccountId;
+                if (targetAccountId !== -1 && targetAccountId !== "-1" && targetAccountId !== undefined && targetAccountId !== null) {
                     conditions.push("account_id = ?");
-                    params.push(accountId);
+                    params.push(Number(targetAccountId));
                 }
                 if (startDate) {
                     conditions.push("DATE(record_date) >= DATE(?)");
@@ -79,6 +102,14 @@ Item {
                 if (endDate) {
                     conditions.push("DATE(record_date) <= DATE(?)");
                     params.push(endDate);
+                }
+                var uid = (userId !== undefined && userId !== null) ? userId : selectedUserId;
+                if (uid !== -1 && uid !== "-1") {
+                    var userFilter = Accounts.buildUserFilterSQL(uid, targetAccountId, "");
+                    if (userFilter.clause) {
+                        conditions.push(userFilter.clause);
+                        params = params.concat(userFilter.params);
+                    }
                 }
 
                 var query = "SELECT quadrant_id, SUM(unit_amount) as total FROM account_analytic_line_app WHERE " + conditions.join(" AND ") + " GROUP BY quadrant_id";
@@ -454,18 +485,23 @@ Item {
         }
     }
 
+    Connections {
+        target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
+        onGlobalDashboardUserChanged: function (userId, userName) {
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var accId = (typeof accountPicker !== "undefined" && accountPicker.selectedAccountId !== undefined) ? accountPicker.selectedAccountId : selectedAccountId;
+            refreshQuadrants(sDate, eDate, userId, accId);
+        }
+    }
+
     Component.onCompleted: {
-        var result = getQuadrantHoursFromAllInstances(selectedAccountId);
-        quadrant1Hours = result[1] + "H";
-        quadrant2Hours = result[2] + "H";
-        quadrant3Hours = result[3] + "H";
-        quadrant4Hours = result[4] + "H";
+        refreshQuadrants();
     }
     onVisibleChanged: {
-        var result = getQuadrantHoursFromAllInstances(selectedAccountId);
-        quadrant1Hours = result[1] + "H";
-        quadrant2Hours = result[2] + "H";
-        quadrant3Hours = result[3] + "H";
-        quadrant4Hours = result[4] + "H";
+        if (visible) {
+            refreshQuadrants();
+        }
     }
 }

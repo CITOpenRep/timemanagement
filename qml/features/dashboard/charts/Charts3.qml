@@ -40,11 +40,12 @@ Item {
     
     property bool autoRefreshOnAccountChange: true
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
+    property var selectedUserId: -1
 
     property string filterStartDate: ""
     property string filterEndDate: ""
 
-    function reloadData(startDate, endDate, accountId) {
+    function reloadData(startDate, endDate, accountId, userId) {
         if (startDate !== undefined) filterStartDate = startDate || "";
         if (endDate !== undefined) filterEndDate = endDate || "";
         if (accountId !== undefined && accountId !== null) {
@@ -52,10 +53,13 @@ Item {
         } else if (selectedAccountId < 0 && typeof accountPicker !== "undefined") {
             selectedAccountId = accountPicker.selectedAccountId;
         }
+        if (userId !== undefined && userId !== null) {
+            selectedUserId = userId;
+        }
 
         var t_proj = [];
         var maxVal = 0;
-        var data = Model.get_projects_spent_hours(root.selectedAccountId, filterStartDate, filterEndDate);
+        var data = Model.get_projects_spent_hours(root.selectedAccountId, filterStartDate, filterEndDate, root.selectedUserId);
 
         root.totalProjects = data.length;
         var limit = Math.min(root.displayLimit, data.length);
@@ -114,7 +118,9 @@ Item {
         var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
         var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
         var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : root.selectedAccountId;
-        reloadData(sDate, eDate, accId);
+        var userFilter = Global.getDashboardUserFilter();
+        var uid = (root.selectedUserId !== undefined && root.selectedUserId !== null && root.selectedUserId !== -1) ? root.selectedUserId : (userFilter ? userFilter.userId : -1);
+        reloadData(sDate, eDate, accId, uid);
     }
 
     Connections {
@@ -132,15 +138,27 @@ Item {
     }
 
     Connections {
-        target: root.autoRefreshOnAccountChange && typeof rootApp !== "undefined" ? rootApp : null
+        target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
         onGlobalAccountChanged: function (accountId, accountName) {
-            root.selectedAccountId = accountId;
-            root.displayLimit = 10;
-            reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            if (root.autoRefreshOnAccountChange) {
+                root.selectedAccountId = accountId;
+                root.displayLimit = 10;
+                reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            }
         }
         onAccountDataRefreshRequested: function (accountId) {
-            root.selectedAccountId = accountId;
-            reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            if (root.autoRefreshOnAccountChange) {
+                root.selectedAccountId = accountId;
+                reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            }
+        }
+        onGlobalDashboardUserChanged: function (userId, userName) {
+            root.selectedUserId = userId;
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var accId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : root.selectedAccountId;
+            reloadData(sDate, eDate, accId, userId);
         }
     }
 

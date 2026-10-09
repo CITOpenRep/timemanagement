@@ -11,6 +11,18 @@ Page {
     property var taskData: ({})
     property string projectName: ""
 
+    readonly property real taskSpentHours: {
+        if (!taskData) return 0;
+        if (taskData.logs && taskData.logs.length > 0) {
+            var sum = 0;
+            for (var i = 0; i < taskData.logs.length; i++) {
+                sum += Number(taskData.logs[i].hours || 0);
+            }
+            return sum;
+        }
+        return Number(taskData.totalHours || 0);
+    }
+
     header: PageHeader {
         id: pageHeader
         title: taskData ? taskData.name : ""
@@ -40,12 +52,12 @@ Page {
                     model: [
                         {
                             label: i18n.dtr("ubtms", "Time spent"),
-                            value: ChartUtils.formatHours(taskData ? taskData.totalHours : 0)
+                            value: ChartUtils.formatHours(root.taskSpentHours)
                         },
                         {
                             label: i18n.dtr("ubtms", "% of project"),
                             value: taskData && taskData.projectTotalHours ?
-                                       ChartUtils.percentLabel(taskData.totalHours, taskData.projectTotalHours) :
+                                       ChartUtils.percentLabel(root.taskSpentHours, taskData.projectTotalHours) :
                                        i18n.dtr("ubtms", "0.0%")
                         }
                     ]
@@ -137,10 +149,11 @@ Page {
 
                     delegate: UbuntuShape {
                         width: parent.width
-                        height: units.gu(7)
+                        implicitHeight: Math.max(units.gu(7), logDetailRowLayout.implicitHeight + units.gu(2))
                         color: Theme.palette.normal.base
 
                         RowLayout {
+                            id: logDetailRowLayout
                             anchors.fill: parent
                             anchors.leftMargin: units.gu(1.5)
                             anchors.rightMargin: units.gu(1.5)
@@ -154,12 +167,37 @@ Page {
                                 elide: Text.ElideRight
                             }
 
-                            Label {
+                            Column {
                                 Layout.fillWidth: true
-                                text: modelData.note || i18n.dtr("ubtms", "No note")
-                                color: Theme.palette.normal.backgroundText
-                                font.pixelSize: units.dp(12)
-                                elide: Text.ElideRight
+                                spacing: units.gu(0.3)
+
+                                RowLayout {
+                                    spacing: units.gu(0.5)
+                                    visible: !!modelData.user && modelData.user !== ""
+
+                                    Icon {
+                                        name: "contact"
+                                        width: units.gu(1.3)
+                                        height: units.gu(1.3)
+                                        color: Theme.palette.normal.backgroundText
+                                    }
+
+                                    Label {
+                                        text: modelData.user || ""
+                                        color: Theme.palette.normal.baseText
+                                        font.pixelSize: units.dp(11)
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                    }
+                                }
+
+                                Label {
+                                    width: parent.width
+                                    text: modelData.note || i18n.dtr("ubtms", "No note")
+                                    color: Theme.palette.normal.backgroundText
+                                    font.pixelSize: units.dp(12)
+                                    wrapMode: Text.WordWrap
+                                }
                             }
 
                             Label {

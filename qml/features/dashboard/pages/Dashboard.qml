@@ -45,6 +45,68 @@ Page {
     property string loadingMessage: i18n.dtr("ubtms", "Loading dashboard...")
     property int refreshStage: -1
     property int lastRefreshAccountId: -999999
+    property var selectedUserId: -1
+    property string selectedUserName: i18n.dtr("ubtms", "All Users")
+    property var availableUsers: []
+    property bool isUserFilterVisible: false
+    property int lastFilterAccountId: -999999
+
+    function initUserFilterForCurrentAccount(targetAccountId) {
+        var accId = (targetAccountId !== undefined && targetAccountId !== null)
+            ? targetAccountId
+            : ((typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined)
+                ? accountPicker.selectedAccountId
+                : -1);
+        lastFilterAccountId = accId;
+        isUserFilterVisible = Account.hasManagerOrAdminAccess(accId);
+        if (!isUserFilterVisible) {
+            assigneeFilterMenu.expanded = false;
+        }
+        availableUsers = Account.getDashboardFilterUsers(accId);
+
+        var menuAssignees = [];
+        for (var i = 0; i < availableUsers.length; i++) {
+            var u = availableUsers[i];
+            var acctId = (u.accountId !== undefined && u.accountId !== null) ? u.accountId : ((u.account_id !== undefined) ? u.account_id : accId);
+            menuAssignees.push({
+                id: u.id,
+                odoo_record_id: u.id,
+                name: u.name,
+                email: u.email || "",
+                account_name: u.account_name || (u.account_names ? u.account_names.join(", ") : ""),
+                account_id: acctId,
+                allUserIds: u.allUserIds || [u.id],
+                allAccountIds: u.allAccountIds || [acctId]
+            });
+        }
+        assigneeFilterMenu.showAccountName = (accId === -1);
+        assigneeFilterMenu.assigneeModel = menuAssignees;
+
+        var defaultUser = Account.getDashboardSingleUserDefault(accId, availableUsers);
+        if (defaultUser) {
+            selectedUserId = defaultUser.id;
+            selectedUserName = defaultUser.name;
+            var defSelections = [];
+            if (defaultUser.allUserIds && defaultUser.allAccountIds) {
+                for (var d = 0; d < defaultUser.allUserIds.length; d++) {
+                    defSelections.push(assigneeFilterMenu.createSelection(defaultUser.allUserIds[d], defaultUser.allAccountIds[d] || accId));
+                }
+            } else {
+                var defAcctId = (defaultUser.accountId !== undefined) ? defaultUser.accountId : accId;
+                defSelections.push(assigneeFilterMenu.createSelection(defaultUser.id, defAcctId));
+            }
+            assigneeFilterMenu.selectedAssigneeIds = defSelections;
+        } else {
+            selectedUserId = -1;
+            selectedUserName = i18n.dtr("ubtms", "All Users");
+            assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(-1, -1)];
+        }
+        Global.setDashboardUserFilter(selectedUserId, selectedUserName);
+        var appObj = (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null);
+        if (appObj && appObj.globalDashboardUserChanged) {
+            appObj.globalDashboardUserChanged(selectedUserId, selectedUserName);
+        }
+    }
 
     // Timer for deferred loading - gives UI time to render loading indicator
     Timer {
@@ -58,6 +120,13 @@ Page {
         if (visible) {
             // Update navigation tracking when Dashboard becomes visible
             Global.setLastVisitedPage("Dashboard");
+
+            var currentAccId = (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined)
+                ? accountPicker.selectedAccountId
+                : -1;
+            if (lastFilterAccountId !== currentAccId || availableUsers.length === 0) {
+                initUserFilterForCurrentAccount(currentAccId);
+            }
 
             refreshData();
         }
@@ -85,6 +154,7 @@ Page {
         contents: FilterableHeaderContents {
             id: headerContents
             title: i18n.dtr("ubtms", "Dashboard")
+            userLabel: selectedUserName
             onDateRangeChanged: refreshData()
             
             Component.onCompleted: {
@@ -107,7 +177,7 @@ Page {
             }
         ]
 
-        trailingActionBar.numberOfSlots: 5
+        trailingActionBar.numberOfSlots: 6
         trailingActionBar.actions: [
             Action {
                 id: infoAction
@@ -140,6 +210,15 @@ Page {
                 visible: !headerContents.showDateFilter
                 onTriggered: {
                     openNewTimesheetPage(false);
+                }
+            },
+            Action {
+                id: userFilterAction
+                iconName: (Array.isArray(selectedUserId) && selectedUserId.length > 1) ? "contact-group" : "contact"
+                text: selectedUserName ? selectedUserName : i18n.dtr("ubtms", "All Users")
+                visible: !headerContents.showDateFilter && isUserFilterVisible
+                onTriggered: {
+                    assigneeFilterMenu.expanded = !assigneeFilterMenu.expanded;
                 }
             },
             Action {
@@ -183,15 +262,14 @@ Page {
         }
     }
 
-    function refreshData() {
+    function refreshData(force) {
         Logger.debug("Dashboard", "Refreshing Dashboard data...")
-        var targetAccountId = accountPicker.selectedAccountId;
-        if (isLoading && refreshStage >= 0 && lastRefreshAccountId === targetAccountId) {
+        var targetAccountId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
+        if (!force && isLoading && lastRefreshAccountId === targetAccountId) {
             return;
         }
 
         lastRefreshAccountId = targetAccountId;
-        refreshStage = 0;
         loadingTimer.stop();
         loadingMessage = targetAccountId === -1
             ? i18n.dtr("ubtms", "Preparing all-account dashboard...")
@@ -212,46 +290,38 @@ Page {
 
     function _doRefreshData() {
         try {
-            var sDate = typeof headerContents.dateFilter !== "undefined" ? headerContents.dateFilter.startDate : "";
-            var eDate = typeof headerContents.dateFilter !== "undefined" ? headerContents.dateFilter.endDate : "";
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var activeAccId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
+            var uid = (selectedUserId !== undefined && selectedUserId !== null && selectedUserId !== -1) ? selectedUserId : (Global.getDashboardUserFilter() ? Global.getDashboardUserFilter().userId : -1);
 
-            switch (refreshStage) {
-            case 0:
-                Logger.debug("Dashboard", "Dashboard refresh stage 0: priority matrix")
-                if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
-                    ehoverMatrix.refreshQuadrants(sDate, eDate);
-                }
-                loadingMessage = i18n.dtr("ubtms", "Loading project chart...");
-                refreshStage = 1;
-                loadingTimer.interval = 0;
-                loadingTimer.start();
-                return;
-            case 1:
-                Logger.debug("Dashboard", "Dashboard refresh stage 1: project chart")
-                if (typeof projectchart !== "undefined") {
-                    projectchart.refreshForAccount(accountPicker.selectedAccountId, sDate, eDate);
-                }
-                loadingMessage = i18n.dtr("ubtms", "Loading additional charts...");
-                refreshStage = 2;
-                loadingTimer.start();
-                return;
-            case 2:
-                Logger.debug("Dashboard", "Dashboard refresh stage 2: additional charts")
-                var activeAccId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
-                if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function") {
-                    mobileProjectChartLoader.item.selectedAccountId = activeAccId;
-                    mobileProjectChartLoader.item.reloadData(sDate, eDate, activeAccId);
-                }
-                if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function") {
-                    mobileTaskChartLoader.item.selectedAccountId = activeAccId;
-                    mobileTaskChartLoader.item.reloadData(sDate, eDate, activeAccId);
-                }
-                break;
-            default:
-                break;
+            Logger.debug("Dashboard", "Executing Dashboard refresh for user: " + JSON.stringify(uid) + ", account: " + activeAccId);
+
+            // 1. Priority Matrix (Eisenhower)
+            if (typeof ehoverMatrix !== "undefined" && ehoverMatrix.refreshQuadrants) {
+                ehoverMatrix.refreshQuadrants(sDate, eDate, uid, activeAccId);
+            }
+
+            // 2. Overview Pie Chart
+            if (typeof projectchart !== "undefined" && typeof projectchart.refreshForAccount === "function") {
+                projectchart.refreshForAccount(activeAccId, sDate, eDate, uid);
+            }
+
+            // 3. Mobile tab loaders (Projects & Tasks charts)
+            if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function") {
+                mobileProjectChartLoader.item.selectedAccountId = activeAccId;
+                mobileProjectChartLoader.item.selectedUserId = uid;
+                mobileProjectChartLoader.item.reloadData(sDate, eDate, activeAccId, uid);
+            }
+
+            if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function") {
+                mobileTaskChartLoader.item.selectedAccountId = activeAccId;
+                mobileTaskChartLoader.item.selectedUserId = uid;
+                mobileTaskChartLoader.item.reloadData(sDate, eDate, activeAccId, uid);
             }
         } catch(e) {
-            Logger.error("Dashboard", "_doRefreshData ERROR: ", e)
+            Logger.error("Dashboard", "_doRefreshData ERROR: ", e);
         }
         finishRefreshData();
     }
@@ -336,10 +406,6 @@ Page {
                         height: width
                         autoRefreshOnAccountChange: false
                         anchors.centerIn: parent
-                        quadrant1Hours: "120.2"
-                        quadrant2Hours: "65.5"
-                        quadrant3Hours: "55.0"
-                        quadrant4Hours: "178.1"
                         onQuadrantClicked: {}
                     }
                 }
@@ -425,6 +491,30 @@ Page {
                         onCurrentIndexChanged: {
                             if (mobileChartTabBar.currentIndex !== currentIndex)
                                 mobileChartTabBar.currentIndex = currentIndex;
+
+                            var filterData = Global.getDateRangeFilter();
+                            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+                            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+                            var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                            var uid = (selectedUserId !== undefined && selectedUserId !== null && selectedUserId !== -1) ? selectedUserId : (Global.getDashboardUserFilter() ? Global.getDashboardUserFilter().userId : -1);
+
+                            if (currentIndex === 0) {
+                                if (typeof projectchart !== "undefined" && typeof projectchart.refreshForAccount === "function") {
+                                    projectchart.refreshForAccount(accId, sDate, eDate, uid);
+                                }
+                            } else if (currentIndex === 1) {
+                                if (mobileProjectChartLoader.item && typeof mobileProjectChartLoader.item.reloadData === "function") {
+                                    mobileProjectChartLoader.item.selectedAccountId = accId;
+                                    mobileProjectChartLoader.item.selectedUserId = uid;
+                                    mobileProjectChartLoader.item.reloadData(sDate, eDate, accId, uid);
+                                }
+                            } else if (currentIndex === 2) {
+                                if (mobileTaskChartLoader.item && typeof mobileTaskChartLoader.item.reloadData === "function") {
+                                    mobileTaskChartLoader.item.selectedAccountId = accId;
+                                    mobileTaskChartLoader.item.selectedUserId = uid;
+                                    mobileTaskChartLoader.item.reloadData(sDate, eDate, accId, uid);
+                                }
+                            }
                         }
 
                         Item {
@@ -447,7 +537,13 @@ Page {
                                     if (item) {
                                         item.autoRefreshOnAccountChange = false;
                                         var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                                        var uid = (selectedUserId !== undefined && selectedUserId !== null && selectedUserId !== -1) ? selectedUserId : (Global.getDashboardUserFilter() ? Global.getDashboardUserFilter().userId : -1);
                                         item.selectedAccountId = accId;
+                                        item.selectedUserId = uid;
+                                        var filterData = Global.getDateRangeFilter();
+                                        var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+                                        var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+                                        item.reloadData(sDate, eDate, accId, uid);
                                     }
                                 }
                             }
@@ -463,7 +559,13 @@ Page {
                                     if (item) {
                                         item.autoRefreshOnAccountChange = false;
                                         var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1;
+                                        var uid = (selectedUserId !== undefined && selectedUserId !== null && selectedUserId !== -1) ? selectedUserId : (Global.getDashboardUserFilter() ? Global.getDashboardUserFilter().userId : -1);
                                         item.selectedAccountId = accId;
+                                        item.selectedUserId = uid;
+                                        var filterData = Global.getDateRangeFilter();
+                                        var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+                                        var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+                                        item.reloadData(sDate, eDate, accId, uid);
                                     }
                                 }
                             }
@@ -523,22 +625,156 @@ Page {
             if (accountPicker.selectedAccountName) {
                 header.title = i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]";
             }
+            initUserFilterForCurrentAccount(accountPicker.selectedAccountId);
             refreshData();
         }
         onAccepted: function (accountId, accountName) {
             header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
+            initUserFilterForCurrentAccount(accountId);
             refreshData();
         }
     }
 
     Connections {
-        target: typeof rootApp !== "undefined" ? rootApp : null
+        target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
         onGlobalAccountChanged: function (accountId, accountName) {
             header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
-            refreshData();
+            initUserFilterForCurrentAccount(accountId);
+            refreshData(true);
         }
         onAccountDataRefreshRequested: function (accountId) {
-            refreshData();
+            initUserFilterForCurrentAccount(accountId);
+            refreshData(true);
+        }
+        onGlobalDashboardUserChanged: function (userId, userName) {
+            selectedUserId = userId;
+            selectedUserName = userName;
+            if (userId === -1 || userId === "-1") {
+                assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(-1, -1)];
+            } else if (Array.isArray(userId)) {
+                assigneeFilterMenu.selectedAssigneeIds = userId.slice();
+            } else {
+                var accId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
+                assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(userId, accId)];
+            }
+            refreshData(true);
+        }
+    }
+
+    Connections {
+        target: typeof mainView !== "undefined" ? mainView : null
+        onGlobalDateRangeChanged: function (presetId, startDate, endDate, presetLabel) {
+            refreshData(true);
+        }
+    }
+
+    function handleAssigneeFilterApplied(assigneeIds) {
+        var rawIds = assigneeIds || [];
+        var isAllUsers = false;
+        for (var k = 0; k < rawIds.length; k++) {
+            var itm = rawIds[k];
+            var uidVal = (typeof itm === "object") ? itm.user_id : itm;
+            if (uidVal === -1 || uidVal === "-1") {
+                isAllUsers = true;
+                break;
+            }
+        }
+
+        if (isAllUsers) {
+            selectedUserId = -1;
+            selectedUserName = i18n.dtr("ubtms", "All Users");
+            assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(-1, -1)];
+            Global.setDashboardUserFilter(-1, selectedUserName);
+            var appObj = (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null);
+            if (appObj && appObj.globalDashboardUserChanged) {
+                appObj.globalDashboardUserChanged(-1, selectedUserName);
+            }
+            refreshData(true);
+            return;
+        }
+
+        // Match selected assignees against availableUsers
+        var selectedUsersList = [];
+        for (var i = 0; i < availableUsers.length; i++) {
+            var u = availableUsers[i];
+            var isSel = false;
+            for (var j = 0; j < rawIds.length; j++) {
+                var s = rawIds[j];
+                var sUid = (typeof s === "object") ? s.user_id : s;
+                if (sUid === u.id || (u.allUserIds && u.allUserIds.indexOf(sUid) !== -1)) {
+                    isSel = true;
+                    break;
+                }
+            }
+            if (isSel) {
+                selectedUsersList.push(u);
+            }
+        }
+
+        if (selectedUsersList.length === 0) {
+            handleAssigneeFilterCleared();
+            return;
+        }
+
+        if (selectedUsersList.length === 1) {
+            selectedUserId = selectedUsersList[0].id;
+            selectedUserName = selectedUsersList[0].name;
+        } else {
+            selectedUserId = rawIds.slice();
+            selectedUserName = selectedUsersList.length + " " + i18n.dtr("ubtms", "Employees");
+        }
+
+        Global.setDashboardUserFilter(selectedUserId, selectedUserName);
+        var appObj = (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null);
+        if (appObj && appObj.globalDashboardUserChanged) {
+            appObj.globalDashboardUserChanged(selectedUserId, selectedUserName);
+        }
+        refreshData(true);
+    }
+
+    function handleAssigneeFilterCleared() {
+        var accId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
+        var defaultUser = Account.getDashboardSingleUserDefault(accId, availableUsers);
+
+        if (defaultUser) {
+            selectedUserId = defaultUser.id;
+            selectedUserName = defaultUser.name;
+            var defSelections = [];
+            if (defaultUser.allUserIds && defaultUser.allAccountIds) {
+                for (var d = 0; d < defaultUser.allUserIds.length; d++) {
+                    defSelections.push(assigneeFilterMenu.createSelection(defaultUser.allUserIds[d], defaultUser.allAccountIds[d] || accId));
+                }
+            } else {
+                var defAcctId = (defaultUser.accountId !== undefined) ? defaultUser.accountId : accId;
+                defSelections.push(assigneeFilterMenu.createSelection(defaultUser.id, defAcctId));
+            }
+            assigneeFilterMenu.selectedAssigneeIds = defSelections;
+        } else {
+            selectedUserId = -1;
+            selectedUserName = i18n.dtr("ubtms", "All Users");
+            assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(-1, -1)];
+        }
+
+        Global.setDashboardUserFilter(selectedUserId, selectedUserName);
+        var appObj = (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null);
+        if (appObj && appObj.globalDashboardUserChanged) {
+            appObj.globalDashboardUserChanged(selectedUserId, selectedUserName);
+        }
+        refreshData(true);
+    }
+
+    AssigneeFilterMenu {
+        id: assigneeFilterMenu
+        anchors.fill: parent
+        z: 1000
+        showAllUsersOption: true
+
+        onFilterApplied: function (assigneeIds) {
+            handleAssigneeFilterApplied(assigneeIds);
+        }
+
+        onFilterCleared: function () {
+            handleAssigneeFilterCleared();
         }
     }
 
@@ -604,6 +840,7 @@ Page {
 
     Component.onCompleted: {
         Logger.debug("Dashboard", "Dashboard status is: " + mainPage.status)
+        initUserFilterForCurrentAccount();
         // Load notifications on startup
         notificationBell.loadNotifications();
     }

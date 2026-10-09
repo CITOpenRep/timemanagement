@@ -47,14 +47,35 @@ Item {
     property bool expanded: false
     property var selectedAssigneeIds: []
     property bool showAccountName: false
+    property bool showAllUsersOption: false
     property int maxMenuHeight: units.gu(50)
+
+    function isOnlyAllUsersSelected() {
+        if (!showAllUsersOption) return false;
+        if (selectedAssigneeIds.length === 0) return false;
+        for (var i = 0; i < selectedAssigneeIds.length; i++) {
+            var s = selectedAssigneeIds[i];
+            var uid = (typeof s === 'object') ? s.user_id : s;
+            if (uid !== -1 && uid !== "-1") {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function selectAllUsers() {
+        selectedAssigneeIds = [createSelection(-1, -1)];
+    }
 
     // Helper function to check if an assignee is selected (handles both old and new format)
     function isAssigneeSelected(userId, accountId) {
+        if (showAllUsersOption && userId === -1) {
+            return isOnlyAllUsersSelected();
+        }
         for (var i = 0; i < selectedAssigneeIds.length; i++) {
             var selectedId = selectedAssigneeIds[i];
             if (typeof selectedId === 'object') {
-                if (selectedId.user_id === userId && selectedId.account_id === accountId) {
+                if (selectedId.user_id === userId && (accountId === undefined || accountId === -1 || selectedId.account_id === -1 || selectedId.account_id === accountId)) {
                     return true;
                 }
             } else if (selectedId === userId) {
@@ -86,6 +107,15 @@ Item {
     }
 
     function addSelectionIfMissing(selection) {
+        if (showAllUsersOption && selection.user_id !== -1) {
+            for (var k = selectedAssigneeIds.length - 1; k >= 0; k--) {
+                var cur = selectedAssigneeIds[k];
+                var curUid = (typeof cur === 'object') ? cur.user_id : cur;
+                if (curUid === -1 || curUid === "-1") {
+                    selectedAssigneeIds.splice(k, 1);
+                }
+            }
+        }
         if (!hasSelectedAssignee(selection)) {
             selectedAssigneeIds.push(createSelection(selection.user_id, selection.account_id));
         }
@@ -95,7 +125,7 @@ Item {
         for (var i = selectedAssigneeIds.length - 1; i >= 0; i--) {
             var existingId = selectedAssigneeIds[i];
             if (typeof existingId === 'object') {
-                if (existingId.user_id === selection.user_id && existingId.account_id === selection.account_id) {
+                if (existingId.user_id === selection.user_id && (selection.account_id === undefined || selection.account_id === -1 || existingId.account_id === -1 || existingId.account_id === selection.account_id)) {
                     selectedAssigneeIds.splice(i, 1);
                 }
             } else if (existingId === selection.user_id) {
@@ -166,7 +196,17 @@ Item {
                 group.account_names.push(accountName);
             }
 
-            group.memberSelections.push(createSelection(assigneeId, accountId));
+            if (assignee.memberSelections && assignee.memberSelections.length > 0) {
+                for (var ms = 0; ms < assignee.memberSelections.length; ms++) {
+                    group.memberSelections.push(assignee.memberSelections[ms]);
+                }
+            } else if (assignee.allUserIds && assignee.allAccountIds && assignee.allUserIds.length > 1) {
+                for (var au = 0; au < assignee.allUserIds.length; au++) {
+                    group.memberSelections.push(createSelection(assignee.allUserIds[au], assignee.allAccountIds[au] || accountId));
+                }
+            } else {
+                group.memberSelections.push(createSelection(assigneeId, accountId));
+            }
         }
 
         var visibleAssignees = [];
@@ -199,7 +239,7 @@ Item {
         }
 
         visibleAssignees.sort(function (a, b) {
-            if (a.selected !== b.selected) {
+            if (!showAllUsersOption && a.selected !== b.selected) {
                 return a.selected ? -1 : 1;
             }
 
@@ -211,6 +251,26 @@ Item {
                 return 1;
             return 0;
         });
+
+        if (showAllUsersOption) {
+            var allUsersText = i18n.dtr("ubtms", "All Users");
+            var isAllUsersSelected = isOnlyAllUsersSelected();
+            var matchSearch = !normalizedSearch || allUsersText.toLowerCase().indexOf(normalizedSearch) >= 0;
+            if (matchSearch) {
+                visibleAssignees.unshift({
+                    assigneeId: -1,
+                    name: allUsersText,
+                    email: "",
+                    account_name: "",
+                    titleText: allUsersText,
+                    showAccountChips: false,
+                    accountNamesJson: "[]",
+                    memberSelectionsJson: JSON.stringify([createSelection(-1, -1)]),
+                    selected: isAllUsersSelected,
+                    sectionLabel: isAllUsersSelected ? "selected" : "others"
+                });
+            }
+        }
 
         return visibleAssignees;
     }
@@ -226,7 +286,7 @@ Item {
 
         var selectedCount = 0;
         for (var i = 0; i < displayAssignees.length; i++) {
-            if (displayAssignees[i].selected) {
+            if (displayAssignees[i].selected && displayAssignees[i].assigneeId !== -1) {
                 selectedCount++;
             }
         }
@@ -264,7 +324,7 @@ Item {
     Rectangle {
         id: menuContainer
         visible: expanded
-        width: units.gu(40)
+        width: Math.min(units.gu(40), parent.width - units.gu(2))
         height: {
             // Calculate dynamic height: header + search + assignee list + buttons + margins
             var baseHeight = units.gu(22); // Header + search + buttons + margins
@@ -337,7 +397,7 @@ Item {
                     }
 
                     Text {
-                        text: i18n.dtr("ubtms", "Filter by Assignees")
+                        text: showAllUsersOption ? i18n.dtr("ubtms", "Filter by Employee") : i18n.dtr("ubtms", "Filter by Assignees")
                         font.bold: true
                         font.pixelSize: units.gu(2.2)
                         color: theme.palette.normal.backgroundText
@@ -353,9 +413,10 @@ Item {
                 color: theme.palette.normal.base
             }
 
-            // Search bar for long lists
+            // Search bar
             Row {
-                visible: getDisplayAssigneeCount() > 5
+                id: searchRow
+                visible: true
                 width: parent.width
                 height: units.gu(4)
                 spacing: units.gu(0.5)
@@ -364,15 +425,15 @@ Item {
                     id: searchField
                     width: parent.width - clearSearchButton.width - parent.spacing
                     height: parent.height
-                    placeholderText: i18n.dtr("ubtms", "Search assignees...")
+                    placeholderText: showAllUsersOption ? i18n.dtr("ubtms", "Search employees...") : i18n.dtr("ubtms", "Search assignees...")
 
                     onAccepted: {
                         filterModel.update(); // Handle enter key press
                     }
 
-                    // onTextChanged: {
-                    //     filterModel.update();
-                    // }
+                    onTextChanged: {
+                        filterModel.update();
+                    }
                 }
 
                 // Custom clear search button (needed because native clear doesn't trigger filter update)
@@ -428,12 +489,20 @@ Item {
                     }
                 }
 
+                Text {
+                    anchors.centerIn: parent
+                    visible: filterModel.count === 0
+                    text: showAllUsersOption ? i18n.dtr("ubtms", "No employees found") : i18n.dtr("ubtms", "No assignees found")
+                    font.pixelSize: units.gu(1.8)
+                    color: theme.palette.normal.backgroundSecondaryText
+                }
+
                 ScrollBar.vertical: ScrollBar {
                     policy: ScrollBar.AsNeeded
                     width: units.gu(1)
                 }
 
-                section.property: "sectionLabel"
+                section.property: showAllUsersOption ? "" : "sectionLabel"
                 section.criteria: ViewSection.FullString
                 section.delegate: Item {
                     width: assigneeListView.width
@@ -496,32 +565,54 @@ Item {
                     }
                     property bool hasHiddenChips: showsAccountChips && visibleChipCount < accountNames.length
 
-                    width: parent.width
+                    width: assigneeListView.width
                     height: Math.max(units.gu(6), infoColumn.implicitHeight + contentMargin * 2)
                     color: mouseArea.pressed ? theme.palette.selected.background : "transparent"
                     radius: units.gu(0.5)
+
+                    property int itemAssigneeId: (typeof model.assigneeId !== "undefined") ? model.assigneeId : assigneeId
+                    property string itemMemberSelectionsJson: (typeof model.memberSelectionsJson !== "undefined") ? model.memberSelectionsJson : memberSelectionsJson
+                    property string itemName: (typeof model.name !== "undefined") ? model.name : name
+                    property string itemTitleText: (typeof model.titleText !== "undefined") ? model.titleText : (typeof titleText !== "undefined" ? titleText : itemName)
+                    property string itemEmail: (typeof model.email !== "undefined" && model.email !== null) ? model.email : (typeof email !== "undefined" && email !== null ? email : "")
+                    property bool itemSelected: (typeof model.selected !== "undefined") ? model.selected : selected
+
+                    function toggleSelection() {
+                        if (showAllUsersOption && itemAssigneeId === -1) {
+                            if (isOnlyAllUsersSelected()) {
+                                selectedAssigneeIds = [];
+                            } else {
+                                selectAllUsers();
+                            }
+                            selectedAssigneeIds = selectedAssigneeIds.slice();
+                            return;
+                        }
+
+                        var memberSelections = [];
+                        if (itemMemberSelectionsJson) {
+                            memberSelections = JSON.parse(itemMemberSelectionsJson);
+                        }
+                        var shouldSelect = !hasAnySelectedAssignee(memberSelections);
+
+                        for (var i = 0; i < memberSelections.length; i++) {
+                            if (shouldSelect) {
+                                addSelectionIfMissing(memberSelections[i]);
+                            } else {
+                                removeSelectionIfPresent(memberSelections[i]);
+                            }
+                        }
+
+                        selectedAssigneeIds = selectedAssigneeIds.slice();
+                    }
 
                     MouseArea {
                         id: mouseArea
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
 
                         onClicked: {
-                            var memberSelections = [];
-                            if (model.memberSelectionsJson) {
-                                memberSelections = JSON.parse(model.memberSelectionsJson);
-                            }
-                            var shouldSelect = !hasAnySelectedAssignee(memberSelections);
-
-                            for (var i = 0; i < memberSelections.length; i++) {
-                                if (shouldSelect) {
-                                    addSelectionIfMissing(memberSelections[i]);
-                                } else {
-                                    removeSelectionIfPresent(memberSelections[i]);
-                                }
-                            }
-
-                            selectedAssigneeIds = selectedAssigneeIds.slice();
+                            delegateRoot.toggleSelection();
                         }
                     }
 
@@ -531,13 +622,13 @@ Item {
                         anchors.leftMargin: delegateRoot.contentMargin
                         anchors.top: parent.top
                         anchors.topMargin: delegateRoot.contentMargin
-                        checked: model.selected
+                        checked: delegateRoot.itemSelected
 
                         MouseArea {
                             anchors.fill: parent
-                            propagateComposedEvents: true
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                mouseArea.clicked(mouse);
+                                delegateRoot.toggleSelection();
                                 mouse.accepted = true;
                             }
                         }
@@ -545,13 +636,22 @@ Item {
 
                     Icon {
                         id: userIcon
-                        name: "contact"
+                        name: (delegateRoot.itemAssigneeId === -1) ? "contact-group" : "contact"
                         width: units.gu(2.5)
                         height: units.gu(2.5)
                         anchors.left: checkbox.right
                         anchors.leftMargin: delegateRoot.contentSpacing
                         anchors.verticalCenter: checkbox.verticalCenter
                         color: theme.palette.normal.backgroundText
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                delegateRoot.toggleSelection();
+                                mouse.accepted = true;
+                            }
+                        }
                     }
 
                     Column {
@@ -572,11 +672,20 @@ Item {
                             Text {
                                 id: nameLabel
                                 width: Math.min(headerFlow.width, Math.max(implicitWidth, units.gu(8)))
-                                text: model.titleText || model.name
+                                text: delegateRoot.itemTitleText || delegateRoot.itemName
                                 font.pixelSize: units.gu(2)
                                 color: theme.palette.normal.backgroundText
                                 wrapMode: Text.NoWrap
                                 elide: Text.ElideRight
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        delegateRoot.toggleSelection();
+                                        mouse.accepted = true;
+                                    }
+                                }
                             }
 
                             Repeater {
@@ -601,6 +710,15 @@ Item {
                                         elide: Text.ElideRight
                                         horizontalAlignment: Text.AlignHCenter
                                     }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            delegateRoot.toggleSelection();
+                                            mouse.accepted = true;
+                                        }
+                                    }
                                 }
                             }
 
@@ -612,6 +730,7 @@ Item {
                                 border.color: theme.palette.selected.background
                                 border.width: 1
                                 width: Math.max(units.gu(7), moreChipLabel.implicitWidth + units.gu(2.4))
+                                z: 2
 
                                 Text {
                                     id: moreChipLabel
@@ -623,6 +742,7 @@ Item {
 
                                 MouseArea {
                                     anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
                                     onClicked: {
                                         delegateRoot.expandedAccounts = !delegateRoot.expandedAccounts;
                                         mouse.accepted = true;
@@ -632,13 +752,22 @@ Item {
                         }
 
                         Text {
-                            visible: model.email !== ""
-                            text: model.email
+                            visible: delegateRoot.itemEmail !== ""
+                            text: delegateRoot.itemEmail
                             font.pixelSize: units.gu(1.5)
                             color: theme.palette.normal.backgroundSecondaryText
                             elide: Text.ElideRight
                             width: infoColumn.width
                             opacity: 0.7
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    delegateRoot.toggleSelection();
+                                    mouse.accepted = true;
+                                }
+                            }
                         }
                     }
 
@@ -648,6 +777,7 @@ Item {
                         color: theme.palette.highlighted.background
                         opacity: mouseArea.containsMouse ? 0.1 : 0
                         radius: parent.radius
+                        enabled: false
 
                         Behavior on opacity {
                             NumberAnimation {
@@ -697,7 +827,7 @@ Item {
                     // Clear Filter Button
                     TSButton {
                         text: i18n.dtr("ubtms", "Clear Filter")
-                        enabled: selectedAssigneeIds.length > 0
+                        enabled: showAllUsersOption ? true : selectedAssigneeIds.length > 0
                         width: units.gu(15)
                         height: units.gu(4)
                         bgColor: enabled ? LomiriColors.orange : LomiriColors.ash
@@ -706,8 +836,11 @@ Item {
                         Component.onCompleted: {}
 
                         onClicked: {
-                            selectedAssigneeIds = [];
+                            if (!showAllUsersOption) {
+                                selectedAssigneeIds = [];
+                            }
                             filterModel.update();
+                            recomputeDisplayAssigneeCache();
                             expanded = false;
                             filterCleared();
                         }
@@ -731,7 +864,15 @@ Item {
 
                 Text {
                     property int selectedCount: getSelectedDisplayAssigneeCount()
-                    text: selectedCount + " assignee" + (selectedCount === 1 ? "" : "s") + " selected"
+                    text: {
+                        if (showAllUsersOption && isOnlyAllUsersSelected()) {
+                            return i18n.dtr("ubtms", "All Users selected");
+                        }
+                        if (showAllUsersOption) {
+                            return selectedCount + " " + (selectedCount === 1 ? i18n.dtr("ubtms", "employee selected") : i18n.dtr("ubtms", "employees selected"));
+                        }
+                        return selectedCount + " " + (selectedCount === 1 ? i18n.dtr("ubtms", "assignee selected") : i18n.dtr("ubtms", "assignees selected"));
+                    }
                     font.pixelSize: units.gu(1.6)
                     color: theme.palette.normal.backgroundText
                     anchors.centerIn: parent
@@ -743,8 +884,8 @@ Item {
 
     // Function to load assignees for the current account
     function loadAssignees(accountId) {
-    // This will be called from the parent component
-    // to populate the assigneeModel
+        // This will be called from the parent component
+        // to populate the assigneeModel
     }
 
     // Initialize the filter model when assigneeModel changes
@@ -763,6 +904,12 @@ Item {
             filterModel.update();
             // Selection changed; update cached display counts accordingly.
             recomputeDisplayAssigneeCache();
+        }
+    }
+
+    onExpandedChanged: {
+        if (!expanded && searchField) {
+            searchField.text = "";
         }
     }
 

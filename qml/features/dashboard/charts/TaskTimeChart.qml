@@ -47,6 +47,18 @@ Item {
         return "#E95420";
     }
 
+    readonly property real selectedTaskSpentHours: {
+        if (!selectedTask) return 0;
+        if (selectedTaskLogs && selectedTaskLogs.length > 0) {
+            var sum = 0;
+            for (var i = 0; i < selectedTaskLogs.length; i++) {
+                sum += Number(selectedTaskLogs[i].hours || 0);
+            }
+            return sum;
+        }
+        return Number(selectedTask.totalHours || 0);
+    }
+
     function openProject(projectData) {
         if (!projectData) return;
         selectedProject = projectData;
@@ -62,7 +74,7 @@ Item {
         if (!selectedProject || !taskData) return;
         selectedTask = taskData;
         selectedTask.projectTotalHours = Number(selectedProject.totalHours || 0);
-        selectedTaskLogs = taskLogsProvider ? (taskLogsProvider(selectedProject.id, taskData.id) || []) : [];
+        selectedTaskLogs = taskLogsProvider ? (taskLogsProvider(selectedProject.id, taskData.id, taskData) || []) : [];
         selectedTask.logs = selectedTaskLogs;
         currentView = "task";
         taskOpened(selectedProject.id, taskData.id);
@@ -77,6 +89,80 @@ Item {
             selectedProjectTasks = [];
         }
         backNavigated();
+    }
+
+    function refreshCurrentView() {
+        if (currentView === "project" && selectedProject) {
+            var updatedProject = null;
+            if (projectsModel) {
+                for (var i = 0; i < projectsModel.length; i++) {
+                    if (projectsModel[i].id === selectedProject.id) {
+                        updatedProject = projectsModel[i];
+                        break;
+                    }
+                }
+            }
+            if (updatedProject) {
+                selectedProject = updatedProject;
+                selectedProjectTasks = projectTasksProvider ? ChartUtils.prepareTasks(projectTasksProvider(selectedProject.id) || []) : [];
+            } else {
+                goBack();
+            }
+        } else if (currentView === "task" && selectedProject && selectedTask) {
+            var updatedProj = null;
+            if (projectsModel) {
+                for (var j = 0; j < projectsModel.length; j++) {
+                    if (projectsModel[j].id === selectedProject.id) {
+                        updatedProj = projectsModel[j];
+                        break;
+                    }
+                }
+            }
+            if (updatedProj) {
+                selectedProject = updatedProj;
+                selectedProjectTasks = projectTasksProvider ? ChartUtils.prepareTasks(projectTasksProvider(selectedProject.id) || []) : [];
+
+                var updatedTask = null;
+                for (var k = 0; k < selectedProjectTasks.length; k++) {
+                    if (selectedProjectTasks[k].id === selectedTask.id ||
+                        String(selectedProjectTasks[k].localId) === String(selectedTask.localId || selectedTask.id) ||
+                        (selectedTask.odooRecordId && String(selectedProjectTasks[k].odooRecordId) === String(selectedTask.odooRecordId))) {
+                        updatedTask = selectedProjectTasks[k];
+                        break;
+                    }
+                }
+
+                if (updatedTask) {
+                    selectedTask = updatedTask;
+                } else {
+                    var resetTask = Object.assign({}, selectedTask);
+                    resetTask.totalHours = 0;
+                    selectedTask = resetTask;
+                }
+                selectedTaskLogs = taskLogsProvider ? (taskLogsProvider(selectedProject.id, selectedTask.id, selectedTask) || []) : [];
+                if (selectedTask) {
+                    var updatedSelectedTask = Object.assign({}, selectedTask);
+                    updatedSelectedTask.projectTotalHours = Number(selectedProject.totalHours || 0);
+                    updatedSelectedTask.logs = selectedTaskLogs;
+                    if (selectedTaskLogs && selectedTaskLogs.length > 0) {
+                        var totalLogHours = 0;
+                        for (var l = 0; l < selectedTaskLogs.length; l++) {
+                            totalLogHours += Number(selectedTaskLogs[l].hours || 0);
+                        }
+                        updatedSelectedTask.totalHours = totalLogHours;
+                    } else if (!updatedTask) {
+                        updatedSelectedTask.totalHours = 0;
+                    }
+                    selectedTask = updatedSelectedTask;
+                }
+            } else {
+                goBack();
+            }
+        }
+    }
+
+    onProjectsModelChanged: {
+        refreshCurrentView();
     }
 
     function ensureVisibleInAncestorFlickable(item) {
@@ -553,7 +639,7 @@ Item {
                                 }
 
                                 Label {
-                                    text: ChartUtils.formatHours(root.selectedTask ? root.selectedTask.totalHours : 0)
+                                    text: ChartUtils.formatHours(root.selectedTaskSpentHours)
                                     color: root.summaryAccentTextColor
                                     font.bold: true
                                     font.pixelSize: units.dp(20)
@@ -579,7 +665,7 @@ Item {
                                 }
 
                                 Label {
-                                    text: ChartUtils.percentLabel(root.selectedTask ? root.selectedTask.totalHours : 0, root.selectedProject ? root.selectedProject.totalHours : 0)
+                                    text: ChartUtils.percentLabel(root.selectedTaskSpentHours, root.selectedProject ? root.selectedProject.totalHours : 0)
                                     color: root.summaryPrimaryTextColor
                                     font.bold: true
                                     font.pixelSize: units.dp(20)
@@ -706,12 +792,37 @@ Item {
                                     }
                                 }
 
-                                Label {
+                                Column {
                                     Layout.fillWidth: true
-                                    text: modelData.note || i18n.dtr("ubtms", "No note")
-                                    color: Theme.palette.normal.backgroundText
-                                    font.pixelSize: units.dp(13)
-                                    wrapMode: Text.WordWrap
+                                    spacing: units.gu(0.4)
+
+                                    RowLayout {
+                                        spacing: units.gu(0.6)
+                                        visible: !!modelData.user && modelData.user !== ""
+
+                                        Icon {
+                                            name: "contact"
+                                            width: units.gu(1.4)
+                                            height: units.gu(1.4)
+                                            color: root.activeAccent
+                                        }
+
+                                        Label {
+                                            text: modelData.user || ""
+                                            color: Theme.palette.normal.baseText
+                                            font.pixelSize: units.dp(12)
+                                            font.bold: true
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+
+                                    Label {
+                                        width: parent.width
+                                        text: modelData.note || i18n.dtr("ubtms", "No note")
+                                        color: Theme.palette.normal.backgroundText
+                                        font.pixelSize: units.dp(13)
+                                        wrapMode: Text.WordWrap
+                                    }
                                 }
 
                                 Label {

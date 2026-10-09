@@ -28,6 +28,7 @@ import QtQuick.Controls 2.2
 import "../../../models/utils.js" as Utils
 import "../../../models/project.js" as Project
 import "../../../models/accounts.js" as Account
+import "../../../models/global.js" as Global
 import ".."
 
 Item {
@@ -37,6 +38,7 @@ Item {
 
     // account used to fetch data; numeric -1 indicates "all accounts"
     property int selectedAccountId: accountPicker.selectedAccountId
+    property var selectedUserId: -1
     property bool autoRefreshOnAccountChange: true
 
     // Custom styled title overlay
@@ -260,11 +262,19 @@ Item {
     }
 
     // Fetch-and-load helper using the new project API signature
-    function refreshForAccount(accountId, startDate, endDate) {
+    function refreshForAccount(accountId, startDate, endDate, userId) {
+        if (userId !== undefined && userId !== null) {
+            selectedUserId = userId;
+        } else {
+            var userFilter = Global.getDashboardUserFilter();
+            if (userFilter && userFilter.userId !== undefined) {
+                selectedUserId = userFilter.userId;
+            }
+        }
 
-        // call project API with account param and date range
+        // call project API with account param, date range and userId
         try {
-            var data = Project.getProjectSpentHoursList(true, accountId, startDate, endDate);
+            var data = Project.getProjectSpentHoursList(true, accountId, startDate, endDate, selectedUserId);
             // data should be an array; load chart
             load(data || []);
         } catch (e) {
@@ -274,14 +284,35 @@ Item {
     }
 
     Component.onCompleted: {
-        refreshForAccount(accountPicker.selectedAccountId);
+        var filterData = Global.getDateRangeFilter();
+        var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+        var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+        var userFilter = Global.getDashboardUserFilter();
+        var uid = (root.selectedUserId !== undefined && root.selectedUserId !== null && root.selectedUserId !== -1) ? root.selectedUserId : (userFilter ? userFilter.userId : -1);
+        refreshForAccount(accountPicker.selectedAccountId, sDate, eDate, uid);
     }
 
     // Re-fetch when the account selector changes
     Connections {
         target: autoRefreshOnAccountChange ? accountPicker : null
         onAccepted: function (accountId, accountName) {
-            refreshForAccount(accountId);
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var userFilter = Global.getDashboardUserFilter();
+            var uid = (root.selectedUserId !== undefined && root.selectedUserId !== null && root.selectedUserId !== -1) ? root.selectedUserId : (userFilter ? userFilter.userId : -1);
+            refreshForAccount(accountId, sDate, eDate, uid);
+        }
+    }
+
+    Connections {
+        target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
+        onGlobalDashboardUserChanged: function (userId, userName) {
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : root.selectedAccountId;
+            refreshForAccount(accId, sDate, eDate, userId);
         }
     }
 }

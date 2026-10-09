@@ -29,6 +29,23 @@ var dateRangeEndDate = ""   // yyyy-MM-dd
 var dateRangePresetLabel = "This Month"
 var dateRangeInitialized = false
 
+// Global Dashboard User Filter state
+var dashboardUserId = -1;
+var dashboardUserName = "All Users";
+
+function setDashboardUserFilter(userId, userName) {
+    dashboardUserId = (userId !== undefined && userId !== null) ? userId : -1;
+    dashboardUserName = userName || "All Users";
+}
+
+function getDashboardUserFilter() {
+    return {
+        userId: dashboardUserId,
+        userName: dashboardUserName
+    };
+}
+
+
 // Functions to manage assignee filter state
 function setAssigneeFilter(enabled, assigneeIds) {
     assigneeFilterEnabled = enabled;

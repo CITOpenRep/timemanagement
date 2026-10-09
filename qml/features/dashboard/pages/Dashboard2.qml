@@ -102,13 +102,17 @@ Page {
         var filterData = Global.getDateRangeFilter();
         var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
         var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+        var userFilter = Global.getDashboardUserFilter();
+        var uid = userFilter ? userFilter.userId : -1;
         if (load3.item && typeof load3.item.reloadData === "function") {
             load3.item.selectedAccountId = accountId;
-            load3.item.reloadData(sDate, eDate, accountId);
+            load3.item.selectedUserId = uid;
+            load3.item.reloadData(sDate, eDate, accountId, uid);
         }
         if (load4.item && typeof load4.item.reloadData === "function") {
             load4.item.selectedAccountId = accountId;
-            load4.item.reloadData(sDate, eDate, accountId);
+            load4.item.selectedUserId = uid;
+            load4.item.reloadData(sDate, eDate, accountId, uid);
         }
     }
 
@@ -121,11 +125,14 @@ Page {
     }
 
     Connections {
-        target: typeof rootApp !== "undefined" ? rootApp : null
+        target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
         onGlobalAccountChanged: function (accountId, accountName) {
             refreshData(true);
         }
         onAccountDataRefreshRequested: function (accountId) {
+            refreshData(true);
+        }
+        onGlobalDashboardUserChanged: function (userId, userName) {
             refreshData(true);
         }
     }
@@ -185,7 +192,10 @@ Page {
                             var filterData = Global.getDateRangeFilter();
                             var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
                             var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
-                            item.reloadData(sDate, eDate, accId);
+                            var userFilter = Global.getDashboardUserFilter();
+                            var uid = userFilter ? userFilter.userId : -1;
+                            item.selectedUserId = uid;
+                            item.reloadData(sDate, eDate, accId, uid);
                         }
                     }
                 }
@@ -209,7 +219,10 @@ Page {
                             var filterData = Global.getDateRangeFilter();
                             var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
                             var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
-                            item.reloadData(sDate, eDate, accId);
+                            var userFilter = Global.getDashboardUserFilter();
+                            var uid = userFilter ? userFilter.userId : -1;
+                            item.selectedUserId = uid;
+                            item.reloadData(sDate, eDate, accId, uid);
                         }
                     }
                 }

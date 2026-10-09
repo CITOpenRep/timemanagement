@@ -1,9 +1,9 @@
 .import "logger.js" as Logger
 .import QtQuick.LocalStorage 2.7 as Sql
-    .import "database.js" as DBCommon
-        .import "utils.js" as Utils
-            .import "accounts.js" as Accounts
-                .import "draft_manager.js" as DraftManager
+.import "database.js" as DBCommon
+.import "utils.js" as Utils
+.import "accounts.js" as Accounts
+.import "draft_manager.js" as DraftManager
 
 
 /**
@@ -509,7 +509,7 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
  * @param {string} status - The status filter: 'all', 'active', 'draft', etc.
  * @returns {Array<Object>} - A list of enriched timesheet entries for the task.
  */
-function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, endDate) {
+function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, endDate, userId) {
     var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
     var timesheetList = [];
 
@@ -529,14 +529,19 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
             // Build query based on status and accountId
             var baseQuery = "SELECT * FROM account_analytic_line_app WHERE task_id = ?";
             var dateCondition = "";
-            
+            var hasUserFilter = (userId !== undefined && userId !== null && userId !== -1 && userId !== "-1");
+
             if (startDate) {
                 dateCondition += " AND DATE(record_date) >= DATE(?)";
             }
             if (endDate) {
                 dateCondition += " AND DATE(record_date) <= DATE(?)";
             }
-            
+            var userFilter = hasUserFilter ? Accounts.buildUserFilterSQL(userId, accountId, "") : { clause: "", params: [] };
+            if (userFilter.clause) {
+                dateCondition += " AND " + userFilter.clause;
+            }
+
             if (!status || status.toLowerCase() === "all") {
                 if (accountId && accountId > 0) {
                     query = baseQuery + " AND account_id = ? AND (status IS NULL OR status != 'deleted')" + dateCondition + " ORDER BY COALESCE(last_modified, record_date) DESC, id DESC";
@@ -554,9 +559,12 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
                     params = [taskOdooRecordId, status];
                 }
             }
-            
+
             if (startDate) params.push(startDate);
             if (endDate) params.push(endDate);
+            if (userFilter.params && userFilter.params.length > 0) {
+                params = params.concat(userFilter.params);
+            }
 
             Logger.debug("Timesheet", "Executing getTimesheetsForTask query:", query, "with params:", params)
             var result = tx.executeSql(query, params);
@@ -626,8 +634,12 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
                 }
 
                 if (row.user_id !== undefined && row.user_id !== null) {
-                    var rs_user = tx.executeSql("SELECT name FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
-                    if (rs_user.rows.length > 0) userName = rs_user.rows.item(0).name;
+                    var rs_user = tx.executeSql("SELECT name, login FROM res_users_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.user_id, row.user_id]);
+                    if (rs_user.rows.length > 0) {
+                        userName = rs_user.rows.item(0).name || rs_user.rows.item(0).login || "";
+                    } else if (row.account_id === 0) {
+                        userName = "Local User";
+                    }
                 }
 
                 timesheetList.push({
