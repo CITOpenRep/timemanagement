@@ -296,6 +296,8 @@ Item {
             verify(testMenu.isOnlyAllUsersSelected());
 
             // 5. Query fresh Alice delegate and click directly on its checkbox
+            testMenu.selectedAssigneeIds = [];
+            wait(50);
             aliceLabel = findItemWithText(listView.contentItem, "Alice");
             verify(aliceLabel !== null, "Alice label should be found");
             var delegateItem = aliceLabel.parent;
@@ -315,14 +317,28 @@ Item {
             verify(aliceCheckbox !== null, "Alice checkbox should be found");
 
             // Direct click on checkbox selects Alice
-            testMenu.selectedAssigneeIds = [];
-            wait(50);
             mouseClick(aliceCheckbox, 5, 5);
             wait(100);
             compare(testMenu.selectedAssigneeIds.length, 1);
             verify(testMenu.isAssigneeSelected(10, 1));
 
-            // Direct click on checkbox deselects Alice (does not uncheck and instantly re-check)
+            // Direct click on checkbox deselects Alice (re-query after re-render)
+            aliceLabel = findItemWithText(listView.contentItem, "Alice");
+            verify(aliceLabel !== null, "Alice label should be found after re-render");
+            delegateItem = aliceLabel.parent;
+            while (delegateItem && delegateItem.itemAssigneeId === undefined) {
+                delegateItem = delegateItem.parent;
+            }
+            verify(delegateItem !== null, "Delegate root should be found after re-render");
+            aliceCheckbox = null;
+            for (var c2 = 0; c2 < delegateItem.children.length; c2++) {
+                var ch2 = delegateItem.children[c2];
+                if (ch2 && (ch2.hasOwnProperty("checked") || ch2.checked !== undefined)) {
+                    aliceCheckbox = ch2;
+                    break;
+                }
+            }
+            verify(aliceCheckbox !== null, "Alice checkbox should be found after re-render");
             mouseClick(aliceCheckbox, 5, 5);
             wait(100);
             compare(testMenu.selectedAssigneeIds.length, 0);
