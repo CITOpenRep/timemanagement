@@ -733,27 +733,9 @@ Page {
     }
 
     function handleAssigneeFilterCleared() {
-        var accId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : -1;
-        var defaultUser = Account.getDashboardSingleUserDefault(accId, availableUsers);
-
-        if (defaultUser) {
-            selectedUserId = defaultUser.id;
-            selectedUserName = defaultUser.name;
-            var defSelections = [];
-            if (defaultUser.allUserIds && defaultUser.allAccountIds) {
-                for (var d = 0; d < defaultUser.allUserIds.length; d++) {
-                    defSelections.push(assigneeFilterMenu.createSelection(defaultUser.allUserIds[d], defaultUser.allAccountIds[d] || accId));
-                }
-            } else {
-                var defAcctId = (defaultUser.accountId !== undefined) ? defaultUser.accountId : accId;
-                defSelections.push(assigneeFilterMenu.createSelection(defaultUser.id, defAcctId));
-            }
-            assigneeFilterMenu.selectedAssigneeIds = defSelections;
-        } else {
-            selectedUserId = -1;
-            selectedUserName = i18n.dtr("ubtms", "All Users");
-            assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(-1, -1)];
-        }
+        selectedUserId = -1;
+        selectedUserName = i18n.dtr("ubtms", "All Users");
+        assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(-1, -1)];
 
         Global.setDashboardUserFilter(selectedUserId, selectedUserName);
         var appObj = (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null);

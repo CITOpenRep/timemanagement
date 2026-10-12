@@ -67,6 +67,18 @@ Item {
         selectedAssigneeIds = [createSelection(-1, -1)];
     }
 
+    function clearFilter() {
+        if (!showAllUsersOption) {
+            selectedAssigneeIds = [];
+        } else {
+            selectAllUsers();
+        }
+        filterModel.update();
+        recomputeDisplayAssigneeCache();
+        expanded = false;
+        filterCleared();
+    }
+
     // Helper function to check if an assignee is selected (handles both old and new format)
     function isAssigneeSelected(userId, accountId) {
         if (showAllUsersOption && userId === -1) {
@@ -836,13 +848,7 @@ Item {
                         Component.onCompleted: {}
 
                         onClicked: {
-                            if (!showAllUsersOption) {
-                                selectedAssigneeIds = [];
-                            }
-                            filterModel.update();
-                            recomputeDisplayAssigneeCache();
-                            expanded = false;
-                            filterCleared();
+                            clearFilter();
                         }
                     }
                 }

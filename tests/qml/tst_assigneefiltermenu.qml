@@ -192,6 +192,40 @@ Item {
             compare(filterClearedSpy.count, 1);
         }
 
+        function test_clearFilter_withoutShowAllUsersOption() {
+            testMenu.showAllUsersOption = false;
+            testMenu.selectedAssigneeIds = [testMenu.createSelection(10, 1)];
+            testMenu.expanded = true;
+            testMenu.clearFilter();
+            compare(filterClearedSpy.count, 1);
+            compare(testMenu.selectedAssigneeIds.length, 0);
+            compare(testMenu.expanded, false);
+        }
+
+        function test_clearFilter_withShowAllUsersOption() {
+            testMenu.showAllUsersOption = true;
+            testMenu.selectedAssigneeIds = [testMenu.createSelection(10, 1)];
+            testMenu.expanded = true;
+            testMenu.clearFilter();
+            compare(filterClearedSpy.count, 1);
+            verify(testMenu.isOnlyAllUsersSelected());
+            compare(testMenu.selectedAssigneeIds.length, 1);
+            compare(testMenu.selectedAssigneeIds[0].user_id, -1);
+            compare(testMenu.expanded, false);
+        }
+
+        function test_clearFilter_withShowAllUsersOption_emptySelection() {
+            testMenu.showAllUsersOption = true;
+            testMenu.selectedAssigneeIds = [];
+            testMenu.expanded = true;
+            testMenu.clearFilter();
+            compare(filterClearedSpy.count, 1);
+            verify(testMenu.isOnlyAllUsersSelected());
+            compare(testMenu.selectedAssigneeIds.length, 1);
+            compare(testMenu.selectedAssigneeIds[0].user_id, -1);
+            compare(testMenu.expanded, false);
+        }
+
         function test_delegateLayoutAndClick() {
             testMenu.showAllUsersOption = true;
             testMenu.assigneeModel = [
@@ -273,7 +307,7 @@ Item {
             var aliceCheckbox = null;
             for (var c = 0; c < delegateItem.children.length; c++) {
                 var ch = delegateItem.children[c];
-                if (ch && ch.hasOwnProperty("checked") && ch.hasOwnProperty("checkState")) {
+                if (ch && (ch.hasOwnProperty("checked") || ch.checked !== undefined)) {
                     aliceCheckbox = ch;
                     break;
                 }
