@@ -2,17 +2,17 @@
 /*
  * MULTIPLE ASSIGNEES IMPLEMENTATION
  * =================================
- * 
- * This module now supports multiple assignees per task by storing them as comma-separated 
+ *
+ * This module now supports multiple assignees per task by storing them as comma-separated
  * user IDs in the user_id field of the project_task_app table.
- * 
+ *
  * Key changes:
  * - Multiple assignee IDs are stored as comma-separated string in user_id field
  * - getTaskAssignees() parses the comma-separated IDs and returns assignee objects
  * - setTaskAssignees() updates task with multiple assignees
  * - saveOrUpdateTask() handles both single and multiple assignees
  * - migrateTaskAssignees() provides backward compatibility
- * 
+ *
  * Usage:
  * - For single assignee: store single ID in user_id field (backward compatible)
  * - For multiple assignees: store comma-separated IDs like "123,456,789" in user_id field
@@ -24,6 +24,7 @@
     .import "database.js" as DBCommon
         .import "utils.js" as Utils
             .import "draft_manager.js" as DraftManager
+                .import "accounts.js" as Accounts
 
 // Helper to handle -1/null
 function validId(value) {
@@ -552,7 +553,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
                 result.hasChildren = true;
                 result.childTasks = childTasks;
 
-                Logger.warn("Task", "Deletion blocked: Task has "+ childTasks.length + "child tasks")
+                Logger.warn("Task", "Deletion blocked: Task has " + childTasks.length + "child tasks")
                 return;
             }
 
@@ -566,7 +567,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             deletedTimesheetIds = markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
 
             if (forceDelete && childTasks.length > 0) {
-                Logger.warn("Task", "Force delete enabled - deleted parent task with "+ childTasks.length + "children")
+                Logger.warn("Task", "Force delete enabled - deleted parent task with " + childTasks.length + "children")
                 result.message = "Task '" + taskName + "' deleted (forced deletion with " + childTasks.length + " child tasks remaining)";
             } else {
                 result.message = "Task '" + taskName + "' successfully deleted";
@@ -575,7 +576,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
             result.success = true;
             result.deletedTaskIds = [taskId];
 
-            console.info("Task deleted successfully: "+ taskName);
+            console.info("Task deleted successfully: " + taskName);
         });
 
         // Clean up any drafts for this deleted task and its related timesheets (outside transaction)
@@ -596,7 +597,7 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
         return result;
 
     } catch (e) {
-        Logger.error("Task", "Error marking task as deleted (ID "+ taskId + "): "+ e)
+        Logger.error("Task", "Error marking task as deleted (ID " + taskId + "): " + e)
         return {
             success: false,
             message: "Failed to delete task: " + e.message,
@@ -1985,11 +1986,11 @@ function getFilteredTasksPaginated(filterType, searchQuery, accountId, limit, of
 
                 var timeMap = {};
                 if (taskOdooIds.length > 0) {
-                    var placeholders = taskOdooIds.map(function() { return "?"; }).join(",");
+                    var placeholders = taskOdooIds.map(function () { return "?"; }).join(",");
                     var timeQuery = "SELECT task_id, account_id, SUM(unit_amount) as total_hours " +
-                                    "FROM account_analytic_line_app " +
-                                    "WHERE task_id IN (" + placeholders + ") " +
-                                    "GROUP BY task_id, account_id";
+                        "FROM account_analytic_line_app " +
+                        "WHERE task_id IN (" + placeholders + ") " +
+                        "GROUP BY task_id, account_id";
                     var timeResult = tx.executeSql(timeQuery, taskOdooIds);
                     for (var k = 0; k < timeResult.rows.length; k++) {
                         var row = timeResult.rows.item(k);
@@ -3092,7 +3093,7 @@ function setTaskPriority(taskId, priority, status) {
  * @param {number} accountId - The account ID
  * @returns {Array<Object>} A list of task objects with color and spentHours for the specified project.
  */
-function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) {
+function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate, userId) {
     var taskList = [];
 
     try {
@@ -3102,8 +3103,9 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
             var params = [projectOdooRecordId, projectOdooRecordId, accountId];
             var dateJoin = "";
             var dateCondition = "";
-            
-            if (startDate || endDate) {
+            var hasUserFilter = (userId !== undefined && userId !== null && userId !== -1 && userId !== "-1");
+
+            if (startDate || endDate || hasUserFilter) {
                 dateJoin = " INNER JOIN account_analytic_line_app al ON (al.task_id = t.odoo_record_id OR (t.account_id = 0 AND al.task_id = t.id)) AND al.account_id = t.account_id AND (al.status != 'deleted' OR al.status IS NULL) ";
                 var dateFilters = [];
                 if (startDate) {
@@ -3113,6 +3115,13 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
                 if (endDate) {
                     dateFilters.push("DATE(al.record_date) <= DATE(?)");
                     params.push(endDate);
+                }
+                if (hasUserFilter) {
+                    var userFilterTask = Accounts.buildUserFilterSQL(userId, accountId, "al");
+                    if (userFilterTask.clause) {
+                        dateFilters.push(userFilterTask.clause);
+                        params = params.concat(userFilterTask.params);
+                    }
                 }
                 dateCondition = " AND " + dateFilters.join(" AND ");
             }
@@ -3174,10 +3183,17 @@ function getTasksForProject(projectOdooRecordId, accountId, startDate, endDate) 
                     spentCondition += " AND DATE(record_date) <= DATE(?)";
                     spentParams.push(endDate);
                 }
+                if (hasUserFilter) {
+                    var userSpentFilter = Accounts.buildUserFilterSQL(userId, accountId, "");
+                    if (userSpentFilter.clause) {
+                        spentCondition += " AND " + userSpentFilter.clause;
+                        spentParams = spentParams.concat(userSpentFilter.params);
+                    }
+                }
 
                 var spentHoursQuery = `
-                    SELECT COALESCE(SUM(unit_amount), 0) as spent_hours 
-                    FROM account_analytic_line_app 
+                    SELECT COALESCE(SUM(unit_amount), 0) as spent_hours
+                    FROM account_analytic_line_app
                     WHERE task_id = ? AND account_id = ? AND (status != 'deleted' OR status IS NULL)
                     ${spentCondition}
                 `;
@@ -3527,7 +3543,7 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                 [accountId]
             );
 
-            Logger.debug("Task", "getTaskStagesForProject: Found "+ result.rows.length + "PROJECT stages for account "+ accountId + "(before project filter)")
+            Logger.debug("Task", "getTaskStagesForProject: Found " + result.rows.length + "PROJECT stages for account " + accountId + "(before project filter)")
 
             // Filter stages to show only:
             // 1. Global stages (is_global = 1 or is_global = "1" - available to ALL projects)
@@ -3566,7 +3582,7 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                 if (isGlobalValue === 1 || isGlobalStr === "1") {
                     // Global stage - available to all projects
                     isAvailable = true;
-                    Logger.debug("Task", "Stage '"+ row.name + "'is GLOBAL (is_global: "+ isGlobalValue + "["+ isGlobalType + "])")
+                    Logger.debug("Task", "Stage '" + row.name + "'is GLOBAL (is_global: " + isGlobalValue + "[" + isGlobalType + "])")
                 } else if (isGlobalStr.indexOf(",") !== -1) {
                     // Project-specific stage - check if this project is in the comma-separated list
                     var projectIds = isGlobalStr.split(",");
@@ -3580,18 +3596,18 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                     }
 
                     if (isAvailable) {
-                        Logger.debug("Task", "Stage '"+ row.name + "'is available for project "+ projectOdooRecordId + "(is_global: '"+ isGlobalValue + "'contains project ID)")
+                        Logger.debug("Task", "Stage '" + row.name + "'is available for project " + projectOdooRecordId + "(is_global: '" + isGlobalValue + "'contains project ID)")
                     } else {
-                        Logger.debug("Task", "Stage '"+ row.name + "'NOT available for project "+ projectOdooRecordId + "(is_global: '"+ isGlobalValue + "'does not contain project ID)")
+                        Logger.debug("Task", "Stage '" + row.name + "'NOT available for project " + projectOdooRecordId + "(is_global: '" + isGlobalValue + "'does not contain project ID)")
                     }
                 } else {
                     // Could be a single project ID (no comma) - check if it matches
                     if (isGlobalStr === String(projectOdooRecordId)) {
                         isAvailable = true;
-                        Logger.debug("Task", "Stage '"+ row.name + "'is available ONLY for project "+ projectOdooRecordId + "(is_global: '"+ isGlobalValue + "')")
+                        Logger.debug("Task", "Stage '" + row.name + "'is available ONLY for project " + projectOdooRecordId + "(is_global: '" + isGlobalValue + "')")
                     } else {
                         // This stage is for a different single project
-                        Logger.debug("Task", "Stage '"+ row.name + "'is for a DIFFERENT project (is_global: '"+ isGlobalValue + "', need: "+ projectOdooRecordId + ")")
+                        Logger.debug("Task", "Stage '" + row.name + "'is for a DIFFERENT project (is_global: '" + isGlobalValue + "', need: " + projectOdooRecordId + ")")
                     }
                 }
 
@@ -3608,10 +3624,10 @@ function getTaskStagesForProject(projectOdooRecordId, accountId) {
                 }
             }
 
-            Logger.debug("Task", "getTaskStagesForProject: "+ stages.length + "stages available for project "+ projectOdooRecordId)
+            Logger.debug("Task", "getTaskStagesForProject: " + stages.length + "stages available for project " + projectOdooRecordId)
 
             if (stages.length === 0) {
-                Logger.warn("Task", "No stages available for project "+ projectOdooRecordId + "in account "+ accountId)
+                Logger.warn("Task", "No stages available for project " + projectOdooRecordId + "in account " + accountId)
                 Logger.warn("Task", "   This might indicate the project has no assigned stages in Odoo")
             }
         });
@@ -3979,7 +3995,7 @@ function getTasksByPersonalStagePaginated(personalStageOdooRecordId, assigneeIds
                     foldedStageIds.push(foldResult.rows.item(f).odoo_record_id);
                 }
                 if (foldedStageIds.length > 0) {
-                    var placeholders = foldedStageIds.map(function() { return "?"; }).join(",");
+                    var placeholders = foldedStageIds.map(function () { return "?"; }).join(",");
                     whereClauses.push("(t.state IS NULL OR t.state NOT IN (" + placeholders + "))");
                     for (var fi = 0; fi < foldedStageIds.length; fi++) {
                         params.push(foldedStageIds[fi]);

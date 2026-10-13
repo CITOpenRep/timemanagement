@@ -16,12 +16,13 @@ Item {
     property bool autoRefreshOnAccountChange: true
 
     property int selectedAccountId: typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : -1
+    property var selectedUserId: -1
     property var projectsModel: []
 
     property string filterStartDate: ""
     property string filterEndDate: ""
 
-    function reloadData(startDate, endDate, accountId) {
+    function reloadData(startDate, endDate, accountId, userId) {
         if (startDate !== undefined) filterStartDate = startDate || "";
         if (endDate !== undefined) filterEndDate = endDate || "";
         if (accountId !== undefined && accountId !== null) {
@@ -29,11 +30,17 @@ Item {
         } else if (selectedAccountId < 0 && typeof accountPicker !== "undefined") {
             selectedAccountId = accountPicker.selectedAccountId;
         }
+        if (userId !== undefined && userId !== null) {
+            selectedUserId = userId;
+        }
         projectsModel = buildProjectsModel(filterStartDate, filterEndDate);
+        if (chartFlow && typeof chartFlow.refreshCurrentView === "function") {
+            chartFlow.refreshCurrentView();
+        }
     }
 
     function buildProjectsModel(startDate, endDate) {
-        var rows = ProjectModel.getDashboardProjectTaskSummary(selectedAccountId, startDate, endDate);
+        var rows = ProjectModel.getDashboardProjectTaskSummary(selectedAccountId, startDate, endDate, selectedUserId);
 
         for (var i = 0; i < rows.length; i++) {
             var project = rows[i];
@@ -54,7 +61,7 @@ Item {
         }
 
         var projectRecordId = (project.accountId === 0 || !project.odooRecordId) ? project.localId : project.odooRecordId;
-        var taskRows = TaskModel.getTasksForProject(projectRecordId, project.accountId, filterStartDate, filterEndDate);
+        var taskRows = TaskModel.getTasksForProject(projectRecordId, project.accountId, filterStartDate, filterEndDate, selectedUserId);
         var mappedTasks = [];
 
         for (var i = 0; i < taskRows.length; i++) {
@@ -87,14 +94,32 @@ Item {
         return mappedTasks;
     }
 
-    function loadLogsForTask(projectId, taskId) {
+    function loadLogsForTask(projectId, taskId, taskObj) {
         var project = findProject(projectId);
-        var task = findTask(project, taskId);
-        if (!project || !task) {
+        if (!project) {
             return [];
         }
 
-        var timesheets = TimesheetModel.getTimesheetsForTask(task.odooRecordId, project.accountId, "all", filterStartDate, filterEndDate);
+        var task = findTask(project, taskId);
+        if (!project.tasks || project.tasks.length === 0 || !task) {
+            loadTasksForProject(projectId);
+            task = findTask(project, taskId);
+        }
+        var targetTask = task || taskObj;
+        if (!targetTask) {
+            return [];
+        }
+
+        var targetTaskId = (project.accountId === 0 || !targetTask.odooRecordId) ? targetTask.localId : targetTask.odooRecordId;
+        if (!targetTaskId && taskId !== undefined && taskId !== null) {
+            var parts = String(taskId).split(":");
+            targetTaskId = Number(parts[parts.length - 1]);
+        }
+        if (!targetTaskId) {
+            return [];
+        }
+
+        var timesheets = TimesheetModel.getTimesheetsForTask(targetTaskId, project.accountId, "all", filterStartDate, filterEndDate, selectedUserId);
         var logs = [];
 
         for (var i = 0; i < timesheets.length; i++) {
@@ -103,19 +128,24 @@ Item {
                 id: entry.id,
                 date: toIsoDate(entry.date),
                 hours: parseHours(entry.spentHours),
-                note: entry.name || ""
+                note: entry.name || "",
+                user: entry.user || ""
             });
         }
 
-        task.logs = logs;
-        task._logsLoaded = true;
+        if (task) {
+            task.logs = logs;
+            task._logsLoaded = true;
+        }
         return logs;
     }
 
     function findProject(projectId) {
+        if (!projectsModel) return null;
         for (var i = 0; i < projectsModel.length; i++) {
-            if (projectsModel[i].id === projectId) {
-                return projectsModel[i];
+            var p = projectsModel[i];
+            if (p.id === projectId || String(p.odooRecordId) === String(projectId) || String(p.localId) === String(projectId)) {
+                return p;
             }
         }
         return null;
@@ -127,8 +157,9 @@ Item {
         }
 
         for (var i = 0; i < project.tasks.length; i++) {
-            if (project.tasks[i].id === taskId) {
-                return project.tasks[i];
+            var t = project.tasks[i];
+            if (t.id === taskId || String(t.localId) === String(taskId) || (t.odooRecordId && String(t.odooRecordId) === String(taskId))) {
+                return t;
             }
         }
         return null;
@@ -197,7 +228,9 @@ Item {
         var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
         var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
         var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : root.selectedAccountId;
-        reloadData(sDate, eDate, accId);
+        var userFilter = Global.getDashboardUserFilter();
+        var uid = (root.selectedUserId !== undefined && root.selectedUserId !== null && root.selectedUserId !== -1) ? root.selectedUserId : (userFilter ? userFilter.userId : -1);
+        reloadData(sDate, eDate, accId, uid);
     }
 
     Connections {
@@ -213,14 +246,26 @@ Item {
     }
 
     Connections {
-        target: root.autoRefreshOnAccountChange && typeof rootApp !== "undefined" ? rootApp : null
+        target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
         onGlobalAccountChanged: function (accountId, accountName) {
-            root.selectedAccountId = accountId;
-            reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            if (root.autoRefreshOnAccountChange) {
+                root.selectedAccountId = accountId;
+                reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            }
         }
         onAccountDataRefreshRequested: function (accountId) {
-            root.selectedAccountId = accountId;
-            reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            if (root.autoRefreshOnAccountChange) {
+                root.selectedAccountId = accountId;
+                reloadData(root.filterStartDate, root.filterEndDate, accountId);
+            }
+        }
+        onGlobalDashboardUserChanged: function (userId, userName) {
+            root.selectedUserId = userId;
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var accId = (typeof accountPicker !== "undefined") ? accountPicker.selectedAccountId : root.selectedAccountId;
+            reloadData(sDate, eDate, accId, userId);
         }
     }
 }
