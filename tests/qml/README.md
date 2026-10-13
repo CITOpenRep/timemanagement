@@ -23,10 +23,17 @@ tests/
 ├── qml/
 │   ├── README.md                  # This guide
 │   ├── models/                    # JavaScript core and model test suites
+│   │   ├── tst_accounts.qml       # Test suite for account management, defaults, sync settings, and deletion
+│   │   ├── tst_activity.qml       # Test suite for activity data, sanitizeId, type icons, date filters, and CRUD
 │   │   ├── tst_constants.qml      # Test suite for constants and quadrant color configuration
 │   │   ├── tst_dashboard_user_filter.qml # Test suite for dashboard user filter state, models, and queries
 │   │   ├── tst_logger.qml         # Test suite for logger levels, formatting, and PII sanitization
+│   │   ├── tst_main.qml           # Test suite for Main.js date helpers, name resolvers, and spent hours queries
+│   │   ├── tst_notifications.qml  # Test suite for notifications creation, read status, and sync notifications
+│   │   ├── tst_project.qml        # Test suite for project details, offline cache, favorites, and project updates
+│   │   ├── tst_task.qml           # Test suite for task model filters, assignee parsing, date status, and CRUD
 │   │   ├── tst_timer_service.qml  # Test suite for timer service state transitions and duration
+│   │   ├── tst_timesheet.qml      # Test suite for timesheet creation, duration, readiness, and status transitions
 │   │   └── tst_utils.qml          # Test suite for date, time, duration, and URL utilities
 │   ├── tst_accountselectordialog.qml # Test suite for AccountSelectorDialog picker and account switch
 │   ├── tst_colorpicker.qml        # Test suite for ColorPicker palette and custom color
