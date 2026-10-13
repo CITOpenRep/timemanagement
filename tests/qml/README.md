@@ -29,25 +29,36 @@ tests/
 │   │   ├── tst_timer_service.qml  # Test suite for timer service state transitions and duration
 │   │   └── tst_utils.qml          # Test suite for date, time, duration, and URL utilities
 │   ├── tst_accountselectordialog.qml # Test suite for AccountSelectorDialog picker and account switch
+│   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu assignee filter menu toggling
 │   ├── tst_colorpicker.qml        # Test suite for ColorPicker palette and custom color
 │   ├── tst_contentpickerdialog.qml # Test suite for ContentPickerDialog single/multi selection
-│   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu selector component
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
+│   ├── tst_daterangeheaderfilter.qml # Test suite for DateRangeHeaderFilter filter toggle and active range text
+│   ├── tst_daterangeselector.qml  # Test suite for DateRangeSelector date bounds and range pick
+│   ├── tst_dayselector.qml        # Test suite for DaySelector day selection signals
+│   ├── tst_filterableheadercontents.qml # Test suite for FilterableHeaderContents filter state integration
 │   ├── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
 │   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
+│   ├── tst_inlineoptionselector.qml # Test suite for InlineOptionSelector radio-style option selection
 │   ├── tst_loadingindicator.qml   # Test suite for LoadingIndicator running state and visibility
 │   ├── tst_loadmorefooter.qml     # Test suite for LoadMoreFooter loading state and retry trigger
+│   ├── tst_multiassigneeselector.qml # Test suite for MultiAssigneeSelector multi-select IDs array output
 │   ├── tst_notificationbell.qml   # Test suite for NotificationBell unread counter badge and navigation
 │   ├── tst_notificationpopup.qml  # Test suite for NotificationPopup message, dismiss, and timeout
 │   ├── tst_outlinedtextfield.qml # Test suite for OutlinedTextField text input component
+│   ├── tst_projectstageselector.qml # Test suite for ProjectStageSelector stage list per project
 │   ├── tst_savediscarddialog.qml  # Test suite for SaveDiscardDialog save, discard, and cancel signals
+│   ├── tst_selectionbutton.qml    # Test suite for SelectionButton selection state and click
+│   ├── tst_stagefiltermenu.qml    # Test suite for StageFilterMenu stage filter menu toggling
+│   ├── tst_statusselector.qml     # Test suite for StatusSelector status changes and badge color
 │   ├── tst_timepickerpopup.qml    # Test suite for TimePickerPopup time selection and confirmation
 │   ├── tst_tsbutton.qml           # Test suite for TSButton action button component
 │   ├── tst_tsiconbutton.qml       # Test suite for TSIconButton circular icon button component
 │   ├── tst_tslabel.qml            # Test suite for TSLabel styled text component
 │   ├── tst_tsprogressbar.qml      # Test suite for TSProgressbar progress indicator
 │   ├── tst_tssearchbar.qml        # Test suite for TSSearchBar search input component
-│   └── tst_tsswitch.qml           # Test suite for TSSwitch toggle switch component
+│   ├── tst_tsswitch.qml           # Test suite for TSSwitch toggle switch component
+│   └── tst_workitemselector.qml   # Test suite for WorkItemSelector project and task selection logic
 ```
 
 Clickable automatically discovers all files matching `tst_*.qml` under `tests/qml/` as configured in `clickable.yaml`.
