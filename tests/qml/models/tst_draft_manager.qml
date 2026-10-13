@@ -49,8 +49,8 @@ Item {
             verify(DraftManager.valuesAreEqual(null, null));
             verify(DraftManager.valuesAreEqual(undefined, undefined));
             verify(DraftManager.valuesAreEqual(null, undefined));
-            verify(DraftManager.valuesAreEqual(null, ""));
-            verify(DraftManager.valuesAreEqual(undefined, ""));
+            verify(!DraftManager.valuesAreEqual(null, ""));
+            verify(!DraftManager.valuesAreEqual(undefined, ""));
         }
 
         function test_valuesAreEqualArrays() {
@@ -109,14 +109,15 @@ Item {
                 pageIdentifier: "task_edit_page"
             };
 
-            var loaded = DraftManager.loadDraft(loadParams);
-            verify(loaded !== null);
-            compare(loaded.draft_type, "task");
-            compare(loaded.record_id, 501);
+            var loadRes = DraftManager.loadDraft(loadParams);
+            verify(loadRes.success);
+            verify(loadRes.draft !== null);
+            compare(loadRes.draft.draftType, "task");
+            compare(loadRes.draft.recordId, 501);
 
-            var parsedData = typeof loaded.draft_data === "string" ? JSON.parse(loaded.draft_data) : loaded.draft_data;
-            compare(parsedData.name, "My Draft Task");
-            compare(parsedData.priority, 3);
+            var formData = loadRes.draft.formData;
+            compare(formData.name, "My Draft Task");
+            compare(formData.priority, 3);
         }
 
         function test_deleteDraftById() {
@@ -133,14 +134,15 @@ Item {
             var draftId = saveRes.draftId;
 
             var deleteRes = DraftManager.deleteDraft(draftId);
-            verify(deleteRes);
+            verify(deleteRes.success);
 
             var loaded = DraftManager.loadDraft({
                 draftType: "timesheet",
                 recordId: 601,
                 accountId: 0
             });
-            compare(loaded, null);
+            compare(loaded.success, false);
+            compare(loaded.draft, null);
         }
 
         function test_deleteDraftsByParams() {

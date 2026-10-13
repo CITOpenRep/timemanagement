@@ -28,11 +28,20 @@ tests/
 │   │   ├── tst_logger.qml         # Test suite for logger levels, formatting, and PII sanitization
 │   │   ├── tst_timer_service.qml  # Test suite for timer service state transitions and duration
 │   │   └── tst_utils.qml          # Test suite for date, time, duration, and URL utilities
+│   ├── tst_accountselectordialog.qml # Test suite for AccountSelectorDialog picker and account switch
+│   ├── tst_colorpicker.qml        # Test suite for ColorPicker palette and custom color
+│   ├── tst_contentpickerdialog.qml # Test suite for ContentPickerDialog single/multi selection
 │   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu selector component
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
 │   ├── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
 │   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
+│   ├── tst_loadingindicator.qml   # Test suite for LoadingIndicator running state and visibility
+│   ├── tst_loadmorefooter.qml     # Test suite for LoadMoreFooter loading state and retry trigger
+│   ├── tst_notificationbell.qml   # Test suite for NotificationBell unread counter badge and navigation
+│   ├── tst_notificationpopup.qml  # Test suite for NotificationPopup message, dismiss, and timeout
 │   ├── tst_outlinedtextfield.qml # Test suite for OutlinedTextField text input component
+│   ├── tst_savediscarddialog.qml  # Test suite for SaveDiscardDialog save, discard, and cancel signals
+│   ├── tst_timepickerpopup.qml    # Test suite for TimePickerPopup time selection and confirmation
 │   ├── tst_tsbutton.qml           # Test suite for TSButton action button component
 │   ├── tst_tsiconbutton.qml       # Test suite for TSIconButton circular icon button component
 │   ├── tst_tslabel.qml            # Test suite for TSLabel styled text component

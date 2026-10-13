@@ -59,13 +59,13 @@ Item {
 
             var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
             db.transaction(function(tx) {
-                var resInterval = tx.executeSql("SELECT value FROM app_settings WHERE key = 'auto_sync_interval'");
+                var resInterval = tx.executeSql("SELECT value FROM app_settings WHERE key = 'sync_interval_minutes'");
                 verify(resInterval.rows.length > 0);
                 compare(resInterval.rows.item(0).value, "15");
 
-                var resEnabled = tx.executeSql("SELECT value FROM app_settings WHERE key = 'auto_sync_enabled'");
+                var resEnabled = tx.executeSql("SELECT value FROM app_settings WHERE key = 'autosync_enabled'");
                 verify(resEnabled.rows.length > 0);
-                compare(resEnabled.rows.item(0).value, "false");
+                compare(resEnabled.rows.item(0).value, "true");
             });
         }
 
