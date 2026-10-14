@@ -28,75 +28,16 @@ Item {
         }
 
         function createBridge() {
-            var bridgeModule = null;
             var win = root.mockWindow;
             var doc = root.mockDocument;
 
-            // Load and instantiate the bridge using Function constructor with injected window & document
-            var bridgeCode = `
-                var messageHandlers = {};
-                var pendingReplies = {};
-                var replyCounter = 0;
-                var msgSeq = 0;
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", Qt.resolvedUrl("../../../qml/components/richtext/js/squire-qtwebengine-bridge.js"), false);
+            xhr.send();
+            var bridgeCode = xhr.responseText;
 
-                var qtBridge = {
-                    addMessageHandler: function (msgId, handler) {
-                        if (typeof msgId !== 'string' || typeof handler !== 'function') return;
-                        messageHandlers[msgId] = handler;
-                    },
-                    sendMessage: function (type, payload) {
-                        var message = { type: type, payload: payload || {} };
-                        var encoded = encodeURIComponent(JSON.stringify(message));
-                        var MAX_LEN = 1000;
-                        var seq = ++msgSeq;
-                        if (encoded.length <= MAX_LEN) {
-                            document.title = 'qtevent:' + type + ':' + encoded + ':' + seq;
-                        } else {
-                            var totalChunks = Math.ceil(encoded.length / MAX_LEN);
-                            for (var i = 0; i < totalChunks; i++) {
-                                var chunk = encoded.substring(i * MAX_LEN, (i + 1) * MAX_LEN);
-                                document.title = 'qteventchunk:' + seq + ':' + i + ':' + totalChunks + ':' + chunk;
-                            }
-                        }
-                    },
-                    processMessage: function (msgId, payload) {
-                        if (!messageHandlers[msgId]) return;
-                        var msg = { payload: payload || {}, reply: function() {} };
-                        messageHandlers[msgId](msg);
-                    },
-                    processMessageWithReply: function (msgId, payload, callId) {
-                        if (!messageHandlers[msgId]) {
-                            this.sendReply(callId, null, 'NO_HANDLER', 'No handler registered for: ' + msgId);
-                            return;
-                        }
-                        var self = this;
-                        var msg = {
-                            payload: payload || {},
-                            reply: function (data) { self.sendReply(callId, data); }
-                        };
-                        messageHandlers[msgId](msg);
-                    },
-                    sendReply: function (callId, data, errorCode, errorMessage) {
-                        var reply = { success: !errorCode, data: data };
-                        if (errorCode) {
-                            reply.error = { code: errorCode, message: errorMessage || 'Unknown error' };
-                        }
-                        var encoded = encodeURIComponent(JSON.stringify(reply));
-                        window.location.hash = '#qtreply:' + callId + ':' + encoded;
-                    },
-                    getHandlers: function () { return Object.keys(messageHandlers); },
-                    clearHandlers: function () { messageHandlers = {}; }
-                };
-
-                window.qtBridge = qtBridge;
-                window.oxide = {
-                    addMessageHandler: qtBridge.addMessageHandler.bind(qtBridge),
-                    sendMessage: qtBridge.sendMessage.bind(qtBridge)
-                };
-            `;
-
-            var factory = new Function("window", "document", bridgeCode);
-            factory(win, doc);
+            var factory = new Function("window", "document", "setTimeout", bridgeCode);
+            factory(win, doc, function(cb, delay) {});
             return win.qtBridge;
         }
 

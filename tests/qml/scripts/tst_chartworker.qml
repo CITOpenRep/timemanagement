@@ -92,5 +92,26 @@ Item {
             compare(root.lastMessage.items[1].name, "Medium priority task");
             compare(root.lastMessage.items[2].name, "Low priority task");
         }
+
+        function test_tasksTieBreaking() {
+            var tasks = [
+                { id: 1, name: "Task Beta", totalHours: 5.0 },
+                { id: 2, name: "Task Alpha", totalHours: 5.0 },
+                { id: 3, name: "Task Gamma", totalHours: 10.0 }
+            ];
+
+            chartWorker.sendMessage({
+                mode: "tasks",
+                projectId: 50,
+                tasks: tasks
+            });
+
+            messageSpy.wait(2000);
+            verify(root.lastMessage !== null);
+            compare(root.lastMessage.items.length, 3);
+            compare(root.lastMessage.items[0].name, "Task Gamma");
+            compare(root.lastMessage.items[1].name, "Task Alpha");
+            compare(root.lastMessage.items[2].name, "Task Beta");
+        }
     }
 }

@@ -123,5 +123,42 @@ Item {
             compare(data.plannedHours, 1.0);
             compare(data.stageOdooRecordId, -1);
         }
+
+        function test_buildSaveData_multipleAssigneesAndStageFallback() {
+            var params = {
+                ids: {
+                    account_id: 10,
+                    project_id: 5,
+                    subproject_id: 0,
+                    task_id: 0,
+                    assignee_id: "101",
+                    multiple_assignees: [
+                        { id: 101, name: "Alice" },
+                        { id: 102, name: "Bob" }
+                    ]
+                },
+                name: "New Task with Fallback Stage",
+                recordId: 0,
+                startDate: "2026-10-14",
+                endDate: "2026-10-14",
+                deadline: "",
+                priority: 1,
+                plannedHours: "2.0",
+                description: "",
+                selectedStageOdooRecordId: null,
+                selectedPersonalStageOdooRecordId: 44,
+                stageListCount: 2,
+                firstStage: { odoo_record_id: 7, name: "Backlog" },
+                enableMultipleAssignees: true
+            };
+
+            var data = TaskFormUtils.buildSaveData(params);
+            compare(data.stageOdooRecordId, 7); // Falls back to firstStage
+            compare(data.personalStageOdooRecordId, 44);
+            verify(Array.isArray(data.multipleAssignees));
+            compare(data.multipleAssignees.length, 2);
+            compare(data.multipleAssignees[0].id, 101);
+            compare(data.multipleAssignees[1].id, 102);
+        }
     }
 }
