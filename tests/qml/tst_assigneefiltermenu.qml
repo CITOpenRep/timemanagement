@@ -69,6 +69,43 @@ Item {
             compare(testMenu.selectedAssigneeIds.length, 0);
         }
 
+        function test_expandedToggle() {
+            testMenu.expanded = true;
+            compare(testMenu.expanded, true);
+
+            testMenu.expanded = false;
+            compare(testMenu.expanded, false);
+        }
+
+        function test_createSelectionAndIsAssigneeSelected() {
+            var sel = testMenu.createSelection(101, 1);
+            compare(sel.user_id, 101);
+            compare(sel.account_id, 1);
+
+            testMenu.selectedAssigneeIds = [sel];
+            verify(testMenu.isAssigneeSelected(101, 1));
+            verify(!testMenu.isAssigneeSelected(101, 2));
+            verify(!testMenu.isAssigneeSelected(102, 1));
+        }
+
+        function test_displayAssigneeCacheAndCounts() {
+            testMenu.assigneeModel = [
+                { id: 101, name: "Alice", account_id: 1, email: "alice@example.com" },
+                { id: 102, name: "Bob", account_id: 1, email: "bob@example.com" },
+                { id: 103, name: "Charlie", account_id: 1, email: "charlie@example.com" }
+            ];
+            compare(testMenu.getDisplayAssigneeCount(), 3);
+            compare(testMenu.getSelectedDisplayAssigneeCount(), 0);
+
+            testMenu.addSelectionIfMissing(testMenu.createSelection(101, 1));
+            testMenu.recomputeDisplayAssigneeCache();
+            compare(testMenu.getSelectedDisplayAssigneeCount(), 1);
+
+            testMenu.addSelectionIfMissing(testMenu.createSelection(102, 1));
+            testMenu.recomputeDisplayAssigneeCache();
+            compare(testMenu.getSelectedDisplayAssigneeCount(), 2);
+        }
+
         function test_showAllUsersOption_initialState() {
             testMenu.showAllUsersOption = true;
             testMenu.selectedAssigneeIds = [];

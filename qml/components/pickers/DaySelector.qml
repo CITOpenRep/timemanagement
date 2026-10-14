@@ -15,6 +15,7 @@ Item {
     property date customDate: selectedDate
     property bool showTomorrow: false
     property bool readOnly: false
+    property alias dayCombo: dayCombo
     signal dateChanged(date selectedDate)
 
     function formattedDate() {

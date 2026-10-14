@@ -11,6 +11,7 @@ Item {
     implicitHeight: layout.implicitHeight
     height: layout.implicitHeight
     property alias labelText: presetSelector.labelText
+    property alias presetSelector: presetSelector
     property date startDate: new Date()
     property date endDate: new Date()
     signal rangeChanged(date start, date end)
