@@ -35,6 +35,13 @@ tests/
 │   │   ├── tst_timer_service.qml  # Test suite for timer service state transitions and duration
 │   │   ├── tst_timesheet.qml      # Test suite for timesheet creation, duration, readiness, and status transitions
 │   │   └── tst_utils.qml          # Test suite for date, time, duration, and URL utilities
+│   ├── scripts/                   # Feature scripts and helper utility test suites
+│   │   ├── tst_chartutils.qml     # Test suite for chart data formatting, percentages, and sorting
+│   │   ├── tst_chartworker.qml    # Test suite for chart WorkerScript asynchronous processing
+│   │   ├── tst_htmlsanitizer.qml  # Test suite for HTML tag sanitization, color normalization, and validation
+│   │   ├── tst_navigationroutes.qml # Test suite for navigation routes and page URL resolution
+│   │   ├── tst_squirebridge.qml   # Test suite for Squire.js QtWebEngine messaging bridge
+│   │   └── tst_taskformutils.qml  # Test suite for task form validation and save data preparation
 │   ├── tst_accountselectordialog.qml # Test suite for AccountSelectorDialog picker and account switch
 │   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu assignee filter menu toggling
 │   ├── tst_colorpicker.qml        # Test suite for ColorPicker palette and custom color
