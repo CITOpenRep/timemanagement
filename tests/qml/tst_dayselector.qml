@@ -1,4 +1,4 @@
-import QtQuick 2.12
+import QtQuick 2.7
 import QtTest 1.0
 import Lomiri.Components 1.3
 import "../../qml/components/pickers"
@@ -107,11 +107,10 @@ MainView {
         }
 
         function test_updateDateRelativeSelection() {
-            var inlineCombo = testDaySelector.children[0];
-            verify(inlineCombo !== null);
+            verify(testDaySelector.dayCombo !== null, "dayCombo alias should be accessible");
 
             testDaySelector.showTomorrow = false;
-            inlineCombo.selectedId = 1; // Relative (Yesterday)
+            testDaySelector.dayCombo.selectedId = 1; // Relative (Yesterday)
             dateChangedSpy.clear();
 
             testDaySelector.updateDate();

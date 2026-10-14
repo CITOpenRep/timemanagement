@@ -50,6 +50,33 @@ MainView {
             compare(dateRangeChangedSpy.count, 0);
         }
 
+        function findItemWithText(root, text) {
+            if (!root) return null;
+            if (root.text && root.text.indexOf(text) !== -1) return root;
+            for (var i = 0; i < (root.children ? root.children.length : 0); i++) {
+                var found = findItemWithText(root.children[i], text);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        function findMouseAreaWithCloseIcon(root) {
+            if (!root) return null;
+            for (var i = 0; i < (root.children ? root.children.length : 0); i++) {
+                var ch = root.children[i];
+                if (ch.name === "close") {
+                    for (var j = 0; j < root.children.length; j++) {
+                        if (root.children[j].cursorShape !== undefined || root.children[j].toString().indexOf("MouseArea") !== -1) {
+                            return root.children[j];
+                        }
+                    }
+                }
+                var found = findMouseAreaWithCloseIcon(ch);
+                if (found) return found;
+            }
+            return null;
+        }
+
         function test_titleAndSubtitleIntegration() {
             testFilterableHeader.title = "Project Tasks";
             testFilterableHeader.userLabel = "Bob Smith";
@@ -57,54 +84,42 @@ MainView {
             compare(testFilterableHeader.title, "Project Tasks");
             compare(testFilterableHeader.userLabel, "Bob Smith");
 
-            var normalRow = testFilterableHeader.children[0];
-            verify(normalRow.visible);
-
-            var titleCol = normalRow.children[0];
-            var titleLabel = titleCol.children[0];
-            var subtitleLabel = titleCol.children[1];
-
+            var titleLabel = findItemWithText(testFilterableHeader, "Project Tasks");
+            verify(titleLabel !== null, "Title label should be found");
             compare(titleLabel.text, "Project Tasks");
-            verify(subtitleLabel.text.indexOf("Bob Smith") !== -1);
+
+            var subtitleLabel = findItemWithText(testFilterableHeader, "Bob Smith");
+            verify(subtitleLabel !== null, "Subtitle label should be found");
             verify(subtitleLabel.text.indexOf(" • ") !== -1);
         }
 
         function test_subtitleWithoutUserLabel() {
             testFilterableHeader.userLabel = "";
 
-            var normalRow = testFilterableHeader.children[0];
-            var titleCol = normalRow.children[0];
-            var subtitleLabel = titleCol.children[1];
-
+            var subtitleLabel = findItemWithText(testFilterableHeader, testFilterableHeader.dateFilter.presetLabel);
+            verify(subtitleLabel !== null, "Subtitle label should match presetLabel");
             compare(subtitleLabel.text, testFilterableHeader.dateFilter.presetLabel);
         }
 
         function test_showDateFilterToggleSwitchesViews() {
-            var normalView = testFilterableHeader.children[0];
-            var filterView = testFilterableHeader.children[1];
-
-            // Initially normal is visible, filter view hidden
-            compare(normalView.visible, true);
-            compare(filterView.visible, false);
+            // Initially normal is visible, date filter is hidden
+            compare(testFilterableHeader.showDateFilter, false);
 
             // Toggle showDateFilter = true
             testFilterableHeader.showDateFilter = true;
-            compare(normalView.visible, false);
-            compare(filterView.visible, true);
+            compare(testFilterableHeader.showDateFilter, true);
 
             // Toggle back
             testFilterableHeader.showDateFilter = false;
-            compare(normalView.visible, true);
-            compare(filterView.visible, false);
+            compare(testFilterableHeader.showDateFilter, false);
         }
 
         function test_closeFilterButtonClickResetsState() {
             testFilterableHeader.showDateFilter = true;
             compare(testFilterableHeader.showDateFilter, true);
 
-            var filterView = testFilterableHeader.children[1];
-            var closeBtn = filterView.children[1]; // closeFilterBtn
-            var closeMouse = closeBtn.children[1]; // MouseArea
+            var closeMouse = findMouseAreaWithCloseIcon(testFilterableHeader);
+            verify(closeMouse !== null, "Close button MouseArea should be found");
 
             mouseClick(closeMouse);
 

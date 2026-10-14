@@ -75,19 +75,66 @@ MainView {
             compare(testStageMenu.menuModel[3].value, 30);
         }
 
+        function findItemWithText(root, text) {
+            if (!root) return null;
+            if (root.text && root.text === text) return root;
+            for (var i = 0; i < (root.children ? root.children.length : 0); i++) {
+                var found = findItemWithText(root.children[i], text);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        function findItemWithIcon(root, iconName) {
+            if (!root) return null;
+            if (root.iconName === iconName) return root;
+            for (var i = 0; i < (root.children ? root.children.length : 0); i++) {
+                var found = findItemWithIcon(root.children[i], iconName);
+                if (found) return found;
+            }
+            return null;
+        }
+
         function test_menuItemSelectedSignal() {
             compare(itemSelectedSpy.count, 0);
-            testStageMenu.menuItemSelected(2);
+            testStageMenu.menuModel = sampleStages;
+            testStageMenu.expanded = true;
+            wait(200);
 
+            var item = findItemWithText(testStageMenu, "In Progress");
+            verify(item !== null, "Delegate with text 'In Progress' should be found");
+
+            mouseClick(item);
+            wait(100);
+
+            compare(testStageMenu.selectedIndex, 2);
+            compare(testStageMenu.selectedFilterName, "In Progress");
+            compare(testStageMenu.expanded, false);
             compare(itemSelectedSpy.count, 1);
             compare(itemSelectedSpy.signalArguments[0][0], 2);
         }
 
         function test_filterClearedSignal() {
             compare(filterClearedSpy.count, 0);
-            testStageMenu.filterCleared();
+            testStageMenu.menuModel = sampleStages;
+            testStageMenu.selectedIndex = 2;
+            testStageMenu.selectedFilterName = "In Progress";
+            testStageMenu.expanded = true;
+            wait(200);
 
+            var clearBtn = findItemWithIcon(testStageMenu, "edit-clear");
+            verify(clearBtn !== null, "Clear filter button should be found");
+            verify(clearBtn.visible, "Clear filter button should be visible when selectedIndex > 0");
+
+            mouseClick(clearBtn);
+            wait(100);
+
+            compare(testStageMenu.selectedIndex, 0);
+            compare(testStageMenu.selectedFilterName, "All Stages");
+            compare(testStageMenu.expanded, false);
             compare(filterClearedSpy.count, 1);
+            compare(itemSelectedSpy.count, 1);
+            compare(itemSelectedSpy.signalArguments[0][0], 0);
         }
 
         function test_selectionStateUpdates() {
@@ -106,45 +153,53 @@ MainView {
         }
 
         function test_fabTogglesExpanded() {
-            // Find the FAB child item
-            var fab = null;
-            for (var i = 0; i < testStageMenu.children.length; i++) {
-                var child = testStageMenu.children[i];
-                if (child.objectName === "fab" || child.iconName !== undefined) {
-                    fab = child;
-                    break;
-                }
-            }
-
-            verify(fab !== null);
+            var fab = findItemWithIcon(testStageMenu, "filters");
+            verify(fab !== null, "FAB button should be found");
             compare(testStageMenu.expanded, false);
 
-            fab.clicked();
+            mouseClick(fab);
+            wait(100);
             compare(testStageMenu.expanded, true);
 
-            fab.clicked();
+            mouseClick(fab);
+            wait(100);
             compare(testStageMenu.expanded, false);
         }
 
         function test_clearingFilterFlow() {
             testStageMenu.menuModel = sampleStages;
-            testStageMenu.selectedIndex = 2;
-            testStageMenu.selectedFilterName = "In Progress";
             testStageMenu.expanded = true;
+            wait(200);
 
-            // Trigger clearing: resets selectedIndex to 0 and closes menu
-            testStageMenu.selectedIndex = 0;
-            testStageMenu.selectedFilterName = testStageMenu.menuModel[0].label;
-            testStageMenu.expanded = false;
-            testStageMenu.filterCleared();
-            testStageMenu.menuItemSelected(0);
+            // 1. Select "Done" stage (index 3) via delegate click
+            var doneItem = findItemWithText(testStageMenu, "Done");
+            verify(doneItem !== null, "Done item should be found");
+            mouseClick(doneItem);
+            wait(100);
+
+            compare(testStageMenu.selectedIndex, 3);
+            compare(testStageMenu.selectedFilterName, "Done");
+            compare(testStageMenu.expanded, false);
+            compare(itemSelectedSpy.count, 1);
+            compare(itemSelectedSpy.signalArguments[0][0], 3);
+
+            // 2. Open menu again and click clear filter button
+            testStageMenu.expanded = true;
+            wait(200);
+
+            var clearBtn = findItemWithIcon(testStageMenu, "edit-clear");
+            verify(clearBtn !== null, "Clear button should be found");
+            verify(clearBtn.visible, "Clear button should be visible");
+
+            mouseClick(clearBtn);
+            wait(100);
 
             compare(testStageMenu.selectedIndex, 0);
             compare(testStageMenu.selectedFilterName, "All Stages");
             compare(testStageMenu.expanded, false);
             compare(filterClearedSpy.count, 1);
-            compare(itemSelectedSpy.count, 1);
-            compare(itemSelectedSpy.signalArguments[0][0], 0);
+            compare(itemSelectedSpy.count, 2);
+            compare(itemSelectedSpy.signalArguments[1][0], 0);
         }
     }
 }

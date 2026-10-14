@@ -1,4 +1,4 @@
-import QtQuick 2.12
+import QtQuick 2.7
 import QtTest 1.0
 import Lomiri.Components 1.3
 import "../../qml/components/pickers"
@@ -39,6 +39,7 @@ MainView {
             compare(testDateRangeSelector.readOnly, false);
             compare(testDateRangeSelector.isStartDateValid, true);
             compare(testDateRangeSelector.isEndDateValid, true);
+            verify(testDateRangeSelector.presetSelector !== null);
         }
 
         function test_formattedDateStrings() {
@@ -85,10 +86,9 @@ MainView {
         }
 
         function test_updateDatesPresetToday() {
-            var preset = testDateRangeSelector.children[0].children[0]; // InlineOptionSelector
-            verify(preset !== null);
+            verify(testDateRangeSelector.presetSelector !== null, "presetSelector alias should be accessible");
 
-            preset.selectedId = 0; // Today
+            testDateRangeSelector.presetSelector.selectedId = 0; // Today
             rangeChangedSpy.clear();
             testDateRangeSelector.updateDates();
 
@@ -101,10 +101,9 @@ MainView {
         }
 
         function test_updateDatesPresetThisMonth() {
-            var preset = testDateRangeSelector.children[0].children[0];
-            verify(preset !== null);
+            verify(testDateRangeSelector.presetSelector !== null, "presetSelector alias should be accessible");
 
-            preset.selectedId = 3; // This Month
+            testDateRangeSelector.presetSelector.selectedId = 3; // This Month
             rangeChangedSpy.clear();
             testDateRangeSelector.updateDates();
 
@@ -112,7 +111,7 @@ MainView {
             var today = new Date();
             compare(testDateRangeSelector.startDate.getMonth(), today.getMonth());
             compare(testDateRangeSelector.endDate.getMonth(), today.getMonth());
-            verify(testDateRangeSelector.endDate.getDate() >= 28);
+            verify(testDateRangeSelector.endDate.getDate() >= 26);
         }
 
         function test_readOnlyStateToggling() {

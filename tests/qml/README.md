@@ -43,7 +43,7 @@ tests/
 │   │   ├── tst_squirebridge.qml   # Test suite for Squire.js QtWebEngine messaging bridge
 │   │   └── tst_taskformutils.qml  # Test suite for task form validation and save data preparation
 │   ├── tst_accountselectordialog.qml # Test suite for AccountSelectorDialog picker and account switch
-│   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu assignee filter menu toggling
+│   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu multi-selection, search, and delegate interaction
 │   ├── tst_colorpicker.qml        # Test suite for ColorPicker palette and custom color
 │   ├── tst_contentpickerdialog.qml # Test suite for ContentPickerDialog single/multi selection
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component

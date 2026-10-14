@@ -107,9 +107,19 @@ MainView {
             compare(testSelectionBtn.enabledState, false);
         }
 
+        function findChildWithProperty(item, prop) {
+            if (!item) return null;
+            if (item.hasOwnProperty(prop) || item[prop] !== undefined) return item;
+            for (var i = 0; i < (item.children ? item.children.length : 0); i++) {
+                var found = findChildWithProperty(item.children[i], prop);
+                if (found) return found;
+            }
+            return null;
+        }
+
         function test_selectionClickEmitsSignal() {
-            var inlineSelector = testSelectionBtn.children[0];
-            verify(inlineSelector !== null);
+            var inlineSelector = findChildWithProperty(testSelectionBtn, "collapsed");
+            verify(inlineSelector !== null, "InlineOptionSelector should be found");
 
             // Expand selector
             inlineSelector.expand();

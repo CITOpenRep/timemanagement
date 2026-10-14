@@ -23,13 +23,27 @@ MainView {
         name: "StatusSelectorTests"
         when: windowShown
 
+        function findButtonByText(root, text) {
+            if (!root) return null;
+            if (root.text && root.text.indexOf(text) !== -1) return root;
+            for (var i = 0; i < (root.children ? root.children.length : 0); i++) {
+                var found = findButtonByText(root.children[i], text);
+                if (found) return found;
+            }
+            return null;
+        }
+
         function getButtons() {
-            var row = testStatusSelector.children[0];
-            verify(row !== null);
+            var btnOnTrack = findButtonByText(testStatusSelector, "On Track");
+            var btnAtRisk = findButtonByText(testStatusSelector, "At Risk");
+            var btnOffTrack = findButtonByText(testStatusSelector, "Off Track");
+            verify(btnOnTrack !== null, "On Track button should be found");
+            verify(btnAtRisk !== null, "At Risk button should be found");
+            verify(btnOffTrack !== null, "Off Track button should be found");
             return {
-                onTrack: row.children[0],
-                atRisk: row.children[1],
-                offTrack: row.children[2]
+                onTrack: btnOnTrack,
+                atRisk: btnAtRisk,
+                offTrack: btnOffTrack
             };
         }
 
