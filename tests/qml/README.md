@@ -43,23 +43,34 @@ tests/
 │   │   ├── tst_squirebridge.qml   # Test suite for Squire.js QtWebEngine messaging bridge
 │   │   └── tst_taskformutils.qml  # Test suite for task form validation and save data preparation
 │   ├── tst_accountselectordialog.qml # Test suite for AccountSelectorDialog picker and account switch
+│   ├── tst_activitydetailscard.qml # Test suite for ActivityDetailsCard activity details, assignee, due date, and action signals
 │   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu multi-selection, search, and delegate interaction
+│   ├── tst_attachmentmanager.qml  # Test suite for AttachmentManager attachment list, file deletion, and upload signals
+│   ├── tst_backendbridge.qml      # Test suite for BackendBridge signal dispatch between QML and Python
 │   ├── tst_colorpicker.qml        # Test suite for ColorPicker palette and custom color
 │   ├── tst_contentpickerdialog.qml # Test suite for ContentPickerDialog single/multi selection
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
 │   ├── tst_daterangeheaderfilter.qml # Test suite for DateRangeHeaderFilter filter toggle and active range text
 │   ├── tst_daterangeselector.qml  # Test suite for DateRangeSelector date bounds and range pick
 │   ├── tst_dayselector.qml        # Test suite for DaySelector day selection signals
+│   ├── tst_ehower.qml             # Test suite for EHower 2x2 priority matrix layout and quadrant hours
+│   ├── tst_ehowerindicator.qml    # Test suite for EHowerIndicator quadrant key normalization and quadrant colors
 │   ├── tst_filterableheadercontents.qml # Test suite for FilterableHeaderContents filter state integration
+│   ├── tst_formdrafthandler.qml   # Test suite for FormDraftHandler draft autosave, change tracking, and unsaved changes
 │   ├── tst_globaltimerwidget.qml  # Test suite for GlobalTimerWidget system component
+│   ├── tst_imagepreviewer.qml     # Test suite for ImagePreviewer image display, close actions, and download states
 │   ├── tst_infobar.qml            # Test suite for InfoBar feedback component
 │   ├── tst_inlineoptionselector.qml # Test suite for InlineOptionSelector radio-style option selection
 │   ├── tst_loadingindicator.qml   # Test suite for LoadingIndicator running state and visibility
 │   ├── tst_loadmorefooter.qml     # Test suite for LoadMoreFooter loading state and retry trigger
+│   ├── tst_modeldownloadtimerwidget.qml # Test suite for ModelDownloadTimerWidget download progress and cancel controls
 │   ├── tst_multiassigneeselector.qml # Test suite for MultiAssigneeSelector multi-select IDs array output
 │   ├── tst_notificationbell.qml   # Test suite for NotificationBell unread counter badge and navigation
 │   ├── tst_notificationpopup.qml  # Test suite for NotificationPopup message, dismiss, and timeout
 │   ├── tst_outlinedtextfield.qml # Test suite for OutlinedTextField text input component
+│   ├── tst_projectdetailscard.qml # Test suite for ProjectDetailsCard project info, status badge, progress, and timer controls
+│   ├── tst_projectlist.qml        # Test suite for ProjectList hierarchy navigation stack, list model population, and selection
+│   ├── tst_projectpiechart.qml    # Test suite for ProjectPieChart pie slice data loading, sorting, and empty state
 │   ├── tst_projectstageselector.qml # Test suite for ProjectStageSelector stage list per project
 │   ├── tst_savediscarddialog.qml  # Test suite for SaveDiscardDialog save, discard, and cancel signals
 │   ├── tst_selectionbutton.qml    # Test suite for SelectionButton selection state and click
@@ -72,6 +83,8 @@ tests/
 │   ├── tst_tsprogressbar.qml      # Test suite for TSProgressbar progress indicator
 │   ├── tst_tssearchbar.qml        # Test suite for TSSearchBar search input component
 │   ├── tst_tsswitch.qml           # Test suite for TSSwitch toggle switch component
+│   ├── tst_updatesdetailscard.qml # Test suite for UpdatesDetailsCard update summary, timestamp, status, and progress
+│   ├── tst_voicetimerwidget.qml   # Test suite for VoiceTimerWidget voice recording states and timer controls
 │   └── tst_workitemselector.qml   # Test suite for WorkItemSelector project and task selection logic
 ```
 

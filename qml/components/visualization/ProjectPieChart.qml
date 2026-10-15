@@ -48,7 +48,7 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         font.pixelSize: units.gu(2)
-        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         padding: units.gu(1.5)
     }
 
@@ -124,8 +124,8 @@ Item {
         y: units.gu(2)
         width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
         height: hoverText.implicitHeight + units.gu(1.5)
-        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
-        border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
         border.width: 1
         radius: units.gu(0.5)
         opacity: hoverText.text !== "" ? 0.95 : 0.0
@@ -141,7 +141,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             text: ""
-            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
             font.weight: Font.Light
             font.pixelSize: units.gu(2)
         }
@@ -189,7 +189,7 @@ Item {
                     id: label
                     text: Utils.truncateText(model.label, 35)
                     font.pixelSize: units.gu(1.8)
-                    color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
                     maximumLineCount: 2
