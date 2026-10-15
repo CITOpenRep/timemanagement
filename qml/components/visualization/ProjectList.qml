@@ -225,14 +225,17 @@ Item {
     function navigateBackInHierarchy() {
         if (navigationStackModel.count > 0) {
             var last = navigationStackModel.get(navigationStackModel.count - 1);
+            var prevParentId = (last && last.parentId !== undefined) ? last.parentId : -1;
+            var prevAccountId = (last && last.accountId !== undefined) ? last.accountId : -1;
+            var prevParentName = (last && last.parentName !== undefined) ? last.parentName : "";
             navigationStackModel.remove(navigationStackModel.count - 1);
-            currentParentId = last.parentId !== undefined ? last.parentId : -1;
+            currentParentId = prevParentId;
             if (currentParentId === -1) {
                 currentAccountId = getSelectedAccountId();
             } else {
-                currentAccountId = last.accountId !== undefined ? last.accountId : -1;
+                currentAccountId = prevAccountId;
             }
-            currentParentName = (last.parentName !== undefined) ? last.parentName : "";
+            currentParentName = prevParentName;
         }
     }
 

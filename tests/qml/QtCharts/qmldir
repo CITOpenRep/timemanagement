@@ -1,0 +1,6 @@
+module QtCharts
+ChartView 2.0 ChartView.qml
+PieSeries 2.0 PieSeries.qml
+PieSlice 2.0 PieSlice.qml
+Margins 2.0 Margins.qml
+Legend 2.0 Legend.qml
