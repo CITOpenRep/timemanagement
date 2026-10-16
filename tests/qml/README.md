@@ -44,6 +44,7 @@ tests/
 │   │   └── tst_taskformutils.qml  # Test suite for task form validation and save data preparation
 │   ├── tst_accountselectordialog.qml # Test suite for AccountSelectorDialog picker and account switch
 │   ├── tst_assigneefiltermenu.qml # Test suite for AssigneeFilterMenu multi-selection, search, and delegate interaction
+│   ├── tst_chartinfopopup.qml     # Test suite for ChartInfoPopup guide dialog and chart section descriptions
 │   ├── tst_colorpicker.qml        # Test suite for ColorPicker palette and custom color
 │   ├── tst_contentpickerdialog.qml # Test suite for ContentPickerDialog single/multi selection
 │   ├── tst_customdatepicker.qml   # Test suite for CustomDatePicker picker component
@@ -57,15 +58,34 @@ tests/
 │   ├── tst_loadingindicator.qml   # Test suite for LoadingIndicator running state and visibility
 │   ├── tst_loadmorefooter.qml     # Test suite for LoadMoreFooter loading state and retry trigger
 │   ├── tst_multiassigneeselector.qml # Test suite for MultiAssigneeSelector multi-select IDs array output
+│   ├── tst_mytasksclosedindicator.qml # Test suite for MyTasksClosedIndicator closed/completed tasks badge
 │   ├── tst_notificationbell.qml   # Test suite for NotificationBell unread counter badge and navigation
 │   ├── tst_notificationpopup.qml  # Test suite for NotificationPopup message, dismiss, and timeout
 │   ├── tst_outlinedtextfield.qml # Test suite for OutlinedTextField text input component
+│   ├── tst_personalstageselector.qml # Test suite for PersonalStageSelector user-specific stage selection dialog
+│   ├── tst_projectcard.qml        # Test suite for ProjectCard dashboard summary card and progress bar
 │   ├── tst_projectstageselector.qml # Test suite for ProjectStageSelector stage list per project
 │   ├── tst_savediscarddialog.qml  # Test suite for SaveDiscardDialog save, discard, and cancel signals
 │   ├── tst_selectionbutton.qml    # Test suite for SelectionButton selection state and click
+│   ├── tst_settingsheader.qml     # Test suite for SettingsHeader page header and trailing actions
+│   ├── tst_settingslistitem.qml   # Test suite for SettingsListItem settings list item and click handling
+│   ├── tst_settingspagelayout.qml # Test suite for SettingsPageLayout layout wrapper and header anchoring
 │   ├── tst_stagefiltermenu.qml    # Test suite for StageFilterMenu stage filter menu toggling
 │   ├── tst_statusselector.qml     # Test suite for StatusSelector status changes and badge color
+│   ├── tst_taskchartcanvas.qml    # Test suite for TaskChartCanvas horizontal bar chart rendering and task selection
+│   ├── tst_taskdetailscard.qml    # Test suite for TaskDetailsCard task details card info and action signals
+│   ├── tst_tasklist.qml           # Test suite for TaskList tasks list rendering, filter, and search logic
+│   ├── tst_tasknamefield.qml      # Test suite for TaskNameField task name input validation and signal emission
+│   ├── tst_taskpriorityselector.qml # Test suite for TaskPrioritySelector star-based priority level selector
+│   ├── tst_taskrecordactionsgrid.qml # Test suite for TaskRecordActionsGrid task action buttons and signal emission
+│   ├── tst_taskrow.qml            # Test suite for TaskRow task list row presentation and hours display
+│   ├── tst_taskschedulefields.qml # Test suite for TaskScheduleFields planned hours and date range inputs
+│   ├── tst_taskstageselector.qml  # Test suite for TaskStageSelector project task stage selection dialog
+│   ├── tst_tasktimechart.qml      # Test suite for TaskTimeChart drilldown time tracking chart navigation and model updates
 │   ├── tst_timepickerpopup.qml    # Test suite for TimePickerPopup time selection and confirmation
+│   ├── tst_timerecorderwidget.qml # Test suite for TimeRecorderWidget timer start, stop, and pause actions
+│   ├── tst_timesheetdescriptionpopup.qml # Test suite for TimeSheetDescriptionPopup description editing dialog
+│   ├── tst_timesheetdetailscard.qml # Test suite for TimeSheetDetailsCard entry summary display and workflow signals
 │   ├── tst_tsbutton.qml           # Test suite for TSButton action button component
 │   ├── tst_tsiconbutton.qml       # Test suite for TSIconButton circular icon button component
 │   ├── tst_tslabel.qml            # Test suite for TSLabel styled text component
