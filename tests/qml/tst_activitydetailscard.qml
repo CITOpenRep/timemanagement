@@ -167,11 +167,11 @@ MainView {
             testCard.state = "";
             compare(testCard.isActivityDueToday(), false);
 
-            // Set today's date formatted as YYYY-MM-DD
+            // Set today's date formatted as YYYY-MM-DD using local date components to match isActivityDueToday()
             var now = new Date();
-            var yyyy = now.getUTCFullYear();
-            var mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-            var dd = String(now.getUTCDate()).padStart(2, '0');
+            var yyyy = now.getFullYear();
+            var mm = String(now.getMonth() + 1).padStart(2, '0');
+            var dd = String(now.getDate()).padStart(2, '0');
             var todayStr = yyyy + "-" + mm + "-" + dd;
 
             testCard.due_date = todayStr;

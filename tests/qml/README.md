@@ -22,6 +22,13 @@ clickable test -- -functions test_openDisplaysMessageAndEmitsSignal
 tests/
 ├── qml/
 │   ├── README.md                  # This guide
+│   ├── QtCharts/                  # Mock QtCharts module for headless/unit test execution
+│   │   ├── qmldir                 # Module definition registering mock ChartView, PieSeries, etc.
+│   │   ├── ChartView.qml          # Mock ChartView container component
+│   │   ├── Legend.qml             # Mock Legend component
+│   │   ├── Margins.qml            # Mock Margins component
+│   │   ├── PieSeries.qml          # Mock PieSeries component with slice management
+│   │   └── PieSlice.qml           # Mock PieSlice component with slice properties
 │   ├── models/                    # JavaScript core and model test suites
 │   │   ├── tst_accounts.qml       # Test suite for account management, defaults, sync settings, and deletion
 │   │   ├── tst_activity.qml       # Test suite for activity data, sanitizeId, type icons, date filters, and CRUD
@@ -89,6 +96,23 @@ tests/
 ```
 
 Clickable automatically discovers all files matching `tst_*.qml` under `tests/qml/` as configured in `clickable.yaml`.
+
+## Mocking Native Modules via `-import tests/qml`
+
+Components that depend on native or platform modules (such as `QtCharts 2.0`) can be tested headlessly without requiring native C++ Qt plugin binaries or display servers.
+
+In `clickable.yaml`, test execution is configured with:
+
+```bash
+test: qmltestrunner -input tests/qml -import tests/qml
+```
+
+The `-import tests/qml` option instructs the QML engine's import resolver to look inside `tests/qml/` for QML modules. When a component or test executes `import QtCharts 2.0`, QML finds `tests/qml/QtCharts/qmldir` and resolves `ChartView`, `PieSeries`, `PieSlice`, `Legend`, and `Margins` to the mock QML implementations in `tests/qml/QtCharts/`.
+
+This mechanism allows:
+- Testing chart-dependent components (e.g., `ProjectPieChart`, `EHower`) in headless CI/CD environments.
+- Simulating slice interactions, hover events, and animations in pure QML without GPU requirements.
+- Fast execution and complete isolation from native charting backend state.
 
 ## Anatomy of a QML Test Case
 

@@ -41,6 +41,9 @@ Item {
     property var selectedUserId: -1
     property bool autoRefreshOnAccountChange: true
 
+    property alias chartTitleText: chartTitle.text
+    property alias series: pieSeries
+
     // Custom styled title overlay
     Text {
         id: chartTitle

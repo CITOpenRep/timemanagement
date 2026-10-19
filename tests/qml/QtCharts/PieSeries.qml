@@ -30,7 +30,7 @@ Item {
             angleSpan: 45
         });
 
-        slices.push(sliceObj);
+        slices = slices.concat([sliceObj]);
         return sliceObj;
     }
 

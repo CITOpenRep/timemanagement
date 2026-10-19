@@ -46,6 +46,8 @@ MainView {
             testChart.load([]);
 
             // chartTitle is updated to show "(No Data)"
+            verify(testChart.chartTitleText.indexOf("(No Data)") !== -1);
+            compare(testChart.series.count, 0);
             verify(testChart.implicitHeight > 0);
         }
 
@@ -57,6 +59,11 @@ MainView {
             testChart.load(data);
 
             // Chart should now be loaded with the project
+            verify(testChart.chartTitleText.indexOf("(No Data)") === -1);
+            compare(testChart.series.count, 1);
+            var slice = testChart.series.at(0);
+            compare(slice.label, "Website Redesign (100.0%)");
+            compare(slice.value, 25.0);
             verify(testChart.implicitHeight > 0);
         }
 
@@ -69,6 +76,14 @@ MainView {
 
             testChart.load(data);
 
+            // Slices should be sorted descending by spentHours: Big Project (40), Medium Task (15), Small Task (2)
+            compare(testChart.series.count, 3);
+            compare(testChart.series.at(0).value, 40.0);
+            verify(testChart.series.at(0).label.indexOf("Big Project") !== -1);
+            compare(testChart.series.at(1).value, 15.0);
+            verify(testChart.series.at(1).label.indexOf("Medium Task") !== -1);
+            compare(testChart.series.at(2).value, 2.0);
+            verify(testChart.series.at(2).label.indexOf("Small Task") !== -1);
             verify(testChart.implicitHeight > 0);
         }
 
@@ -83,6 +98,12 @@ MainView {
 
             testChart.load(data);
 
+            // Top 10 projects + 1 aggregated "Others" slice = 11 slices total
+            compare(testChart.series.count, 11);
+            var othersSlice = testChart.series.at(10);
+            verify(othersSlice.label.indexOf("Others") !== -1);
+            // Items past top 10 (sorted descending: 25..16 are top 10; remaining 15+14+13+12+11 = 65)
+            compare(othersSlice.value, 65.0);
             verify(testChart.implicitHeight > 0);
         }
 
