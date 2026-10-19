@@ -105,7 +105,12 @@ MainView {
             var sampleTask = {
                 id: "task_1",
                 name: "Implement API",
-                totalHours: 8.0
+                totalHours: 8.0,
+                stage: "In Progress",
+                status: "In Progress",
+                user: "Developer",
+                assignee: "Developer",
+                date: "2026-10-16"
             };
 
             testChart.openProject(sampleProject);
@@ -120,7 +125,16 @@ MainView {
 
         function test_goBackNavigationHierarchy() {
             var sampleProject = { id: "proj_1", name: "Web App", totalHours: 20.0 };
-            var sampleTask = { id: "task_1", name: "API", totalHours: 8.0 };
+            var sampleTask = {
+                id: "task_1",
+                name: "API",
+                totalHours: 8.0,
+                stage: "In Progress",
+                status: "In Progress",
+                user: "Developer",
+                assignee: "Developer",
+                date: "2026-10-16"
+            };
 
             testChart.openProject(sampleProject);
             testChart.openTask(sampleTask);

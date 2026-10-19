@@ -18,6 +18,23 @@ MainView {
         }
     }
 
+    Page {
+        id: testPageWithAction
+        visible: false
+
+        header: SettingsHeader {
+            id: testHeaderWithAction
+            title: "Header With Action"
+            trailingActions: [
+                Action {
+                    id: saveAction
+                    text: "Save"
+                    iconName: "save"
+                }
+            ]
+        }
+    }
+
     TestCase {
         name: "SettingsHeaderTests"
         when: windowShown
@@ -37,10 +54,13 @@ MainView {
 
         function test_trailingActionsBinding() {
             compare(testHeader.trailingActions.length, 0);
-
-            var actionComp = Qt.createComponent("", Qt.resolvedUrl("."));
-            // Verify trailingActionBar is configured
             verify(testHeader.trailingActionBar !== null);
+
+            // Verify trailingActions binding to trailingActionBar.actions
+            compare(testHeaderWithAction.trailingActions.length, 1);
+            compare(testHeaderWithAction.trailingActionBar.actions.length, 1);
+            compare(testHeaderWithAction.trailingActionBar.actions[0].text, "Save");
+            compare(testHeaderWithAction.trailingActionBar.actions[0].iconName, "save");
         }
     }
 }
