@@ -14,7 +14,7 @@ Item {
             verify(Constants.version !== undefined);
             compare(typeof Constants.version, "string");
             verify(Constants.version.length > 0);
-            compare(Constants.version, "1.3.3");
+            compare(Constants.version, "1.3.4");
         }
 
         function test_fontSizesStructure() {
