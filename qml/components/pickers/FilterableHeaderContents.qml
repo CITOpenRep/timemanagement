@@ -9,6 +9,7 @@ Item {
     property bool showDateFilter: false
     property string title: ""
     property bool showSubtitle: true
+    property string userLabel: ""
     property alias dateFilter: dateFilterItem
 
     signal dateRangeChanged()
@@ -30,7 +31,7 @@ Item {
             }
 
             Label {
-                text: dateFilterItem.presetLabel
+                text: root.userLabel ? (dateFilterItem.presetLabel + " • " + root.userLabel) : dateFilterItem.presetLabel
                 color: "white"
                 fontSize: "small"
                 opacity: 0.8

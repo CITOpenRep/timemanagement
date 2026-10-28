@@ -28,6 +28,7 @@ import QtQuick.Controls 2.2
 import "../../../models/utils.js" as Utils
 import "../../../models/project.js" as Project
 import "../../../models/accounts.js" as Account
+import "../../../models/global.js" as Global
 import ".."
 
 Item {
@@ -37,7 +38,11 @@ Item {
 
     // account used to fetch data; numeric -1 indicates "all accounts"
     property int selectedAccountId: accountPicker.selectedAccountId
+    property var selectedUserId: -1
     property bool autoRefreshOnAccountChange: true
+
+    property alias chartTitleText: chartTitle.text
+    property alias series: pieSeries
 
     // Custom styled title overlay
     Text {
@@ -46,7 +51,7 @@ Item {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
         font.pixelSize: units.gu(2)
-        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "#444"
         padding: units.gu(1.5)
     }
 
@@ -122,8 +127,8 @@ Item {
         y: units.gu(2)
         width: Math.min(hoverText.implicitWidth + units.gu(3), parent.width - units.gu(2))
         height: hoverText.implicitHeight + units.gu(1.5)
-        color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
-        border.color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
+        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#555" : "#FFF"
+        border.color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#ccc"
         border.width: 1
         radius: units.gu(0.5)
         opacity: hoverText.text !== "" ? 0.95 : 0.0
@@ -139,7 +144,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             text: ""
-            color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
+            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "White" : "Black"
             font.weight: Font.Light
             font.pixelSize: units.gu(2)
         }
@@ -187,7 +192,7 @@ Item {
                     id: label
                     text: Utils.truncateText(model.label, 35)
                     font.pixelSize: units.gu(1.8)
-                    color: Theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "white" : "#333"
                     wrapMode: Text.WordWrap
                     elide: Text.ElideRight
                     maximumLineCount: 2
@@ -260,11 +265,19 @@ Item {
     }
 
     // Fetch-and-load helper using the new project API signature
-    function refreshForAccount(accountId, startDate, endDate) {
+    function refreshForAccount(accountId, startDate, endDate, userId) {
+        if (userId !== undefined && userId !== null) {
+            selectedUserId = userId;
+        } else {
+            var userFilter = Global.getDashboardUserFilter();
+            if (userFilter && userFilter.userId !== undefined) {
+                selectedUserId = userFilter.userId;
+            }
+        }
 
-        // call project API with account param and date range
+        // call project API with account param, date range and userId
         try {
-            var data = Project.getProjectSpentHoursList(true, accountId, startDate, endDate);
+            var data = Project.getProjectSpentHoursList(true, accountId, startDate, endDate, selectedUserId);
             // data should be an array; load chart
             load(data || []);
         } catch (e) {
@@ -274,14 +287,35 @@ Item {
     }
 
     Component.onCompleted: {
-        refreshForAccount(accountPicker.selectedAccountId);
+        var filterData = Global.getDateRangeFilter();
+        var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+        var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+        var userFilter = Global.getDashboardUserFilter();
+        var uid = (root.selectedUserId !== undefined && root.selectedUserId !== null && root.selectedUserId !== -1) ? root.selectedUserId : (userFilter ? userFilter.userId : -1);
+        refreshForAccount(accountPicker.selectedAccountId, sDate, eDate, uid);
     }
 
     // Re-fetch when the account selector changes
     Connections {
         target: autoRefreshOnAccountChange ? accountPicker : null
         onAccepted: function (accountId, accountName) {
-            refreshForAccount(accountId);
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var userFilter = Global.getDashboardUserFilter();
+            var uid = (root.selectedUserId !== undefined && root.selectedUserId !== null && root.selectedUserId !== -1) ? root.selectedUserId : (userFilter ? userFilter.userId : -1);
+            refreshForAccount(accountId, sDate, eDate, uid);
+        }
+    }
+
+    Connections {
+        target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
+        onGlobalDashboardUserChanged: function (userId, userName) {
+            var filterData = Global.getDateRangeFilter();
+            var sDate = (filterData && filterData.isFiltered) ? filterData.startDate : "";
+            var eDate = (filterData && filterData.isFiltered) ? filterData.endDate : "";
+            var accId = typeof accountPicker !== "undefined" ? accountPicker.selectedAccountId : root.selectedAccountId;
+            refreshForAccount(accId, sDate, eDate, userId);
         }
     }
 }

@@ -54,9 +54,13 @@ Item {
         id: container
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: units.gu(10)
+        anchors.bottomMargin: Qt.inputMethod.visible ? units.gu(1) : units.gu(10)
         implicitWidth: parent.width
         implicitHeight: parent.height
+
+        Behavior on anchors.bottomMargin {
+            NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+        }
 
         Rectangle {
             anchors.fill: parent
@@ -67,7 +71,13 @@ Item {
 
         Text {
             id: message
-            anchors.centerIn: parent
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: units.gu(2)
+            anchors.rightMargin: units.gu(2)
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
             text: ""
             wrapMode: Text.WordWrap
             font.pixelSize: units.gu(2)

@@ -46,6 +46,7 @@ Item {
     property bool isFiltered: presetId !== -1
     property bool suppressSignal: false
     property bool showClearButton: true
+    property alias presetSelector: inlinePresetSelector
 
     signal dateRangeChanged(int presetId, string startDate, string endDate, string presetLabel)
 

@@ -28,7 +28,7 @@ def log(message):
 
 def get_service_target_path():
     """Get stable click path for systemd service across app updates."""
-    current_symlink = Path("/opt/click.ubuntu.com/ubtms/current")
+    current_symlink = CLICK_PATH.parent / "current"
     if current_symlink.exists():
         return current_symlink
     return CLICK_PATH
