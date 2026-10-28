@@ -396,9 +396,10 @@ def sync_model(
     try:
         # Step 1: Lightweight search to get all active record IDs for deletion/orphan checking
         try:
+            search_options = {"context": {"active_test": False}} if model_name == "res.users" else {}
             all_odoo_ids = client.models.execute_kw(
                 client.db, client.uid, client.password,
-                model_name, "search", [[]]
+                model_name, "search", [[]], search_options
             )
             all_odoo_ids = set(all_odoo_ids)
         except Exception as search_err:
@@ -475,10 +476,13 @@ def sync_model(
                 if "write_date" in model_fields and "write_date" not in safe_fields:
                     safe_fields.append("write_date")
 
+                read_options = {"fields": safe_fields}
+                if model_name == "res.users":
+                    read_options["context"] = {"active_test": False}
                 records = client.models.execute_kw(
                     client.db, client.uid, client.password,
                     model_name, "search_read", last_sync_domain,
-                    {"fields": safe_fields}
+                    read_options
                 )
             except Exception as read_err:
                 log.warning(f"[SYNC] Incremental fetch failed for {model_name}: {read_err}. Falling back to full fetch.")
@@ -623,6 +627,9 @@ def fetch_odoo_records(client, model_name, fields):
 
     # Fast path: fetch all records in a single request
     try:
+        read_options = {"fields": safe_fields}
+        if model_name == "res.users":
+            read_options["context"] = {"active_test": False}
         return client.models.execute_kw(
             client.db,
             client.uid,
@@ -630,7 +637,7 @@ def fetch_odoo_records(client, model_name, fields):
             model_name,
             "search_read",
             [[]],
-            {"fields": safe_fields},
+            read_options,
         )
     except Exception as e:
         error_str = str(e).lower()
@@ -667,9 +674,10 @@ def _fetch_odoo_records_batched(client, model_name, fields, batch_size=50):
         list: Successfully fetched records (problematic ones skipped)
     """
     # Step 1: Get all record IDs (lightweight — no field data, no XML issues)
+    search_options = {"context": {"active_test": False}} if model_name == "res.users" else {}
     all_ids = client.models.execute_kw(
         client.db, client.uid, client.password,
-        model_name, "search", [[]]
+        model_name, "search", [[]], search_options
     )
     log.info(f"[FETCH] {model_name}: {len(all_ids)} record IDs found, fetching in batches of {batch_size}")
     
@@ -680,10 +688,13 @@ def _fetch_odoo_records_batched(client, model_name, fields, batch_size=50):
     for i in range(0, len(all_ids), batch_size):
         batch_ids = all_ids[i:i + batch_size]
         try:
+            read_options = {"fields": fields}
+            if model_name == "res.users":
+                read_options["context"] = {"active_test": False}
             batch_records = client.models.execute_kw(
                 client.db, client.uid, client.password,
                 model_name, "read", [batch_ids],
-                {"fields": fields}
+                read_options
             )
             all_records.extend(batch_records)
         except Exception as batch_err:
@@ -692,10 +703,13 @@ def _fetch_odoo_records_batched(client, model_name, fields, batch_size=50):
             # Subdivide: try fetching records individually to isolate bad ones
             for record_id in batch_ids:
                 try:
+                    read_options = {"fields": fields}
+                    if model_name == "res.users":
+                        read_options["context"] = {"active_test": False}
                     single_record = client.models.execute_kw(
                         client.db, client.uid, client.password,
                         model_name, "read", [[record_id]],
-                        {"fields": fields}
+                        read_options
                     )
                     all_records.extend(single_record)
                 except Exception as single_err:
