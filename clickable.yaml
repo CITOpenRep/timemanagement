@@ -1,7 +1,6 @@
 clickable_minimum_required: 8.0.0
 builder: cmake
 kill: qmlscene
-skip_review: true
 test: qmltestrunner -input tests/qml -import tests/qml
 dependencies_target:
   - libatomic1

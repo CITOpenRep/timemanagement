@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  push-bridge:
+    build: .
+    container_name: ubtms-push-bridge
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - BRIDGE_PUBLIC_URL=https://push.example.com
+      - UBPORTS_PUSH_URL=https://push.ubports.com/notify
+      - UBPORTS_APP_ID=ubtms_ubtms
+      - BRIDGE_DB_PATH=/app/data/subscriptions.db
+    volumes:
+      - ./data:/app/data
