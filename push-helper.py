@@ -75,20 +75,45 @@ def store_notification(notif_type, message, payload):
     except Exception:
         pass  # Silent failure - notification display is more important
 
-def should_popup_notification():
-    """Check if popup banners are enabled in user settings."""
+def should_popup_notification(summary="", body="", is_urgent=False):
+    """
+    Check if popup banners should be displayed based on user schedule settings.
+    Respects:
+    1. Master notification toggle (notifications_enabled)
+    2. Working days (e.g. Mon-Fri)
+    3. Working hours (active_start to active_end, supporting overnight schedules)
+    4. User / system timezone
+    5. Priority / urgency bypass (urgent items bypass quiet hours)
+    """
+    if is_urgent or "urgent" in summary.lower() or "urgent" in body.lower():
+        return True
+
     try:
         db_path = get_db_path()
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute("SELECT value FROM settings WHERE key = 'notifications_enabled'")
-        row = cur.fetchone()
-        conn.close()
-        if row and str(row[0]).strip().lower() == "false":
-            return False
+        if not Path(db_path).exists():
+            return True
+
+        src_dir = Path(__file__).resolve().parent / "src"
+        if str(src_dir) not in sys.path:
+            sys.path.insert(0, str(src_dir))
+
+        from common import should_send_notification
+        allowed, _ = should_send_notification(db_path)
+        return bool(allowed)
     except Exception:
-        pass
-    return True
+        # Fallback to direct SQLite check for master toggle
+        try:
+            db_path = get_db_path()
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT value FROM settings WHERE key = 'notifications_enabled'")
+            row = cur.fetchone()
+            conn.close()
+            if row and str(row[0]).strip().lower() == "false":
+                return False
+        except Exception:
+            pass
+        return True
 
 def process_notification(input_data):
     """Process incoming notification and enhance if needed."""
@@ -110,6 +135,14 @@ def process_notification(input_data):
             notif_type = "Project"
         elif "Timesheet" in summary:
             notif_type = "Timesheet"
+
+        # Check priority / urgency
+        is_urgent = bool(
+            card.get("urgent") or
+            card.get("priority") in ("3", 3, "high", "urgent") or
+            "urgent" in summary.lower() or
+            "urgent" in body.lower()
+        )
 
         # Extract record ID from actions query string or payload
         record_id = None
@@ -133,8 +166,8 @@ def process_notification(input_data):
         if not card.get("icon"):
             card["icon"] = "assets/logo.png"
 
-        # Ensure card defaults for proper banner display and tap-to-open action
-        card["popup"] = card.get("popup", True) and should_popup_notification()
+        # Ensure card defaults for proper banner display respecting working hours and priority
+        card["popup"] = card.get("popup", True) and should_popup_notification(summary, body, is_urgent)
         card["persist"] = card.get("persist", True)
 
         # Build actions with deep link routing first, followed by appid foreground

@@ -280,3 +280,63 @@ def test_direct_companion_addon_registration():
             "res.users", "register_ubports_token",
             ["direct_device_token_xyz"]
         )
+
+
+def test_push_helper_schedule_and_priority_enforcement():
+    """
+    Test that push-helper respects working hours, schedule settings, and priority overrides.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp_db:
+        tmp_db_path = tmp_db.name
+
+    try:
+        # Enable schedule: Mon-Fri, 09:00 - 18:00
+        set_setting(tmp_db_path, "notifications_enabled", "true")
+        set_setting(tmp_db_path, "notification_schedule_enabled", "true")
+        set_setting(tmp_db_path, "notification_active_start", "09:00")
+        set_setting(tmp_db_path, "notification_active_end", "18:00")
+        set_setting(tmp_db_path, "notification_working_days", "1,2,3,4,5")
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            # Case 1: Outside working hours -> popup should be False
+            with patch("common.is_within_active_hours", return_value=False):
+                raw_notif = json.dumps({
+                    "notification": {
+                        "card": {
+                            "summary": "Standard Task Update",
+                            "body": "A normal routine update"
+                        }
+                    }
+                })
+                out = json.loads(push_helper_mod.process_notification(raw_notif))
+                assert out["notification"]["card"]["popup"] is False
+
+            # Case 2: Outside working hours but URGENT priority -> popup should be True (bypass)
+            with patch("common.is_within_active_hours", return_value=False):
+                urgent_notif = json.dumps({
+                    "notification": {
+                        "card": {
+                            "summary": "Urgent Server Issue",
+                            "body": "Production server requires immediate attention",
+                            "urgent": True
+                        }
+                    }
+                })
+                out = json.loads(push_helper_mod.process_notification(urgent_notif))
+                assert out["notification"]["card"]["popup"] is True
+
+            # Case 3: Inside working hours -> popup should be True
+            with patch("common.is_within_active_hours", return_value=True):
+                normal_notif = json.dumps({
+                    "notification": {
+                        "card": {
+                            "summary": "Regular Task Assigned",
+                            "body": "Please review during your shift"
+                        }
+                    }
+                })
+                out = json.loads(push_helper_mod.process_notification(normal_notif))
+                assert out["notification"]["card"]["popup"] is True
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
