@@ -54,12 +54,16 @@ def sync(settings_db, account_id):
         selected["api_key"],
     )
 
-    # Automatically register device push token with Odoo 17+ WebPush if token is known
+    # Automatically register device push token with Odoo (native or legacy bridge)
     push_token = get_setting(settings_db, "push_token", "")
     if push_token:
         bridge_url = get_setting(settings_db, "push_bridge_url", "")
         try:
-            client.register_push_device(push_token, bridge_url=bridge_url or None)
+            reg_res = client.register_push_device(push_token, bridge_url=bridge_url or None)
+            if isinstance(reg_res, dict):
+                mode = reg_res.get("mode", "none")
+                set_setting(settings_db, f"push_mode_{account_id}", mode)
+                set_setting(settings_db, "push_mode", mode)
         except Exception as e:
             log.debug(f"[PUSH] Push device registration skipped: {e}")
 
@@ -184,9 +188,29 @@ def save_push_token(settings_db=None, token=""):
                         acc["username"],
                         acc["api_key"]
                     )
-                    c.register_push_device(token, bridge_url=bridge_url or None)
+                    reg_res = c.register_push_device(token, bridge_url=bridge_url or None)
+                    if isinstance(reg_res, dict):
+                        mode = reg_res.get("mode", "none")
+                        set_setting(settings_db, f"push_mode_{acc['id']}", mode)
+                        set_setting(settings_db, "push_mode", mode)
                 except Exception as ex:
                     log.debug(f"[PUSH] Account registration attempt skipped: {ex}")
     except Exception as e:
         log.warning(f"[PUSH] Error broadcasting push token to accounts: {e}")
     return True
+
+
+def get_push_mode(settings_db=None, account_id=-1):
+    """
+    Get active push mode ('native', 'legacy_bridge', or 'none').
+    """
+    if not settings_db:
+        from .storage import resolve_qml_db_path
+        settings_db = resolve_qml_db_path("ubtms") or "app_settings.db"
+
+    if account_id > 0:
+        mode = get_setting(settings_db, f"push_mode_{account_id}", "")
+        if mode:
+            return mode
+
+    return get_setting(settings_db, "push_mode", "none")

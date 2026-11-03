@@ -61,6 +61,7 @@ from .storage import (
     resolve_settings_db_path,
 )
 from .sync import (
+    get_push_mode,
     save_push_token,
     start_sync_in_background,
     sync,
@@ -111,6 +112,7 @@ __all__ = [
     "attachment_delete",
     "cleanup_orphan_attachment_files",
     # Sync
+    "get_push_mode",
     "save_push_token",
     "sync",
     "sync_background",

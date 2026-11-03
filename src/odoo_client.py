@@ -310,10 +310,44 @@ class OdooClient:
         except Exception as e:
             raise RuntimeError(f"Failed calling '{method}' on '{model}': {e}")
 
+    def get_server_version(self):
+        """
+        Query Odoo server version using common.version().
+        """
+        try:
+            transport = self._create_transport()
+            common = xmlrpc.client.ServerProxy(
+                f"{self.url}/xmlrpc/2/common",
+                transport=transport
+            )
+            return common.version()
+        except Exception as e:
+            logging.debug(f"[VERSION] Could not retrieve server version: {e}")
+            return {}
+
+    def get_server_major_version(self):
+        """
+        Extract integer major version of Odoo server (e.g. 14, 15, 16, 17, 18).
+        """
+        version_data = self.get_server_version()
+        version_info = version_data.get("server_version_info")
+        if version_info and len(version_info) > 0 and isinstance(version_info[0], int):
+            return version_info[0]
+
+        version_str = str(version_data.get("server_version", ""))
+        if version_str:
+            import re
+            match = re.match(r"^(\d+)", version_str)
+            if match:
+                return int(match.group(1))
+
+        return 0
+
     def register_push_device(self, ubports_token, bridge_url=None):
         """
-        Register this device with Odoo for WebPush notifications via the Push Bridge.
-        Supported on Odoo 17+ Community and Enterprise.
+        Register this device with Odoo for push notifications.
+        - For Odoo 17+: uses native WebPush via mail.partner.device.
+        - For Odoo 14-16: registers with the Push Bridge legacy poller.
         """
         if not ubports_token:
             return False
@@ -324,46 +358,66 @@ class OdooClient:
                 "https://push-bridge.cit-services.eu"
             )
 
+        major_version = self.get_server_major_version()
+        logging.info(f"[PUSH] Target Odoo major version: {major_version}")
+
+        # Attempt native Odoo 17+ WebPush first if version >= 17 or unknown
+        if major_version >= 17 or major_version == 0:
+            try:
+                vapid_key = self.models.execute_kw(
+                    self.db, self.uid, self.password,
+                    'mail.partner.device', 'get_web_push_vapid_public_key', []
+                )
+                if vapid_key:
+                    sub_url = f"{bridge_url.rstrip('/')}/v1/subscription/{ubports_token}"
+                    req = urllib.request.Request(
+                        sub_url,
+                        headers={"User-Agent": "ubtms/1.3.4"}
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        if resp.status == 200:
+                            sub_data = json.loads(resp.read().decode("utf-8"))
+                            endpoint = sub_data.get("endpoint")
+                            keys = sub_data.get("keys")
+                            if endpoint and keys:
+                                self.models.execute_kw(
+                                    self.db, self.uid, self.password,
+                                    'mail.partner.device', 'register_devices', [],
+                                    {
+                                        'endpoint': endpoint,
+                                        'keys': keys,
+                                        'vapid_public_key': vapid_key,
+                                    }
+                                )
+                                logging.info(f"[PUSH] Registered native push device on Odoo for UID {self.uid}")
+                                return {"mode": "native", "success": True}
+            except Exception as e:
+                logging.info(f"[PUSH] Native WebPush unavailable: {e}")
+
+        # Fallback for Odoo 14-16: Register account with Bridge-side polling worker
         try:
-            # Check if Odoo 17+ WebPush is available
-            vapid_key = self.models.execute_kw(
-                self.db, self.uid, self.password,
-                'mail.partner.device', 'get_web_push_vapid_public_key', []
-            )
-            if not vapid_key:
-                logging.info("[PUSH] Odoo instance returned empty VAPID key")
-                return False
-
-            # Query push bridge for subscription endpoint and encryption keys
-            sub_url = f"{bridge_url.rstrip('/')}/v1/subscription/{ubports_token}"
+            legacy_url = f"{bridge_url.rstrip('/')}/v1/legacy/register"
+            payload = json.dumps({
+                "ubports_token": ubports_token,
+                "odoo_url": self.url,
+                "db": self.db,
+                "username": self.username,
+                "password": self.password,
+                "uid": self.uid
+            }).encode("utf-8")
             req = urllib.request.Request(
-                sub_url,
-                headers={"User-Agent": "ubtms/1.3.4"}
-            )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                if resp.status != 200:
-                    logging.warning(f"[PUSH] Bridge returned HTTP {resp.status}")
-                    return False
-                sub_data = json.loads(resp.read().decode("utf-8"))
-
-            endpoint = sub_data.get("endpoint")
-            keys = sub_data.get("keys")
-            if not endpoint or not keys:
-                logging.warning("[PUSH] Bridge response missing endpoint or keys")
-                return False
-
-            # Register device in Odoo mail.partner.device
-            self.models.execute_kw(
-                self.db, self.uid, self.password,
-                'mail.partner.device', 'register_devices', [],
-                {
-                    'endpoint': endpoint,
-                    'keys': keys,
-                    'vapid_public_key': vapid_key,
+                legacy_url,
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "ubtms/1.3.4"
                 }
             )
-            logging.info(f"[PUSH] Registered push device on Odoo for UID {self.uid}")
-            return True
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status in (200, 201):
+                    logging.info(f"[PUSH] Registered legacy bridge poller for Odoo {major_version} (UID {self.uid})")
+                    return {"mode": "legacy_bridge", "success": True}
         except Exception as e:
-            logging.info(f"[PUSH] Push device registration skipped or not supported: {e}")
-            return False
+            logging.warning(f"[PUSH] Legacy bridge poller registration failed: {e}")
+
+        return {"mode": "none", "success": False}

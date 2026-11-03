@@ -90,10 +90,79 @@ def test_relay_encrypted_webpush(mock_post):
     assert sent_payload["data"]["notification"]["card"]["body"] == "Review Odoo PR"
 
 
+def test_legacy_lifecycle_and_polling():
+    token = "test_legacy_device_token_999"
+    # 1. Register legacy account
+    reg_payload = {
+        "ubports_token": token,
+        "odoo_url": "https://odoo15.example.com",
+        "db": "production",
+        "username": "employee@example.com",
+        "password": "secret_password",
+        "uid": 42,
+        "poll_interval": 300
+    }
+    reg_res = client.post("/v1/legacy/register", json=reg_payload)
+    assert reg_res.status_code == 200
+    assert reg_res.json()["status"] == "registered"
+    assert reg_res.json()["mode"] == "legacy_bridge"
+
+    # 2. Check list
+    list_res = client.get(f"/v1/legacy/subscriptions/{token}")
+    assert list_res.status_code == 200
+    subs = list_res.json()["subscriptions"]
+    assert len(subs) == 1
+    assert subs[0]["uid"] == 42
+    assert subs[0]["db"] == "production"
+
+    # 3. Simulate polling with mock Odoo XML-RPC
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports:
+        mock_ubports.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # First poll: seeds initial state (act_id=101)
+        mock_models.execute_kw.return_value = [
+            {"id": 101, "summary": "Initial Task", "date_deadline": "2026-11-03", "res_name": "Project Alpha"}
+        ]
+        poll_res = client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+        assert poll_res.json()["accounts_polled"] >= 1
+
+        # Second poll: new activity arrives (act_id=102)
+        mock_models.execute_kw.return_value = [
+            {"id": 102, "summary": "New Legacy Activity", "date_deadline": "2026-11-04", "res_name": "Project Beta"},
+            {"id": 101, "summary": "Initial Task", "date_deadline": "2026-11-03", "res_name": "Project Alpha"}
+        ]
+        poll_res2 = client.post("/v1/legacy/poll")
+        assert poll_res2.status_code == 200
+        assert poll_res2.json()["notifications_sent"] >= 1
+
+        # Check UBports payload
+        assert mock_ubports.called
+        sent_data = mock_ubports.call_args.kwargs["json"]
+        assert sent_data["token"] == token
+        assert "New Legacy Activity" in sent_data["data"]["notification"]["card"]["summary"]
+
+    # 4. Unregister
+    unreg_res = client.post("/v1/legacy/unregister", json={
+        "ubports_token": token,
+        "odoo_url": "https://odoo15.example.com",
+        "db": "production",
+        "uid": 42
+    })
+    assert unreg_res.status_code == 200
+    assert unreg_res.json()["status"] == "unregistered"
+
+    list_after = client.get(f"/v1/legacy/subscriptions/{token}")
+    assert len(list_after.json()["subscriptions"]) == 0
+
+
 if __name__ == "__main__":
     test_health()
     test_subscription_creation()
     with patch("requests.post") as mock_p:
         mock_p.return_value = MagicMock(status_code=201, text="OK")
         test_relay_encrypted_webpush()
-    print("All push bridge tests passed!")
+    test_legacy_lifecycle_and_polling()
+    print("All push bridge tests (native + legacy) passed!")
