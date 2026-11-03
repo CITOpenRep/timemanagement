@@ -92,6 +92,14 @@ def process_notification(input_data):
         elif "Timesheet" in summary:
             notif_type = "Timesheet"
         
+        # Ensure card defaults for proper banner display and tap-to-open action
+        card["popup"] = card.get("popup", True)
+        card["persist"] = card.get("persist", True)
+        if "actions" not in card or not card["actions"]:
+            card["actions"] = ["appid://ubtms_ubtms/ubtms/current-user-version"]
+        notif["card"] = card
+        notification["notification"] = notif
+
         # Store in database for in-app display
         store_notification(notif_type, body, {"summary": summary, "source": "push"})
         

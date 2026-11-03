@@ -272,7 +272,8 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
                     "summary": notification_title,
                     "body": notification_body,
                     "popup": True,
-                    "persist": True
+                    "persist": True,
+                    "actions": [f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
                 }
             }
         }
