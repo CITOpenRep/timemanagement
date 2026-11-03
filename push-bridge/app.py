@@ -321,7 +321,8 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
     pkg_name = DEFAULT_APP_ID.split("_")[0]
     if res_id:
         actions.append(f"ubtms://notification?type={nav_type}&id={res_id}&odoo_id=1")
-    actions.append(f"appid://{pkg_name}/ubtms/current-user-version")
+    else:
+        actions.append(f"appid://{pkg_name}/ubtms/current-user-version")
 
     # Format payload for UBports Push Server
     ubports_payload = {
@@ -407,7 +408,8 @@ def send_ubports_notification(ubports_token: str, title: str, body: str, deep_li
     pkg_name = DEFAULT_APP_ID.split("_")[0]
     if deep_link:
         actions.append(deep_link)
-    actions.append(f"appid://{pkg_name}/ubtms/current-user-version")
+    else:
+        actions.append(f"appid://{pkg_name}/ubtms/current-user-version")
 
     payload = {
         "appid": DEFAULT_APP_ID,

@@ -796,15 +796,14 @@ def get_system_timezone():
                 if tz and tz != "n/a":
                     log.debug(f"[COMMON] Timezone from timedatectl: {tz}")
                     return tz
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pass  # timedatectl not available, try other methods
+        except (FileNotFoundError, subprocess.TimeoutExpired, PermissionError, OSError):
+            pass  # timedatectl not available or restricted by AppArmor, try other methods
         
-        # Secondary: Try to read from /etc/localtime symlink
-        if os.path.islink('/etc/localtime'):
-            link_target = os.readlink('/etc/localtime')
-            # Extract timezone from path like /usr/share/zoneinfo/America/New_York
-            if 'zoneinfo' in link_target:
-                parts = link_target.split('zoneinfo/')
+        # Secondary: Try to read from /etc/localtime symlink resolving full canonical path
+        if os.path.exists('/etc/localtime'):
+            real_target = os.path.realpath('/etc/localtime')
+            if 'zoneinfo/' in real_target:
+                parts = real_target.split('zoneinfo/')
                 if len(parts) > 1:
                     return parts[1]
         
@@ -858,13 +857,12 @@ def get_current_time_in_timezone(timezone_str):
         except ImportError:
             pass
         
-        # Last fallback: use UTC
-        log.warning(f"[COMMON] No timezone library available, using UTC")
-        return datetime.now(tz.utc)
+        # Last fallback: use local system time with timezone
+        return datetime.now().astimezone()
         
     except Exception as e:
         log.error(f"[COMMON] Failed to get time in timezone {timezone_str}: {e}")
-        return datetime.now(tz.utc)
+        return datetime.now().astimezone()
 
 
 def parse_time_string(time_str):

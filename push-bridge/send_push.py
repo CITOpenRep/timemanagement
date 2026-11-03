@@ -38,8 +38,7 @@ def main():
                     "persist": True,
                     "urgent": args.urgent,
                     "actions": [
-                        f"ubtms://notification?type={args.type}&id={args.id}&odoo_id=1",
-                        "appid://ubtms/ubtms/current-user-version"
+                        f"ubtms://notification?type={args.type}&id={args.id}&odoo_id=1"
                     ]
                 },
                 "sound": "sounds/lomiri/notifications/Positive.ogg",

@@ -185,17 +185,14 @@ def process_notification(input_data):
         card["popup"] = card.get("popup", True) and should_popup_notification(summary, body, is_urgent)
         card["persist"] = card.get("persist", True)
 
-        # Build actions with deep link routing first, followed by appid foreground
+        # Build actions: exactly 1 action for standard interactive banner dispatch
         enhanced_actions = []
         if record_id:
             deep_link = f"ubtms://notification?type={notif_type}&id={record_id}&odoo_id=1"
             enhanced_actions.append(deep_link)
-
-        for act in actions:
-            if act not in enhanced_actions:
-                enhanced_actions.append(act)
-
-        if "appid://ubtms/ubtms/current-user-version" not in enhanced_actions:
+        elif actions:
+            enhanced_actions.append(actions[0])
+        else:
             enhanced_actions.append("appid://ubtms/ubtms/current-user-version")
 
         card["actions"] = enhanced_actions
