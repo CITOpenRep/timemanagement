@@ -25,7 +25,7 @@ import threading
 
 from bus import send
 from common import write_sync_report_to_db
-from config import get_all_accounts, update_last_synced_at
+from config import get_all_accounts, update_last_synced_at, get_setting, set_setting
 from logger import setup_logger
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
@@ -53,6 +53,16 @@ def sync(settings_db, account_id):
         selected["username"],
         selected["api_key"],
     )
+
+    # Automatically register device push token with Odoo 17+ WebPush if token is known
+    push_token = get_setting(settings_db, "push_token", "")
+    if push_token:
+        bridge_url = get_setting(settings_db, "push_bridge_url", "")
+        try:
+            client.register_push_device(push_token, bridge_url=bridge_url or None)
+        except Exception as e:
+            log.debug(f"[PUSH] Push device registration skipped: {e}")
+
     send("progress", 20)
     log.debug("Syncing from odoo from server: " + selected["link"])
     sync_all_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
@@ -141,3 +151,42 @@ def start_sync_in_background(settings_db, account_id):
     Start a background synchronization process.
     """
     return sync_background(settings_db, account_id)
+
+
+def save_push_token(settings_db=None, token=""):
+    """
+    Save UBports push token to settings and attempt registration on all remote accounts.
+    """
+    # Allow calling as save_push_token(token) or save_push_token(settings_db, token)
+    if not token and settings_db and isinstance(settings_db, str) and "/" not in settings_db and not settings_db.endswith(".sqlite") and not settings_db.endswith(".db"):
+        token = settings_db
+        settings_db = None
+
+    if not token:
+        return False
+
+    if not settings_db:
+        from .storage import resolve_qml_db_path
+        settings_db = resolve_qml_db_path("ubtms") or "app_settings.db"
+
+    set_setting(settings_db, "push_token", token)
+    log.info(f"[PUSH] Saved push token to settings: {token[:8]}...")
+
+    bridge_url = get_setting(settings_db, "push_bridge_url", "")
+    try:
+        accounts = get_all_accounts(settings_db)
+        for acc in accounts:
+            if not acc.get("is_local") and acc.get("link"):
+                try:
+                    c = OdooClient(
+                        acc["link"],
+                        acc["database"],
+                        acc["username"],
+                        acc["api_key"]
+                    )
+                    c.register_push_device(token, bridge_url=bridge_url or None)
+                except Exception as ex:
+                    log.debug(f"[PUSH] Account registration attempt skipped: {ex}")
+    except Exception as e:
+        log.warning(f"[PUSH] Error broadcasting push token to accounts: {e}")
+    return True

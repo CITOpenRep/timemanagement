@@ -132,6 +132,42 @@ bool NotificationHelper::updateCount(const int count)
     
 }
 
+QString NotificationHelper::get_push_token()
+{
+    // Register with modern Lomiri push service
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        PUSH_SERVICE,
+        PUSH_PATH,
+        PUSH_IFACE,
+        "Register"
+    );
+    msg << push_app_id;
+    QDBusMessage reply = m_conn.call(msg);
+    if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
+        QString token = reply.arguments().first().toString();
+        qDebug() << "[PUSH TOKEN] Registered with Lomiri Push Service:" << token;
+        return token;
+    }
+
+    // Fallback to legacy Ubuntu push service
+    QDBusMessage legacyMsg = QDBusMessage::createMethodCall(
+        "com.ubuntu.PushNotifications",
+        "/com/ubuntu/PushNotifications",
+        "com.ubuntu.PushNotifications",
+        "Register"
+    );
+    legacyMsg << push_app_id;
+    QDBusMessage legacyReply = m_conn.call(legacyMsg);
+    if (legacyReply.type() == QDBusMessage::ReplyMessage && !legacyReply.arguments().isEmpty()) {
+        QString token = legacyReply.arguments().first().toString();
+        qDebug() << "[PUSH TOKEN] Registered with Ubuntu Push Service:" << token;
+        return token;
+    }
+
+    qDebug() << "[PUSH TOKEN] Could not register push token via DBus:" << reply.errorMessage();
+    return QString();
+}
+
 QByteArray NotificationHelper::makePath(const QString &appId)
 {
     QByteArray path(QByteArrayLiteral("/com/lomiri/Postal/"));

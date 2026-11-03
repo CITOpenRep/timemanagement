@@ -57,6 +57,8 @@ DEFAULT_SETTINGS = {
     "notification_active_start": "09:00",  # Start of active hours (HH:MM format)
     "notification_active_end": "18:00",  # End of active hours (HH:MM format)
     "notification_working_days": "1,2,3,4,5",  # Working days (0=Sun,1=Mon,...,6=Sat) - CSV
+    "push_token": "",
+    "push_bridge_url": os.getenv("UBTMS_PUSH_BRIDGE_URL", "https://push-bridge.cit-services.eu"),
 }
 
 

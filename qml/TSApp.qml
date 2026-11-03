@@ -114,11 +114,21 @@ MainView {
 
     
 
+    Connections {
+        target: backend_bridge
+        onReadyChanged: {
+            if (backend_bridge && backend_bridge.ready) {
+                startupManager.initializePushNotifications(backend_bridge);
+            }
+        }
+    }
+
     Component.onCompleted: {
         DbInit.initializeDatabase();
 
         loadAndApplyTheme();
         updateSystemBadge();
+        startupManager.initializePushNotifications(backend_bridge);
         checkDaemonSetupNeeded();
         checkForUnsavedDrafts();
         cleanupDeletedRecordDrafts();

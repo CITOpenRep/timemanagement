@@ -31,6 +31,9 @@ public:
     
     // Ensure daemon is running (start if not running or unhealthy)
     Q_INVOKABLE void ensureDaemonRunning();
+
+    // Retrieve the push token from the system push service
+    Q_INVOKABLE QString get_push_token();
     
     // Send a notification based on JSON notification
     bool sendJSON(const QJsonObject &message);

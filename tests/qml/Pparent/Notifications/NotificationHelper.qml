@@ -6,4 +6,7 @@ Item {
     function updateCount(c) {
         count = c;
     }
+    function get_push_token() {
+        return "";
+    }
 }

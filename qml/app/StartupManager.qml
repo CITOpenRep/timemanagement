@@ -37,6 +37,27 @@ QtObject {
         }
     }
 
+    function initializePushNotifications(backendBridge) {
+        if (!notificationSystem || typeof notificationSystem.get_push_token !== "function")
+            return;
+
+        try {
+            var token = notificationSystem.get_push_token();
+            if (token && token.length > 0) {
+                Logger.info("StartupManager", "Push token obtained, registering with backend: " + token.substring(0, 8) + "...");
+                if (backendBridge) {
+                    backendBridge.call("backend.save_push_token", [token], function (res) {
+                        Logger.info("StartupManager", "Push token registered with backend: " + res);
+                    });
+                }
+            } else {
+                Logger.debug("StartupManager", "No push token returned by push service");
+            }
+        } catch (e) {
+            Logger.warn("StartupManager", "Could not initialize push notifications:", e);
+        }
+    }
+
     function checkDaemonSetupNeeded() {
         try {
             var xhr = new XMLHttpRequest();
