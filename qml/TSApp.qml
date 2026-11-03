@@ -129,7 +129,6 @@ MainView {
         loadAndApplyTheme();
         updateSystemBadge();
         startupManager.initializePushNotifications(backend_bridge);
-        checkDaemonSetupNeeded();
         checkForUnsavedDrafts();
         cleanupDeletedRecordDrafts();
         checkStartupArguments();

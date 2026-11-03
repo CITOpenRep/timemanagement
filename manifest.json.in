@@ -9,10 +9,6 @@
             "desktop":  "ubtms.desktop",
             "urls": "ubtms-urls.json"
         },
-        "ubtms-daemon": {
-            "apparmor": "ubtms.apparmor",
-            "desktop": "ubtms-daemon.desktop"
-        },
         "push": {
             "apparmor": "ubtms-push.apparmor",
             "push-helper": "ubtms-push-helper.json"

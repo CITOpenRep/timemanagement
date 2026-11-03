@@ -40,16 +40,6 @@ Page {
         title: syncSettingsPage.title
     }
 
-    NotificationHelper {
-        id: daemonHelper
-    }
-
-    property bool isRestarting: false
-
-    NotificationPopup {
-        id: daemonPopup
-    }
-
     // AutoSync Settings Helper Functions
     function getAutoSyncSetting(key) {
         var defaultValues = {
@@ -264,51 +254,13 @@ Page {
 
                         Text {
                             id: recommendationText
-                            text: i18n.dtr("ubtms", "\u2728 Recommended: Set sync interval to 5 or 15 minutes for the best balance of performance and battery life.")
+                            text: i18n.dtr("ubtms", "Recommended: Set sync interval to 5 or 15 minutes for the best balance of performance and battery life.")
                             font.pixelSize: units.gu(1.4)
                             color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#a0d0a0" : "#2d7a2d"
                             anchors.centerIn: parent
                             wrapMode: Text.WordWrap
                             width: parent.width - units.gu(2)
                             horizontalAlignment: Text.AlignHCenter
-                        }
-                    }
-
-                    // Restart Daemon Button
-                    Button {
-                        id: restartDaemonButton
-                        text: isRestarting ? i18n.dtr("ubtms", "Restarting...") : i18n.dtr("ubtms", "Restart Background Daemon")
-                        width: parent.width - units.gu(2)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        enabled: !isRestarting
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? LomiriColors.orange : LomiriColors.orange
-
-                        onClicked: {
-                            isRestarting = true;
-                            daemonHelper.restartDaemon();
-                            restartCompleteTimer.start();
-                        }
-                    }
-
-                    Timer {
-                        id: restartCompleteTimer
-                        interval: 3000
-                        repeat: false
-                        onTriggered: {
-                            isRestarting = false;
-                            if (daemonHelper.isDaemonHealthy()) {
-                                daemonPopup.open(
-                                    i18n.dtr("ubtms", "Daemon Restarted"),
-                                    i18n.dtr("ubtms", "The background sync daemon has been successfully restarted and is running."),
-                                    "success"
-                                );
-                            } else {
-                                daemonPopup.open(
-                                    i18n.dtr("ubtms", "Daemon Restart"),
-                                    i18n.dtr("ubtms", "The daemon restart was initiated. It may take a few moments to fully start. If sync issues persist, try again."),
-                                    "warning"
-                                );
-                            }
                         }
                     }
 

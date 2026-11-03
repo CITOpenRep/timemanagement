@@ -100,17 +100,6 @@ Item {
     NotificationHelper {
         id: notificationSystem
         push_app_id: "ubtms_ubtms"
-        Component.onCompleted: {
-            startDaemon();
-        }
-    }
-
-    Timer {
-        id: daemonHealthCheckTimer
-        interval: 120000
-        running: true
-        repeat: true
-        onTriggered: notificationSystem.ensureDaemonRunning()
     }
 
     Timer {
