@@ -69,11 +69,10 @@ class JsonMemoryHandler(Handler):
 
 
 def get_log_file_path():
-    """Get the path for the daemon log file in a writable location."""
-    # Use ~/.local/share/ubtms/ which is always writable
-    log_dir = Path.home() / ".local" / "share" / "ubtms"
+    """Get the path for the application log file in a writable location."""
+    log_dir = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share" / "ubtms"))
     log_dir.mkdir(parents=True, exist_ok=True)
-    return str(log_dir / "daemon.log")
+    return str(log_dir / "app.log")
 
 
 def _is_running_under_systemd():

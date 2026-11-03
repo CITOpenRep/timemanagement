@@ -685,7 +685,7 @@ def detect_new_assignments(db_path, account_id, user_id, pre_sync_snapshot):
             if odoo_id and odoo_id not in pre_sync_snapshot['timesheets']:
                 result['new_timesheets'].append(dict(timesheet))
         
-        # Get new project updates (by anyone, filtering by creator is done in daemon)
+        # Get new project updates
         cursor.execute("""
             SELECT pu.id, pu.name, pu.odoo_record_id, pu.create_uid, pu.project_id,
                    pp.name as project_name
@@ -1007,8 +1007,7 @@ def should_send_notification(db_path):
     """
     Determine if a notification should be sent based on current schedule settings.
     
-    This is the main function that the daemon should call before sending any notification.
-    It checks:
+    Checks:
     1. Whether notifications are enabled (master toggle)
     2. If scheduling is enabled, whether the current day is a working day
     3. If scheduling is enabled, whether the current time falls within active hours

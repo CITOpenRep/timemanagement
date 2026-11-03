@@ -7,12 +7,13 @@ Handles incoming push notifications and formats them for display.
 
 import sys
 import json
+import os
 import sqlite3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Database path for storing notifications
-DB_DIR = Path.home() / ".local" / "share" / "ubtms" / "Databases"
+DB_DIR = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share" / "ubtms")) / "Databases"
 
 def get_db_path():
     """Get the path to the app database."""
@@ -20,7 +21,8 @@ def get_db_path():
         db_files = list(DB_DIR.glob("*.sqlite"))
         if db_files:
             return str(max(db_files, key=lambda p: p.stat().st_mtime))
-    return str(Path.home() / ".local" / "share" / "ubtms" / "timemanagement.db")
+    base_dir = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share" / "ubtms"))
+    return str(base_dir / "timemanagement.db")
 
 def store_notification(notif_type, message, payload):
     """Store notification in database for in-app display."""
@@ -62,15 +64,31 @@ def store_notification(notif_type, message, payload):
             return
         
         # Insert notification (account_id = 0 for push notifications)
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         cursor.execute("""
             INSERT INTO notification (account_id, timestamp, message, type, payload, read_status, panel_invoked)
             VALUES (?, ?, ?, ?, ?, 0, 1)
-        """, (0, datetime.utcnow().isoformat() + "Z", message, notif_type, json.dumps(payload)))
+        """, (0, now_str, message, notif_type, json.dumps(payload)))
         
         conn.commit()
         conn.close()
     except Exception:
         pass  # Silent failure - notification display is more important
+
+def should_popup_notification():
+    """Check if popup banners are enabled in user settings."""
+    try:
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM settings WHERE key = 'notifications_enabled'")
+        row = cur.fetchone()
+        conn.close()
+        if row and str(row[0]).strip().lower() == "false":
+            return False
+    except Exception:
+        pass
+    return True
 
 def process_notification(input_data):
     """Process incoming notification and enhance if needed."""
@@ -93,7 +111,7 @@ def process_notification(input_data):
             notif_type = "Timesheet"
         
         # Ensure card defaults for proper banner display and tap-to-open action
-        card["popup"] = card.get("popup", True)
+        card["popup"] = card.get("popup", True) and should_popup_notification()
         card["persist"] = card.get("persist", True)
         if "actions" not in card or not card["actions"]:
             card["actions"] = ["appid://ubtms_ubtms/ubtms/current-user-version"]
