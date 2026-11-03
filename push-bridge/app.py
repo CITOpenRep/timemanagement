@@ -336,6 +336,15 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
                     "popup": True,
                     "persist": True,
                     "actions": actions
+                },
+                "sound": "sounds/lomiri/notifications/Positive.ogg",
+                "vibrate": {
+                    "pattern": [200, 100, 200],
+                    "repeat": 1
+                },
+                "emblem-counter": {
+                    "count": 1,
+                    "visible": True
                 }
             }
         }
@@ -412,6 +421,15 @@ def send_ubports_notification(ubports_token: str, title: str, body: str, deep_li
                     "popup": True,
                     "persist": True,
                     "actions": actions
+                },
+                "sound": "sounds/lomiri/notifications/Positive.ogg",
+                "vibrate": {
+                    "pattern": [200, 100, 200],
+                    "repeat": 1
+                },
+                "emblem-counter": {
+                    "count": 1,
+                    "visible": True
                 }
             }
         }

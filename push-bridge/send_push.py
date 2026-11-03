@@ -41,6 +41,15 @@ def main():
                         f"ubtms://notification?type={args.type}&id={args.id}&odoo_id=1",
                         "appid://ubtms/ubtms/current-user-version"
                     ]
+                },
+                "sound": "sounds/lomiri/notifications/Positive.ogg",
+                "vibrate": {
+                    "pattern": [200, 100, 200],
+                    "repeat": 1
+                },
+                "emblem-counter": {
+                    "count": 1,
+                    "visible": True
                 }
             }
         }

@@ -75,6 +75,21 @@ def store_notification(notif_type, message, payload):
     except Exception:
         pass  # Silent failure - notification display is more important
 
+def get_unread_count():
+    """Count total unread notifications in local database for launcher emblem badge."""
+    try:
+        db_path = get_db_path()
+        if not Path(db_path).exists():
+            return 1
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM notification WHERE read_status = 0")
+        row = cursor.fetchone()
+        conn.close()
+        return int(row[0]) if row and row[0] is not None else 1
+    except Exception:
+        return 1
+
 def should_popup_notification(summary="", body="", is_urgent=False):
     """
     Check if popup banners should be displayed based on user schedule settings.
@@ -185,7 +200,29 @@ def process_notification(input_data):
 
         card["actions"] = enhanced_actions
         notif["card"] = card
-        notification["notification"] = notif
+
+        # Configure Sound and Haptic Vibration
+        if card["popup"]:
+            # Sound alert (path relative to XDG_DATA_DIRS or app package)
+            sound_val = notif.get("sound")
+            if not sound_val or sound_val is True:
+                notif["sound"] = "sounds/lomiri/notifications/Positive.ogg"
+            else:
+                notif["sound"] = str(sound_val)
+
+            # Haptic tactile vibration pattern
+            vibrate_val = notif.get("vibrate")
+            if not vibrate_val or vibrate_val is True:
+                notif["vibrate"] = {
+                    "pattern": [200, 100, 200],
+                    "repeat": 1
+                }
+            elif isinstance(vibrate_val, dict):
+                notif["vibrate"] = vibrate_val
+        else:
+            # Suppress audio and vibration during quiet hours schedule
+            notif.pop("sound", None)
+            notif.pop("vibrate", None)
 
         # Store in database for in-app display with record ID
         store_payload = {
@@ -199,6 +236,15 @@ def process_notification(input_data):
             store_payload["is_odoo_id"] = True
 
         store_notification(notif_type, body, store_payload)
+
+        # Update launcher badge emblem counter with total unread count
+        unread_count = get_unread_count()
+        notif["emblem-counter"] = {
+            "count": unread_count,
+            "visible": unread_count > 0
+        }
+
+        notification["notification"] = notif
         
         # Return formatted notification
         return json.dumps(notification)
