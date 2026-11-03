@@ -65,8 +65,17 @@ def test_e2e_odoo17_native_webpush_flow():
 
         mock_models = MagicMock()
         mock_proxy.return_value = mock_models
-        # Return VAPID key, then successful registration
-        mock_models.execute_kw.side_effect = ["server_vapid_key_xyz", True]
+
+        def fake_execute_kw(db, uid, pwd, model, method, *args, **kwargs):
+            if model == 'res.users' and method == 'register_ubports_token':
+                raise Exception("Method register_ubports_token not found")
+            if model == 'mail.partner.device' and method == 'get_web_push_vapid_public_key':
+                return "server_vapid_key_xyz"
+            if model == 'mail.partner.device' and method == 'register_devices':
+                return True
+            return False
+
+        mock_models.execute_kw.side_effect = fake_execute_kw
 
         mock_resp = MagicMock()
         mock_resp.status = 200
@@ -163,7 +172,9 @@ def test_e2e_odoo14_16_legacy_polling_flow():
          patch.object(OdooClient, "_get_model_proxy") as mock_proxy, \
          patch("urllib.request.urlopen") as mock_urlopen:
 
-        mock_proxy.return_value = MagicMock()
+        mock_models = MagicMock()
+        mock_models.execute_kw.side_effect = Exception("Native models not found")
+        mock_proxy.return_value = mock_models
         mock_resp = MagicMock()
         mock_resp.status = 200
         mock_resp.read.return_value = json.dumps({"status": "registered", "mode": "legacy_bridge"}).encode("utf-8")
@@ -228,6 +239,33 @@ def test_push_mode_settings_persistence():
 
         set_setting(tmp_db_path, "push_mode_2", "legacy_bridge")
         assert get_push_mode(tmp_db_path, 2) == "legacy_bridge"
+
+        set_setting(tmp_db_path, "push_mode_3", "direct_addon")
+        assert get_push_mode(tmp_db_path, 3) == "direct_addon"
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def test_direct_companion_addon_registration():
+    """
+    Test direct push token registration when ubtms_push addon is installed on Odoo.
+    """
+    with patch.object(OdooClient, "_login", return_value=1), \
+         patch.object(OdooClient, "_get_model_proxy") as mock_proxy:
+
+        mock_models = MagicMock()
+        mock_proxy.return_value = mock_models
+        # Mock res.users.register_ubports_token returning True
+        mock_models.execute_kw.return_value = True
+
+        client = OdooClient("https://odoo-selfhosted.example.com", "db", "user", "pass")
+        result = client.register_push_device("direct_device_token_xyz")
+        assert result == {"mode": "direct_addon", "success": True}
+
+        # Check call on Odoo
+        mock_models.execute_kw.assert_called_once_with(
+            "db", 1, "pass",
+            "res.users", "register_ubports_token",
+            ["direct_device_token_xyz"]
+        )

@@ -8,7 +8,16 @@ TimeManagement is a desktop and Ubuntu Touch project for task, timesheet, dashbo
 - **Timesheets & Activity Tracking:** Log hours, categorize activities, and manage your timesheets efficiently.
 - **Interactive Dashboard:** Gain insights into your productivity with interactive charts, visualizations, and statistics.
 - **Odoo Sync Integration:** Seamlessly synchronize tasks, timesheets, and projects with an Odoo/CURQ backend instance (supporting offline caching and background synchronization).
+- **Confined Push Notifications:** Native push notification delivery via UBports Push Server without background polling daemons, preserving battery and complying with standard AppArmor confinement.
 - **Ubuntu Touch & Desktop Support:** Built with QML (Qt) and Python, optimized for Ubuntu Touch mobile devices (deployed via Clickable) and desktop environments.
+
+## Push Notifications Architecture
+
+The app uses the native Ubuntu Touch push notification infrastructure without requiring unconfined AppArmor permissions or local phone daemons:
+
+* **Odoo 17+ (Native WebPush)**: Automatically registers with Odoo `mail.partner.device` and relays notifications through `push-bridge/` to the UBports Push Server.
+* **Odoo 14–16 (Cloud Poller)**: Automatically registers with the bridge poller to monitor activities server-side and dispatch notifications to the phone.
+* **Self-Hosted Addon (`odoo-addon/ubtms_push`)**: Optional direct Odoo module for on-premise deployments that dispatches pushes straight to UBports without an external bridge.
 
 ## Documentation Website
 

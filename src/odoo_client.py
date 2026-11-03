@@ -361,7 +361,19 @@ class OdooClient:
         major_version = self.get_server_major_version()
         logging.info(f"[PUSH] Target Odoo major version: {major_version}")
 
-        # Attempt native Odoo 17+ WebPush first if version >= 17 or unknown
+        # Check if direct companion addon ubtms_push is installed on Odoo
+        try:
+            direct_ok = self.models.execute_kw(
+                self.db, self.uid, self.password,
+                'res.users', 'register_ubports_token', [ubports_token]
+            )
+            if direct_ok is True:
+                logging.info(f"[PUSH] Registered direct companion addon push for UID {self.uid}")
+                return {"mode": "direct_addon", "success": True}
+        except Exception:
+            pass
+
+        # Attempt native Odoo 17+ WebPush if version >= 17 or unknown
         if major_version >= 17 or major_version == 0:
             try:
                 vapid_key = self.models.execute_kw(

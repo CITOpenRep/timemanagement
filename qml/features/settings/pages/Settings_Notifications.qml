@@ -209,7 +209,8 @@ Page {
                     Text {
                         id: pushModeStatusText
                         property string mode: notificationSettingsPage.getAutoSyncSetting("push_mode")
-                        text: mode === "native" ? i18n.dtr("ubtms", "Mode: Real-time Odoo WebPush (v17+)") :
+                        text: mode === "direct_addon" ? i18n.dtr("ubtms", "Mode: Direct Server Addon") :
+                              mode === "native" ? i18n.dtr("ubtms", "Mode: Real-time Odoo WebPush (v17+)") :
                               mode === "legacy_bridge" ? i18n.dtr("ubtms", "Mode: Cloud Polling Relay (v14-16)") :
                               i18n.dtr("ubtms", "Mode: Push Service Active")
                         font.pixelSize: units.gu(1.3)

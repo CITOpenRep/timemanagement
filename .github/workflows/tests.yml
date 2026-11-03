@@ -8,11 +8,13 @@ on:
       - 'release/**'
       - 'refactor/**'
       - 'fix/**'
+      - 'feature/**'
   pull_request:
     branches:
       - main
       - dev
       - 'release/**'
+      - 'feature/**'
   workflow_dispatch:
 
 concurrency:
@@ -39,8 +41,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest urllib3 requests
+          pip install pytest urllib3 requests cryptography fastapi httpx
 
-      - name: Run Backend Unit Tests
+      - name: Run Push Bridge Unit Tests
         run: |
-          pytest tests/python -v
+          python push-bridge/test_bridge.py
+
+      - name: Run Backend Unit and Integration Tests
+        run: |
+          PYTHONPATH=src pytest tests/python -v
