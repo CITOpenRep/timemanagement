@@ -40,7 +40,7 @@ class MailActivity(models.Model):
                         'icon': 'assets/logo.png',
                         'popup': True,
                         'persist': True,
-                        'actions': [deep_link, f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
+                        'actions': [deep_link, "appid://ubtms/ubtms/current-user-version"]
                     }
                 }
             }

@@ -134,10 +134,10 @@ bool NotificationHelper::updateCount(const int count)
 
 QString NotificationHelper::get_push_token()
 {
-    // Register with modern Lomiri push service
+    // Register with modern Lomiri push service using app-scoped DBus path required by AppArmor
     QDBusMessage msg = QDBusMessage::createMethodCall(
         PUSH_SERVICE,
-        PUSH_PATH,
+        QString::fromUtf8(makePath(push_app_id, "/com/lomiri/PushNotifications/")),
         PUSH_IFACE,
         "Register"
     );
@@ -152,7 +152,7 @@ QString NotificationHelper::get_push_token()
     // Fallback to legacy Ubuntu push service
     QDBusMessage legacyMsg = QDBusMessage::createMethodCall(
         "com.ubuntu.PushNotifications",
-        "/com/ubuntu/PushNotifications",
+        QString::fromUtf8(makePath(push_app_id, "/com/ubuntu/PushNotifications/")),
         "com.ubuntu.PushNotifications",
         "Register"
     );
@@ -168,9 +168,9 @@ QString NotificationHelper::get_push_token()
     return QString();
 }
 
-QByteArray NotificationHelper::makePath(const QString &appId)
+QByteArray NotificationHelper::makePath(const QString &appId, const char *basePrefix)
 {
-    QByteArray path(QByteArrayLiteral("/com/lomiri/Postal/"));
+    QByteArray path(basePrefix ? basePrefix : "/com/lomiri/Postal/");
 
     QByteArray pkg = appId.split('_').first().toUtf8();
     for (int i = 0; i < pkg.count(); i++) {

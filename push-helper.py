@@ -180,8 +180,8 @@ def process_notification(input_data):
             if act not in enhanced_actions:
                 enhanced_actions.append(act)
 
-        if "appid://ubtms_ubtms/ubtms/current-user-version" not in enhanced_actions:
-            enhanced_actions.append("appid://ubtms_ubtms/ubtms/current-user-version")
+        if "appid://ubtms/ubtms/current-user-version" not in enhanced_actions:
+            enhanced_actions.append("appid://ubtms/ubtms/current-user-version")
 
         card["actions"] = enhanced_actions
         notif["card"] = card

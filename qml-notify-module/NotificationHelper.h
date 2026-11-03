@@ -43,7 +43,7 @@ public:
 
 private:
     QJsonObject buildSummaryMessage(const QString &title,const QString &message);
-    QByteArray makePath(const QString &appId);
+    QByteArray makePath(const QString &appId, const char *basePrefix = "/com/lomiri/Postal/");
 
     QDBusConnection m_conn;
     QStringList m_tags;

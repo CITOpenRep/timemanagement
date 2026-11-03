@@ -355,7 +355,7 @@ class OdooClient:
         if not bridge_url:
             bridge_url = os.getenv(
                 "UBTMS_PUSH_BRIDGE_URL",
-                "https://push-bridge.cit-services.eu"
+                "https://renounce-antsy-grunt.ngrok-free.dev"
             )
 
         major_version = self.get_server_major_version()
