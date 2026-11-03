@@ -287,22 +287,40 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
 
         try:
             decrypted = decrypt_rfc8188_payload(body_bytes, sub_keys)
-            data = json.loads(decrypted.decode("utf-8"))
-            notification_title = data.get("title") or notification_title
-            options = data.get("options", {})
-            notification_body = options.get("body") or data.get("body") or ""
+            payload = json.loads(decrypted.decode("utf-8"))
         except Exception as e:
             logger.error("Failed to decrypt WebPush payload: %s", e)
             raise HTTPException(status_code=400, detail=f"Decryption error: {str(e)}")
     else:
         # Fallback for plain JSON payloads
         try:
-            data = json.loads(body_bytes.decode("utf-8"))
-            notification_title = data.get("title") or data.get("summary") or notification_title
-            options = data.get("options", {})
-            notification_body = options.get("body") or data.get("body") or ""
+            payload = json.loads(body_bytes.decode("utf-8"))
         except Exception:
-            notification_body = body_bytes.decode("utf-8", errors="ignore")
+            payload = {"body": body_bytes.decode("utf-8", errors="ignore")}
+
+    # Extract title, body, and possible record data for deep linking
+    notification_title = payload.get("title") or payload.get("summary") or "Odoo Notification"
+    options = payload.get("options", {}) if isinstance(payload.get("options"), dict) else {}
+    notification_body = options.get("body") or payload.get("body") or ""
+    extra_data = options.get("data", {}) if isinstance(options.get("data"), dict) else {}
+    if not extra_data and isinstance(payload.get("data"), dict):
+        extra_data = payload.get("data")
+
+    res_model = str(extra_data.get("model") or "")
+    res_id = extra_data.get("res_id") or extra_data.get("id")
+
+    nav_type = "Task"
+    if "activity" in res_model.lower() or "Activity" in notification_title:
+        nav_type = "Activity"
+    elif "project" in res_model.lower() or "Project" in notification_title:
+        nav_type = "Project"
+    elif "timesheet" in res_model.lower() or "Timesheet" in notification_title:
+        nav_type = "Timesheet"
+
+    actions = []
+    if res_id:
+        actions.append(f"ubtms://notification?type={nav_type}&id={res_id}&odoo_id=1")
+    actions.append(f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version")
 
     # Format payload for UBports Push Server
     ubports_payload = {
@@ -313,9 +331,10 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
                 "card": {
                     "summary": notification_title,
                     "body": notification_body,
+                    "icon": "assets/logo.png",
                     "popup": True,
                     "persist": True,
-                    "actions": [f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
+                    "actions": actions
                 }
             }
         }
@@ -372,8 +391,13 @@ class LegacyUnregisterRequest(BaseModel):
     uid: int
 
 
-def send_ubports_notification(ubports_token: str, title: str, body: str) -> bool:
-    """Helper to send a formatted card to UBports Push Server."""
+def send_ubports_notification(ubports_token: str, title: str, body: str, deep_link: Optional[str] = None) -> bool:
+    """Helper to send a formatted card to UBports Push Server with avatar icon and deep link."""
+    actions = []
+    if deep_link:
+        actions.append(deep_link)
+    actions.append(f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version")
+
     payload = {
         "appid": DEFAULT_APP_ID,
         "token": ubports_token,
@@ -382,9 +406,10 @@ def send_ubports_notification(ubports_token: str, title: str, body: str) -> bool
                 "card": {
                     "summary": title,
                     "body": body,
+                    "icon": "assets/logo.png",
                     "popup": True,
                     "persist": True,
-                    "actions": [f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
+                    "actions": actions
                 }
             }
         }
@@ -422,7 +447,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             db, uid, password,
             "mail.activity", "search_read",
             [domain],
-            {"fields": ["id", "summary", "date_deadline", "res_name"], "order": "id desc", "limit": 10}
+            {"fields": ["id", "summary", "date_deadline", "res_name", "res_model", "res_id"], "order": "id desc", "limit": 10}
         )
 
         max_seen_id = last_act_id
@@ -432,7 +457,8 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                 if last_act_id != 0:
                     summary = act.get("summary") or "Odoo Activity"
                     body = f"Due: {act.get('date_deadline') or 'Today'} - {act.get('res_name') or ''}"
-                    if send_ubports_notification(token, summary, body):
+                    deep_link = f"ubtms://notification?type=Activity&id={act_id}&odoo_id=1"
+                    if send_ubports_notification(token, summary, body, deep_link=deep_link):
                         sent_count += 1
                 if act_id > max_seen_id:
                     max_seen_id = act_id

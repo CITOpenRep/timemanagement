@@ -27,6 +27,7 @@ class MailActivity(models.Model):
         summary = activity.summary or activity.activity_type_id.name or 'New Activity'
         deadline = str(activity.date_deadline or 'Today')
         res_name = activity.res_name or ''
+        deep_link = f"ubtms://notification?type=Activity&id={activity.id}&odoo_id=1"
 
         payload = {
             'appid': DEFAULT_APP_ID,
@@ -36,9 +37,10 @@ class MailActivity(models.Model):
                     'card': {
                         'summary': f"Activity: {summary}",
                         'body': f"Due: {deadline} - {res_name}",
+                        'icon': 'assets/logo.png',
                         'popup': True,
                         'persist': True,
-                        'actions': [f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
+                        'actions': [deep_link, f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
                     }
                 }
             }

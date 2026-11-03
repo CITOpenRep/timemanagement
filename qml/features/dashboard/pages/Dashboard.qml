@@ -782,16 +782,19 @@ Page {
         }
         
         // Handle navigation from notification clicks
-        onNavigateToRecord: {
+        onNavigateToRecord: function(navType, recordId, accountId, isOdooId) {
+            var isOdoo = (typeof isOdooId !== "undefined") ? isOdooId : true;
             if (navType === "Task" && recordId > 0) {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../tasks/pages/Tasks.qml"), {
                     "recordid": recordId,
+                    "isOdooRecordId": isOdoo,
                     "isReadOnly": true
                 });
             } else if (navType === "Activity" && recordId > 0) {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../activities/pages/Activities.qml"), {
                     "recordid": recordId,
                     "accountid": accountId,
+                    "isOdooRecordId": isOdoo,
                     "isReadOnly": true
                 });
             } else if (navType === "ProjectUpdate" && recordId > 0) {
@@ -804,11 +807,13 @@ Page {
             } else if (navType === "Project" && recordId > 0) {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../projects/pages/Projects.qml"), {
                     "recordid": recordId,
+                    "isOdooRecordId": isOdoo,
                     "isReadOnly": true
                 });
             } else if (navType === "Timesheet" && recordId > 0) {
                 apLayout.addPageToNextColumn(mainPage, Qt.resolvedUrl("../../timesheets/pages/Timesheet.qml"), {
                     "recordid": recordId,
+                    "isOdooRecordId": isOdoo,
                     "isReadOnly": true
                 });
             }

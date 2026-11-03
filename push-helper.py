@@ -100,6 +100,7 @@ def process_notification(input_data):
         card = notif.get("card", {})
         summary = card.get("summary", "")
         body = card.get("body", "")
+        actions = card.get("actions", [])
         
         # Determine notification type from summary
         notif_type = "Task"  # Default
@@ -109,17 +110,62 @@ def process_notification(input_data):
             notif_type = "Project"
         elif "Timesheet" in summary:
             notif_type = "Timesheet"
-        
+
+        # Extract record ID from actions query string or payload
+        record_id = None
+        for act in actions:
+            if "id=" in act:
+                try:
+                    import urllib.parse
+                    qs = urllib.parse.parse_qs(urllib.parse.urlparse(act).query)
+                    if "id" in qs:
+                        record_id = int(qs["id"][0])
+                    if "type" in qs:
+                        notif_type = qs["type"][0]
+                    break
+                except Exception:
+                    pass
+
+        if not record_id:
+            record_id = card.get("record_id") or card.get("id") or notif.get("data", {}).get("res_id")
+
+        # Ensure app logo avatar is present
+        if not card.get("icon"):
+            card["icon"] = "assets/logo.png"
+
         # Ensure card defaults for proper banner display and tap-to-open action
         card["popup"] = card.get("popup", True) and should_popup_notification()
         card["persist"] = card.get("persist", True)
-        if "actions" not in card or not card["actions"]:
-            card["actions"] = ["appid://ubtms_ubtms/ubtms/current-user-version"]
+
+        # Build actions with deep link routing first, followed by appid foreground
+        enhanced_actions = []
+        if record_id:
+            deep_link = f"ubtms://notification?type={notif_type}&id={record_id}&odoo_id=1"
+            enhanced_actions.append(deep_link)
+
+        for act in actions:
+            if act not in enhanced_actions:
+                enhanced_actions.append(act)
+
+        if "appid://ubtms_ubtms/ubtms/current-user-version" not in enhanced_actions:
+            enhanced_actions.append("appid://ubtms_ubtms/ubtms/current-user-version")
+
+        card["actions"] = enhanced_actions
         notif["card"] = card
         notification["notification"] = notif
 
-        # Store in database for in-app display
-        store_notification(notif_type, body, {"summary": summary, "source": "push"})
+        # Store in database for in-app display with record ID
+        store_payload = {
+            "summary": summary,
+            "source": "push",
+            "type": notif_type
+        }
+        if record_id:
+            store_payload["odoo_record_id"] = record_id
+            store_payload["id"] = record_id
+            store_payload["is_odoo_id"] = True
+
+        store_notification(notif_type, body, store_payload)
         
         # Return formatted notification
         return json.dumps(notification)

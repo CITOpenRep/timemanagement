@@ -88,6 +88,7 @@ def test_relay_encrypted_webpush(mock_post):
     assert sent_payload["token"] == token
     assert sent_payload["data"]["notification"]["card"]["summary"] == "Activity Assigned"
     assert sent_payload["data"]["notification"]["card"]["body"] == "Review Odoo PR"
+    assert sent_payload["data"]["notification"]["card"]["icon"] == "assets/logo.png"
 
 
 def test_legacy_lifecycle_and_polling():
@@ -143,6 +144,8 @@ def test_legacy_lifecycle_and_polling():
         sent_data = mock_ubports.call_args.kwargs["json"]
         assert sent_data["token"] == token
         assert "New Legacy Activity" in sent_data["data"]["notification"]["card"]["summary"]
+        assert sent_data["data"]["notification"]["card"]["icon"] == "assets/logo.png"
+        assert any("ubtms://notification" in act for act in sent_data["data"]["notification"]["card"]["actions"])
 
     # 4. Unregister
     unreg_res = client.post("/v1/legacy/unregister", json={

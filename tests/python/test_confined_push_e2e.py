@@ -105,7 +105,10 @@ def test_e2e_odoo17_native_webpush_flow():
 
     payload_json = json.dumps({
         "title": "Activity Assigned",
-        "options": {"body": "Review timesheet entries"}
+        "options": {
+            "body": "Review timesheet entries",
+            "data": {"model": "mail.activity", "res_id": 42}
+        }
     })
     ciphertext = AESGCM(key).encrypt(nonce, payload_json.encode("utf-8") + b"\x02", None)
     header = struct.pack("!16sLB", salt, 4096, len(sender_pub)) + sender_pub
@@ -120,12 +123,13 @@ def test_e2e_odoo17_native_webpush_flow():
         )
         assert relay_res.status_code == 201
 
-        # Check bridge forwarded correct card to UBports
+        # Check bridge forwarded correct card to UBports with avatar and deep link
         assert mock_ubports_post.called
         forwarded_card = mock_ubports_post.call_args.kwargs["json"]["data"]["notification"]["card"]
         assert forwarded_card["summary"] == "Activity Assigned"
         assert forwarded_card["body"] == "Review timesheet entries"
-        assert forwarded_card["actions"] == ["appid://ubtms_ubtms/ubtms/current-user-version"]
+        assert forwarded_card["icon"] == "assets/logo.png"
+        assert "ubtms://notification?type=Activity&id=42&odoo_id=1" in forwarded_card["actions"]
 
     # 4. Device push-helper receives UBports notification and persists in app DB
     with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp_db:
@@ -143,11 +147,13 @@ def test_e2e_odoo17_native_webpush_flow():
 
             assert processed_data["notification"]["card"]["summary"] == "Activity Assigned"
             assert processed_data["notification"]["card"]["popup"] is True
+            assert processed_data["notification"]["card"]["icon"] == "assets/logo.png"
+            assert "ubtms://notification?type=Activity&id=42&odoo_id=1" in processed_data["notification"]["card"]["actions"]
 
-            # Verify SQLite record inserted for in-app notification bell
+            # Verify SQLite record inserted for in-app notification bell with odoo_record_id
             conn = sqlite3.connect(tmp_db_path)
             cursor = conn.cursor()
-            cursor.execute("SELECT type, message, read_status, panel_invoked FROM notification")
+            cursor.execute("SELECT type, message, read_status, panel_invoked, payload FROM notification")
             row = cursor.fetchone()
             conn.close()
 
@@ -156,6 +162,9 @@ def test_e2e_odoo17_native_webpush_flow():
             assert row[1] == "Review timesheet entries"
             assert row[2] == 0
             assert row[3] == 1
+            stored_payload = json.loads(row[4])
+            assert stored_payload["odoo_record_id"] == 42
+            assert stored_payload["is_odoo_id"] is True
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
@@ -223,6 +232,8 @@ def test_e2e_odoo14_16_legacy_polling_flow():
         assert sent_data["token"] == test_token
         assert sent_data["data"]["notification"]["card"]["summary"] == "Urgent Review"
         assert "Bug 404" in sent_data["data"]["notification"]["card"]["body"]
+        assert sent_data["data"]["notification"]["card"]["icon"] == "assets/logo.png"
+        assert "ubtms://notification?type=Activity&id=201&odoo_id=1" in sent_data["data"]["notification"]["card"]["actions"]
 
 
 def test_push_mode_settings_persistence():

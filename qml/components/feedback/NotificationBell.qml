@@ -25,7 +25,7 @@ Item {
     property int totalCount: 0
     
     // Signal emitted when navigation is requested
-    signal navigateToRecord(string navType, int recordId, int accountId)
+    signal navigateToRecord(string navType, int recordId, int accountId, bool isOdooId)
 
     // NotificationHelper for updating system badge
     NotificationHelper {
@@ -189,13 +189,14 @@ Item {
         var recordId = payload.id || payload.odoo_record_id || -1;
         var accountId = modelData.account_id || 0;
         var notifType = modelData.type || "";
+        var isOdooId = payload.is_odoo_id === true || payload.odoo_record_id !== undefined;
         
         // Close popup before navigation
         notificationPopup.close();
         
         // Emit navigation signal
         if (recordId > 0) {
-            navigateToRecord(notifType, recordId, accountId);
+            navigateToRecord(notifType, recordId, accountId, isOdooId);
         }
         
         // Mark as read

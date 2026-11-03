@@ -33,6 +33,7 @@ class ProjectTask(models.Model):
                 continue
 
             project_name = task.project_id.name if task.project_id else ''
+            deep_link = f"ubtms://notification?type=Task&id={task.id}&odoo_id=1"
             payload = {
                 'appid': DEFAULT_APP_ID,
                 'token': token,
@@ -41,9 +42,10 @@ class ProjectTask(models.Model):
                         'card': {
                             'summary': f"Task Assigned: {task.name}",
                             'body': f"Project: {project_name}" if project_name else "New task assigned",
+                            'icon': 'assets/logo.png',
                             'popup': True,
                             'persist': True,
-                            'actions': [f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
+                            'actions': [deep_link, f"appid://{DEFAULT_APP_ID}/ubtms/current-user-version"]
                         }
                     }
                 }
