@@ -1051,6 +1051,18 @@ Page {
         }
     }
 
+    function triggerQuietBackgroundSync() {
+        if (typeof mainView !== "undefined" && mainView.backend_bridge) {
+            mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+                var targetDb = dbPath || "app_settings.db";
+                var accountId = Accounts.getDefaultRemoteAccountId();
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, accountId], function (res) {
+                    Logger.debug("Tasks", "Quiet background refresh initiated for task notification: " + res);
+                });
+            });
+        }
+    }
+
     function onSyncFinished(success) {
         if (!isSyncingMissingRecord)
             return;
@@ -1081,6 +1093,7 @@ Page {
                     isOdooRecordId = false; // Now we have the local id
                     isSyncingMissingRecord = false;
                     syncFailedForRecord = false;
+                    triggerQuietBackgroundSync();
                 } else {
                     handleMissingOdooTask(recordid);
                     return;

@@ -132,17 +132,19 @@ def should_popup_notification(summary="", body="", is_urgent=False):
 
 def pre_populate_record(notif_type, record_id, summary, body, extra_data=None):
     """
-    Pre-populate incoming record into SQLite (project_task_app or mail_activity_app).
-    Respects Decision 1: Option A (upsert base record, preserve any active local draft).
+    Pre-populate incoming record and immediate relations into SQLite.
+    Respects Decision 1: Option A (upsert base record, preserve active local drafts).
     """
     if not record_id or record_id <= 0:
         return False
 
     extra = extra_data if isinstance(extra_data, dict) else {}
-    target_type = extra.get("model") or notif_type
-    if "activity" in str(target_type).lower():
+    target_type = str(extra.get("model") or notif_type).lower()
+    if "update" in target_type:
+        model = "project.update"
+    elif "activity" in target_type:
         model = "mail.activity"
-    elif "project" in str(target_type).lower() and "task" not in str(target_type).lower():
+    elif "project" in target_type and "task" not in target_type:
         model = "project.project"
     else:
         model = "project.task"
@@ -173,69 +175,340 @@ def pre_populate_record(notif_type, record_id, summary, body, extra_data=None):
                 conn.close()
                 return False
 
+            task_name = extra.get("name") or extra.get("display_name") or summary or "New Task"
+            task_desc = extra.get("description") or extra.get("notes") or body or ""
+
+            project_id = extra.get("project_id")
+            if isinstance(project_id, (list, tuple)) and len(project_id) > 0:
+                project_id = project_id[0]
+            project_name = extra.get("project_name")
+            if not project_name and isinstance(extra.get("project_id"), (list, tuple)) and len(extra.get("project_id")) > 1:
+                project_name = extra.get("project_id")[1]
+
+            stage_id = extra.get("stage_id") or extra.get("state")
+            if isinstance(stage_id, (list, tuple)) and len(stage_id) > 0:
+                stage_id = stage_id[0]
+            stage_name = extra.get("stage_name")
+            if not stage_name and isinstance(extra.get("stage_id"), (list, tuple)) and len(extra.get("stage_id")) > 1:
+                stage_name = extra.get("stage_id")[1]
+
+            user_id = extra.get("user_id")
+            if isinstance(user_id, (list, tuple)) and len(user_id) > 0:
+                user_id = user_id[0]
+            user_name = extra.get("assignee_name") or extra.get("user_name")
+            if not user_name and isinstance(extra.get("user_id"), (list, tuple)) and len(extra.get("user_id")) > 1:
+                user_name = extra.get("user_id")[1]
+
+            parent_id = extra.get("parent_id")
+            if isinstance(parent_id, (list, tuple)) and len(parent_id) > 0:
+                parent_id = parent_id[0]
+
+            sub_project_id = extra.get("sub_project_id")
+            if isinstance(sub_project_id, (list, tuple)) and len(sub_project_id) > 0:
+                sub_project_id = sub_project_id[0]
+
+            start_date = extra.get("start_date") or extra.get("planned_date_start")
+            end_date = extra.get("end_date") or extra.get("planned_date_end")
+            deadline = extra.get("deadline") or extra.get("date_deadline")
+            allocated_hours = float(extra.get("allocated_hours") or extra.get("planned_hours") or extra.get("initial_planned_hours") or 0.0)
+            priority = str(extra.get("priority", "0"))
+
+            # Ensure placeholder foreign key rows exist so UI resolves names immediately
+            try:
+                if project_id and int(project_id) > 0 and project_name:
+                    cursor.execute(
+                        "SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(project_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO project_project_app (
+                                name, account_id, odoo_record_id, last_modified, status, has_draft
+                            ) VALUES (?, ?, ?, ?, '', 0)
+                        """, (str(project_name), account_id, int(project_id), now_str))
+
+                if stage_id and int(stage_id) > 0 and stage_name:
+                    cursor.execute(
+                        "SELECT id FROM project_task_type_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(stage_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO project_task_type_app (
+                                name, account_id, odoo_record_id
+                            ) VALUES (?, ?, ?)
+                        """, (str(stage_name), account_id, int(stage_id)))
+
+                if user_id and int(user_id) > 0 and user_name:
+                    cursor.execute(
+                        "SELECT id FROM res_users_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(user_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO res_users_app (
+                                name, account_id, odoo_record_id, status
+                            ) VALUES (?, ?, ?, '')
+                        """, (str(user_name), account_id, int(user_id)))
+            except Exception:
+                pass
+
             cursor.execute(
                 "SELECT id, has_draft, name, description FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?",
                 (record_id, account_id)
             )
             existing = cursor.fetchone()
 
-            task_name = extra.get("name") or extra.get("display_name") or summary or "New Task"
-            task_desc = extra.get("description") or extra.get("notes") or body or ""
-            project_id = extra.get("project_id")
-            if isinstance(project_id, (list, tuple)) and len(project_id) > 0:
-                project_id = project_id[0]
-            stage_id = extra.get("stage_id") or extra.get("state")
-            if isinstance(stage_id, (list, tuple)) and len(stage_id) > 0:
-                stage_id = stage_id[0]
-            user_id = extra.get("user_id")
-            if isinstance(user_id, (list, tuple)) and len(user_id) > 0:
-                user_id = user_id[0]
-            deadline = extra.get("deadline") or extra.get("date_deadline")
-            priority = str(extra.get("priority", "0"))
-
             if existing:
                 local_id, has_draft, cur_name, cur_desc = existing
                 update_fields = ["last_modified = ?"]
                 params = [now_str]
 
-                # Update title/desc only if local draft is not actively overriding it
                 if not has_draft:
-                    update_fields.append("name = ?")
-                    params.append(task_name)
-                    if task_desc:
+                    if "name" in task_cols:
+                        update_fields.append("name = ?")
+                        params.append(task_name)
+                    if task_desc and "description" in task_cols:
                         update_fields.append("description = ?")
                         params.append(task_desc)
 
-                if project_id:
+                if project_id and "project_id" in task_cols:
                     update_fields.append("project_id = ?")
                     params.append(int(project_id))
-                if stage_id:
+                if sub_project_id and "sub_project_id" in task_cols:
+                    update_fields.append("sub_project_id = ?")
+                    params.append(int(sub_project_id))
+                if parent_id and "parent_id" in task_cols:
+                    update_fields.append("parent_id = ?")
+                    params.append(int(parent_id))
+                if stage_id and "state" in task_cols:
                     update_fields.append("state = ?")
                     params.append(int(stage_id))
-                if user_id:
+                if user_id and "user_id" in task_cols:
                     update_fields.append("user_id = ?")
                     params.append(int(user_id))
-                if deadline:
+                if start_date and "start_date" in task_cols:
+                    update_fields.append("start_date = ?")
+                    params.append(str(start_date))
+                if end_date and "end_date" in task_cols:
+                    update_fields.append("end_date = ?")
+                    params.append(str(end_date))
+                if deadline and "deadline" in task_cols:
                     update_fields.append("deadline = ?")
                     params.append(str(deadline))
+                if allocated_hours > 0 and "initial_planned_hours" in task_cols:
+                    update_fields.append("initial_planned_hours = ?")
+                    params.append(allocated_hours)
+                if priority and "priority" in task_cols:
+                    update_fields.append("priority = ?")
+                    params.append(priority)
 
                 params.extend([record_id, account_id])
                 sql = f"UPDATE project_task_app SET {', '.join(update_fields)} WHERE odoo_record_id = ? AND account_id = ?"
                 cursor.execute(sql, params)
             else:
+                ins_cols = ["account_id", "has_draft", "odoo_record_id", "last_modified"]
+                ins_vals = [account_id, 0, record_id, now_str]
+
+                if "name" in task_cols:
+                    ins_cols.append("name")
+                    ins_vals.append(task_name)
+                if "project_id" in task_cols:
+                    ins_cols.append("project_id")
+                    ins_vals.append(int(project_id) if project_id else -1)
+                if "sub_project_id" in task_cols:
+                    ins_cols.append("sub_project_id")
+                    ins_vals.append(int(sub_project_id) if sub_project_id else -1)
+                if "parent_id" in task_cols:
+                    ins_cols.append("parent_id")
+                    ins_vals.append(int(parent_id) if parent_id else -1)
+                if "start_date" in task_cols:
+                    ins_cols.append("start_date")
+                    ins_vals.append(str(start_date) if start_date else None)
+                if "end_date" in task_cols:
+                    ins_cols.append("end_date")
+                    ins_vals.append(str(end_date) if end_date else None)
+                if "deadline" in task_cols:
+                    ins_cols.append("deadline")
+                    ins_vals.append(str(deadline) if deadline else None)
+                if "initial_planned_hours" in task_cols:
+                    ins_cols.append("initial_planned_hours")
+                    ins_vals.append(allocated_hours)
+                if "priority" in task_cols:
+                    ins_cols.append("priority")
+                    ins_vals.append(priority)
+                if "state" in task_cols:
+                    ins_cols.append("state")
+                    ins_vals.append(int(stage_id) if stage_id else 1)
+                if "description" in task_cols:
+                    ins_cols.append("description")
+                    ins_vals.append(task_desc)
+                if "user_id" in task_cols:
+                    ins_cols.append("user_id")
+                    ins_vals.append(int(user_id) if user_id else None)
+                if "status" in task_cols:
+                    ins_cols.append("status")
+                    ins_vals.append("")
+
+                placeholders = ", ".join(["?"] * len(ins_cols))
+                sql = f"INSERT INTO project_task_app ({', '.join(ins_cols)}) VALUES ({placeholders})"
+                cursor.execute(sql, ins_vals)
+
+        elif model == "project.update":
+            cursor.execute("PRAGMA table_info(project_update_app)")
+            update_cols = {r[1] for r in cursor.fetchall()}
+            if not update_cols:
+                conn.close()
+                return False
+
+            update_name = extra.get("name") or summary or "Project Update"
+            status_val = extra.get("project_status") or extra.get("status") or "on_track"
+            progress_val = int(extra.get("progress") or 0)
+            update_desc = extra.get("description") or body or ""
+            update_date = extra.get("date") or now_str[:10]
+
+            project_id = extra.get("project_id")
+            if isinstance(project_id, (list, tuple)) and len(project_id) > 0:
+                project_id = project_id[0]
+            project_name = extra.get("project_name")
+            if not project_name and isinstance(extra.get("project_id"), (list, tuple)) and len(extra.get("project_id")) > 1:
+                project_name = extra.get("project_id")[1]
+
+            user_id = extra.get("user_id")
+            if isinstance(user_id, (list, tuple)) and len(user_id) > 0:
+                user_id = user_id[0]
+
+            # Ensure project placeholder exists
+            if project_id and int(project_id) > 0 and project_name:
+                cursor.execute(
+                    "SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
+                    (int(project_id), account_id)
+                )
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        INSERT INTO project_project_app (
+                            name, account_id, odoo_record_id, last_modified, status, has_draft
+                        ) VALUES (?, ?, ?, ?, '', 0)
+                    """, (str(project_name), account_id, int(project_id), now_str))
+
+            cursor.execute(
+                "SELECT id, has_draft FROM project_update_app WHERE odoo_record_id = ? AND account_id = ?",
+                (record_id, account_id)
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                local_id, has_draft = existing
+                update_fields = ["last_modified = ?"]
+                params = [now_str]
+
+                if not has_draft:
+                    update_fields.append("name = ?")
+                    params.append(update_name)
+                    if update_desc:
+                        update_fields.append("description = ?")
+                        params.append(update_desc)
+                    update_fields.append("project_status = ?")
+                    params.append(status_val)
+                    update_fields.append("progress = ?")
+                    params.append(progress_val)
+
+                if project_id:
+                    update_fields.append("project_id = ?")
+                    params.append(int(project_id))
+                if update_date:
+                    update_fields.append("date = ?")
+                    params.append(str(update_date))
+                if user_id:
+                    update_fields.append("user_id = ?")
+                    params.append(int(user_id))
+
+                params.extend([record_id, account_id])
+                sql = f"UPDATE project_update_app SET {', '.join(update_fields)} WHERE odoo_record_id = ? AND account_id = ?"
+                cursor.execute(sql, params)
+            else:
                 cursor.execute("""
-                    INSERT INTO project_task_app (
-                        name, account_id, project_id, deadline, priority, state,
-                        description, last_modified, user_id, status, has_draft, odoo_record_id
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, ?)
+                    INSERT INTO project_update_app (
+                        account_id, name, project_status, progress, user_id,
+                        description, date, project_id, odoo_record_id, last_modified,
+                        status, has_draft
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 0)
                 """, (
-                    task_name,
                     account_id,
+                    update_name,
+                    status_val,
+                    progress_val,
+                    int(user_id) if user_id else None,
+                    update_desc,
+                    str(update_date),
                     int(project_id) if project_id else -1,
-                    str(deadline) if deadline else None,
-                    priority,
-                    int(stage_id) if stage_id else 1,
-                    task_desc,
+                    record_id,
+                    now_str
+                ))
+
+        elif model == "project.project":
+            cursor.execute("PRAGMA table_info(project_project_app)")
+            proj_cols = {r[1] for r in cursor.fetchall()}
+            if not proj_cols:
+                conn.close()
+                return False
+
+            proj_name = extra.get("name") or summary or "New Project"
+            proj_desc = extra.get("description") or body or ""
+            start_date = extra.get("start_date") or extra.get("date_start")
+            end_date = extra.get("end_date") or extra.get("date")
+            allocated_hours = float(extra.get("allocated_hours") or 0.0)
+            user_id = extra.get("user_id")
+            if isinstance(user_id, (list, tuple)) and len(user_id) > 0:
+                user_id = user_id[0]
+
+            cursor.execute(
+                "SELECT id, has_draft FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
+                (record_id, account_id)
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                local_id, has_draft = existing
+                update_fields = ["last_modified = ?"]
+                params = [now_str]
+
+                if not has_draft:
+                    update_fields.append("name = ?")
+                    params.append(proj_name)
+                    if proj_desc:
+                        update_fields.append("description = ?")
+                        params.append(proj_desc)
+
+                if start_date:
+                    update_fields.append("planned_start_date = ?")
+                    params.append(str(start_date))
+                if end_date:
+                    update_fields.append("planned_end_date = ?")
+                    params.append(str(end_date))
+                if allocated_hours > 0:
+                    update_fields.append("allocated_hours = ?")
+                    params.append(allocated_hours)
+                if user_id:
+                    update_fields.append("user_id = ?")
+                    params.append(int(user_id))
+
+                params.extend([record_id, account_id])
+                sql = f"UPDATE project_project_app SET {', '.join(update_fields)} WHERE odoo_record_id = ? AND account_id = ?"
+                cursor.execute(sql, params)
+            else:
+                cursor.execute("""
+                    INSERT INTO project_project_app (
+                        name, account_id, planned_start_date, planned_end_date,
+                        allocated_hours, description, last_modified, user_id, status, has_draft, odoo_record_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', 0, ?)
+                """, (
+                    proj_name,
+                    account_id,
+                    str(start_date) if start_date else None,
+                    str(end_date) if end_date else None,
+                    allocated_hours,
+                    proj_desc,
                     now_str,
                     int(user_id) if user_id else None,
                     record_id
@@ -325,6 +598,8 @@ def process_notification(input_data):
         notif_type = "Task"  # Default
         if "Activity" in summary:
             notif_type = "Activity"
+        elif "Update" in summary:
+            notif_type = "ProjectUpdate"
         elif "Project" in summary:
             notif_type = "Project"
         elif "Timesheet" in summary:

@@ -503,3 +503,200 @@ def test_push_helper_preserves_local_draft():
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def test_push_helper_prepopulates_task_with_relational_placeholders():
+    """
+    Test that task push pre-populates allocated hours and creates placeholder rows
+    in project_project_app and project_task_type_app.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'Default User')")
+        cur.execute("""
+            CREATE TABLE project_task_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                account_id INTEGER,
+                project_id INTEGER,
+                deadline date,
+                initial_planned_hours FLOAT,
+                priority TEXT,
+                state INTEGER,
+                description TEXT,
+                last_modified datetime,
+                user_id INTEGER,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                odoo_record_id INTEGER,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE project_project_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                account_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                odoo_record_id INTEGER,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE project_task_type_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                account_id INTEGER,
+                odoo_record_id INTEGER
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            push_payload = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Assigned: Notification Test",
+                        "body": "Project: 26-00018 - Test Project 2",
+                        "actions": ["ubtms://notification?type=Task&id=1523&odoo_id=1"]
+                    }
+                },
+                "data": {
+                    "record": {
+                        "model": "project.task",
+                        "record_id": 1523,
+                        "name": "Notification Test",
+                        "project_id": 59,
+                        "project_name": "26-00018 - Test Project 2",
+                        "stage_id": 1,
+                        "stage_name": "Analysis",
+                        "allocated_hours": 4.5,
+                        "priority": "1"
+                    }
+                }
+            })
+
+            push_helper_mod.process_notification(push_payload)
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT name, project_id, state, initial_planned_hours FROM project_task_app WHERE odoo_record_id = 1523")
+            task_row = cur.fetchone()
+            assert task_row is not None
+            assert task_row[0] == "Notification Test"
+            assert task_row[1] == 59
+            assert task_row[2] == 1
+            assert task_row[3] == 4.5
+
+            cur.execute("SELECT name, odoo_record_id FROM project_project_app WHERE odoo_record_id = 59")
+            proj_row = cur.fetchone()
+            assert proj_row is not None
+            assert proj_row[0] == "26-00018 - Test Project 2"
+
+            cur.execute("SELECT name, odoo_record_id FROM project_task_type_app WHERE odoo_record_id = 1")
+            stage_row = cur.fetchone()
+            assert stage_row is not None
+            assert stage_row[0] == "Analysis"
+
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
+def test_push_helper_prepopulates_project_update():
+    """
+    Test pre-population of project.update into project_update_app.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'Default User')")
+        cur.execute("""
+            CREATE TABLE project_update_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                name TEXT,
+                project_status TEXT,
+                progress INTEGER,
+                user_id INTEGER,
+                description TEXT,
+                date TEXT,
+                project_id INTEGER,
+                odoo_record_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE project_project_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                account_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                odoo_record_id INTEGER
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            push_payload = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Update: CIT Operations",
+                        "body": "Nov 2nd team meeting (on_track)",
+                        "actions": ["ubtms://notification?type=ProjectUpdate&id=71&odoo_id=1"]
+                    }
+                },
+                "data": {
+                    "record": {
+                        "model": "project.update",
+                        "record_id": 71,
+                        "name": "Nov 2nd team meeting",
+                        "project_id": 60,
+                        "project_name": "CIT Operations",
+                        "project_status": "on_track",
+                        "progress": 75,
+                        "date": "2026-11-02",
+                        "description": "Discussed roadmap and timeline"
+                    }
+                }
+            })
+
+            push_helper_mod.process_notification(push_payload)
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT name, project_status, progress, project_id FROM project_update_app WHERE odoo_record_id = 71")
+            row = cur.fetchone()
+            assert row is not None
+            assert row[0] == "Nov 2nd team meeting"
+            assert row[1] == "on_track"
+            assert row[2] == 75
+            assert row[3] == 60
+
+            cur.execute("SELECT name, odoo_record_id FROM project_project_app WHERE odoo_record_id = 60")
+            proj_row = cur.fetchone()
+            assert proj_row is not None
+            assert proj_row[0] == "CIT Operations"
+
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)

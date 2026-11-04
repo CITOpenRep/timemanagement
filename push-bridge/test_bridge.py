@@ -128,23 +128,35 @@ def test_legacy_lifecycle_and_polling():
         tasks_data = [
             {"id": 201, "name": "Initial Task", "project_id": [1, "Alpha"], "stage_id": [1, "Todo"], "date_deadline": False, "description": ""}
         ]
+        projects_data = [
+            {"id": 301, "name": "Initial Project", "user_id": [42, "User 42"], "date_start": "2026-11-01", "date": "2026-12-01", "allocated_hours": 10.0, "description": ""}
+        ]
+        updates_data = [
+            {"id": 401, "name": "Initial Update", "status": "on_track", "progress": 10, "project_id": [1, "Alpha"], "user_id": [42, "User 42"], "date": "2026-11-01", "description": ""}
+        ]
 
         def fake_execute_kw(db, uid, pwd, model, method, args, kwargs):
+            if model == "res.users":
+                return [{"id": 42, "partner_id": [142, "User 42"]}]
             if model == "mail.activity":
                 return activities_data
             if model == "project.task":
                 return tasks_data
+            if model == "project.project":
+                return projects_data
+            if model == "project.update":
+                return updates_data
             return []
 
         mock_models.execute_kw.side_effect = fake_execute_kw
 
-        # First poll: seeds initial state (act_id=101, task_id=201)
+        # First poll: seeds initial state (act_id=101, task_id=201, proj_id=301, update_id=401)
         poll_res = client.post("/v1/legacy/poll")
         assert poll_res.status_code == 200
         assert poll_res.json()["accounts_polled"] >= 1
         assert poll_res.json()["notifications_sent"] == 0
 
-        # Second poll: new activity and task arrive
+        # Second poll: new records arrive across all models
         activities_data = [
             {"id": 102, "summary": "New Legacy Activity", "date_deadline": "2026-11-04", "res_name": "Project Beta"},
             {"id": 101, "summary": "Initial Activity", "date_deadline": "2026-11-03", "res_name": "Project Alpha"}
@@ -153,14 +165,22 @@ def test_legacy_lifecycle_and_polling():
             {"id": 202, "name": "New Legacy Task", "project_id": [1, "Alpha"], "stage_id": [1, "Todo"], "date_deadline": False, "description": ""},
             {"id": 201, "name": "Initial Task", "project_id": [1, "Alpha"], "stage_id": [1, "Todo"], "date_deadline": False, "description": ""}
         ]
+        projects_data = [
+            {"id": 302, "name": "New Legacy Project", "user_id": [42, "User 42"], "date_start": "2026-11-01", "date": "2026-12-01", "allocated_hours": 20.0, "description": ""},
+            {"id": 301, "name": "Initial Project", "user_id": [42, "User 42"], "date_start": "2026-11-01", "date": "2026-12-01", "allocated_hours": 10.0, "description": ""}
+        ]
+        updates_data = [
+            {"id": 402, "name": "New Project Update", "status": "on_track", "progress": 25, "project_id": [1, "Alpha"], "user_id": [42, "User 42"], "date": "2026-11-04", "description": ""},
+            {"id": 401, "name": "Initial Update", "status": "on_track", "progress": 10, "project_id": [1, "Alpha"], "user_id": [42, "User 42"], "date": "2026-11-01", "description": ""}
+        ]
 
         poll_res2 = client.post("/v1/legacy/poll")
         assert poll_res2.status_code == 200
-        assert poll_res2.json()["notifications_sent"] == 2
+        assert poll_res2.json()["notifications_sent"] == 4
 
         # Check UBports payload
         assert mock_ubports.called
-        assert mock_ubports.call_count == 2
+        assert mock_ubports.call_count == 4
 
     # 4. Unregister
     unreg_res = client.post("/v1/legacy/unregister", json={

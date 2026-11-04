@@ -10,6 +10,7 @@ import base64
 import struct
 import sqlite3
 import logging
+import re
 from typing import Optional, Dict, Any
 from pathlib import Path
 
@@ -42,6 +43,15 @@ BRIDGE_PUBLIC_URL = os.getenv("BRIDGE_PUBLIC_URL", "")
 
 _mem_conn = None
 
+def clean_and_truncate_text(text: Any, max_len: int = 500) -> str:
+    if not text or not isinstance(text, str):
+        return ""
+    cleaned = re.sub(r"<[^>]+>", " ", text)
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) > max_len:
+        return cleaned[:max_len] + "..."
+    return cleaned
+
 def get_db():
     global _mem_conn
     if DB_PATH == ":memory:":
@@ -72,6 +82,8 @@ def get_db():
                     last_polled_at TEXT,
                     last_activity_id INTEGER DEFAULT 0,
                     last_task_id INTEGER DEFAULT 0,
+                    last_project_id INTEGER DEFAULT 0,
+                    last_project_update_id INTEGER DEFAULT 0,
                     is_active INTEGER DEFAULT 1,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(ubports_token, odoo_url, db, uid)
@@ -107,6 +119,8 @@ def get_db():
             last_polled_at TEXT,
             last_activity_id INTEGER DEFAULT 0,
             last_task_id INTEGER DEFAULT 0,
+            last_project_id INTEGER DEFAULT 0,
+            last_project_update_id INTEGER DEFAULT 0,
             is_active INTEGER DEFAULT 1,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(ubports_token, odoo_url, db, uid)
@@ -118,6 +132,10 @@ def get_db():
     existing_cols = {row[1] for row in cursor.fetchall()}
     if "last_task_id" not in existing_cols:
         conn.execute("ALTER TABLE legacy_subscriptions ADD COLUMN last_task_id INTEGER DEFAULT 0")
+    if "last_project_id" not in existing_cols:
+        conn.execute("ALTER TABLE legacy_subscriptions ADD COLUMN last_project_id INTEGER DEFAULT 0")
+    if "last_project_update_id" not in existing_cols:
+        conn.execute("ALTER TABLE legacy_subscriptions ADD COLUMN last_project_update_id INTEGER DEFAULT 0")
     conn.commit()
     return conn
 
@@ -479,7 +497,7 @@ def send_ubports_notification(ubports_token: str, title: str, body: str, deep_li
 
 def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> int:
     """
-    Polls an Odoo 14-16 instance via XML-RPC for newly assigned activities and tasks.
+    Polls an Odoo instance via XML-RPC for newly assigned activities, tasks, projects, and updates.
     Returns number of notifications sent.
     """
     odoo_url = sub_dict["odoo_url"].rstrip("/")
@@ -489,83 +507,201 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
     token = sub_dict["ubports_token"]
     last_act_id = sub_dict.get("last_activity_id") or 0
     last_task_id = sub_dict.get("last_task_id") or 0
+    last_proj_id = sub_dict.get("last_project_id") or 0
+    last_update_id = sub_dict.get("last_project_update_id") or 0
 
     sent_count = 0
     try:
         models = xmlrpc.client.ServerProxy(f"{odoo_url}/xmlrpc/2/object", allow_none=True)
 
-        # 1. Poll mail.activity for newly assigned activities
-        act_domain = [("user_id", "=", uid)]
-        activities = models.execute_kw(
-            db, uid, password,
-            "mail.activity", "search_read",
-            [act_domain],
-            {"fields": ["id", "summary", "date_deadline", "res_name", "res_model", "res_id"], "order": "id desc", "limit": 10}
-        )
+        # Resolve partner_id for user (needed for follower checks)
+        partner_id = None
+        try:
+            u_info = models.execute_kw(db, uid, password, "res.users", "read", [[uid]], {"fields": ["partner_id"]})
+            if u_info and isinstance(u_info, list) and len(u_info) > 0:
+                p_val = u_info[0].get("partner_id")
+                if isinstance(p_val, (list, tuple)) and len(p_val) > 0:
+                    partner_id = p_val[0]
+        except Exception:
+            pass
 
+        # 1. Poll mail.activity for newly assigned activities
         max_seen_act_id = last_act_id
-        for act in activities:
-            act_id = act.get("id", 0)
-            if act_id > last_act_id:
-                if last_act_id != 0:
-                    summary = act.get("summary") or "Odoo Activity"
-                    body = f"Due: {act.get('date_deadline') or 'Today'} - {act.get('res_name') or ''}"
-                    deep_link = f"ubtms://notification?type=Activity&id={act_id}&odoo_id=1"
-                    record = {
-                        "model": "mail.activity",
-                        "record_id": act_id,
-                        "summary": summary,
-                        "due_date": act.get("date_deadline"),
-                        "res_id": act.get("res_id"),
-                        "res_model": act.get("res_model")
-                    }
-                    if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
-                        sent_count += 1
-                if act_id > max_seen_act_id:
-                    max_seen_act_id = act_id
+        try:
+            act_domain = [("user_id", "=", uid)]
+            activities = models.execute_kw(
+                db, uid, password,
+                "mail.activity", "search_read",
+                [act_domain],
+                {"fields": ["id", "summary", "date_deadline", "res_name", "res_model", "res_id", "note"], "order": "id desc", "limit": 10}
+            )
+            for act in activities:
+                act_id = act.get("id", 0)
+                if act_id > last_act_id:
+                    if last_act_id != 0:
+                        summary = act.get("summary") or "Odoo Activity"
+                        body = f"Due: {act.get('date_deadline') or 'Today'} - {act.get('res_name') or ''}"
+                        deep_link = f"ubtms://notification?type=Activity&id={act_id}&odoo_id=1"
+                        record = {
+                            "model": "mail.activity",
+                            "record_id": act_id,
+                            "summary": summary,
+                            "due_date": act.get("date_deadline"),
+                            "res_id": act.get("res_id"),
+                            "res_model": act.get("res_model"),
+                            "notes": clean_and_truncate_text(act.get("note") or body, 500)
+                        }
+                        if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
+                            sent_count += 1
+                    if act_id > max_seen_act_id:
+                        max_seen_act_id = act_id
+        except Exception as e:
+            logger.warning("Error polling activities for UID %d: %s", uid, e)
 
         # 2. Poll project.task for newly assigned tasks
+        max_seen_task_id = last_task_id
         try:
             task_domain = [("user_ids", "in", [uid])]
-            tasks = models.execute_kw(
-                db, uid, password,
-                "project.task", "search_read",
-                [task_domain],
-                {"fields": ["id", "name", "project_id", "stage_id", "date_deadline", "description"], "order": "id desc", "limit": 10}
-            )
-        except Exception:
-            task_domain = [("user_id", "=", uid)]
-            tasks = models.execute_kw(
-                db, uid, password,
-                "project.task", "search_read",
-                [task_domain],
-                {"fields": ["id", "name", "project_id", "stage_id", "date_deadline", "description"], "order": "id desc", "limit": 10}
-            )
+            task_fields = ["id", "name", "project_id", "parent_id", "stage_id", "personal_stage_type_id", "date_deadline", "planned_date_start", "planned_date_end", "priority", "description"]
+            try:
+                tasks = models.execute_kw(
+                    db, uid, password,
+                    "project.task", "search_read",
+                    [task_domain],
+                    {"fields": task_fields + ["allocated_hours"], "order": "id desc", "limit": 10}
+                )
+            except Exception:
+                try:
+                    tasks = models.execute_kw(
+                        db, uid, password,
+                        "project.task", "search_read",
+                        [task_domain],
+                        {"fields": task_fields + ["planned_hours"], "order": "id desc", "limit": 10}
+                    )
+                except Exception:
+                    tasks = models.execute_kw(
+                        db, uid, password,
+                        "project.task", "search_read",
+                        [[("user_id", "=", uid)]],
+                        {"fields": ["id", "name", "project_id", "stage_id", "date_deadline", "description"], "order": "id desc", "limit": 10}
+                    )
 
-        max_seen_task_id = last_task_id
-        for task in tasks:
-            task_id = task.get("id", 0)
-            if task_id > last_task_id:
-                if last_task_id != 0:
-                    task_name = task.get("name") or "New Task"
-                    project_info = task.get("project_id")
-                    project_name = project_info[1] if isinstance(project_info, (list, tuple)) and len(project_info) > 1 else "Project"
-                    summary = f"Assigned: {task_name}"
-                    body = f"Project: {project_name}"
-                    deep_link = f"ubtms://notification?type=Task&id={task_id}&odoo_id=1"
-                    record = {
-                        "model": "project.task",
-                        "record_id": task_id,
-                        "name": task_name,
-                        "project_id": project_info,
-                        "stage_id": task.get("stage_id"),
-                        "deadline": task.get("date_deadline"),
-                        "description": task.get("description") or ""
-                    }
-                    if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
-                        sent_count += 1
-                if task_id > max_seen_task_id:
-                    max_seen_task_id = task_id
+            for task in tasks:
+                task_id = task.get("id", 0)
+                if task_id > last_task_id:
+                    if last_task_id != 0:
+                        task_name = task.get("name") or "New Task"
+                        project_tuple = task.get("project_id")
+                        proj_id = project_tuple[0] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 0 else (project_tuple or -1)
+                        proj_name = project_tuple[1] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 1 else ""
+                        stage_tuple = task.get("stage_id")
+                        stage_id = stage_tuple[0] if isinstance(stage_tuple, (list, tuple)) and len(stage_tuple) > 0 else (stage_tuple or 1)
+                        stage_name = stage_tuple[1] if isinstance(stage_tuple, (list, tuple)) and len(stage_tuple) > 1 else ""
+                        hours = float(task.get("allocated_hours") or task.get("planned_hours") or 0.0)
+
+                        summary = f"Assigned: {task_name}"
+                        body = f"Project: {proj_name}" if proj_name else f"Task #{task_id}"
+                        deep_link = f"ubtms://notification?type=Task&id={task_id}&odoo_id=1"
+                        record = {
+                            "model": "project.task",
+                            "record_id": task_id,
+                            "name": task_name,
+                            "project_id": proj_id,
+                            "project_name": proj_name,
+                            "stage_id": stage_id,
+                            "stage_name": stage_name,
+                            "user_id": uid,
+                            "deadline": task.get("date_deadline"),
+                            "start_date": task.get("planned_date_start"),
+                            "end_date": task.get("planned_date_end"),
+                            "allocated_hours": hours,
+                            "initial_planned_hours": hours,
+                            "priority": str(task.get("priority", "0")),
+                            "description": clean_and_truncate_text(task.get("description"), 500)
+                        }
+                        if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
+                            sent_count += 1
+                    if task_id > max_seen_task_id:
+                        max_seen_task_id = task_id
+        except Exception as e:
+            logger.warning("Error polling tasks for UID %d: %s", uid, e)
+
+        # 3. Poll project.update for new project updates
+        max_seen_update_id = last_update_id
+        try:
+            update_domain = [("message_partner_ids", "in", [partner_id])] if partner_id else [("user_id", "!=", uid)]
+            updates = models.execute_kw(
+                db, uid, password,
+                "project.update", "search_read",
+                [update_domain],
+                {"fields": ["id", "name", "status", "progress", "project_id", "user_id", "date", "description"], "order": "id desc", "limit": 10}
+            )
+            for up in updates:
+                update_id = up.get("id", 0)
+                if update_id > last_update_id:
+                    if last_update_id != 0:
+                        update_name = up.get("name") or "Project Update"
+                        project_tuple = up.get("project_id")
+                        proj_id = project_tuple[0] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 0 else (project_tuple or -1)
+                        proj_name = project_tuple[1] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 1 else ""
+                        status_val = up.get("status") or "on_track"
+
+                        summary = f"Update: {proj_name}" if proj_name else f"Update: {update_name}"
+                        body = f"{update_name} ({status_val})"
+                        deep_link = f"ubtms://notification?type=ProjectUpdate&id={update_id}&account_id=0&odoo_id=1"
+                        record = {
+                            "model": "project.update",
+                            "record_id": update_id,
+                            "name": update_name,
+                            "project_id": proj_id,
+                            "project_name": proj_name,
+                            "project_status": status_val,
+                            "progress": up.get("progress") or 0,
+                            "user_id": uid,
+                            "date": up.get("date"),
+                            "description": clean_and_truncate_text(up.get("description"), 500)
+                        }
+                        if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
+                            sent_count += 1
+                    if update_id > max_seen_update_id:
+                        max_seen_update_id = update_id
+        except Exception as e:
+            logger.warning("Error polling project updates for UID %d: %s", uid, e)
+
+        # 4. Poll project.project for new projects
+        max_seen_proj_id = last_proj_id
+        try:
+            proj_domain = ["|", ("user_id", "=", uid), ("message_partner_ids", "in", [partner_id])] if partner_id else [("user_id", "=", uid)]
+            projects = models.execute_kw(
+                db, uid, password,
+                "project.project", "search_read",
+                [proj_domain],
+                {"fields": ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description"], "order": "id desc", "limit": 10}
+            )
+            for p in projects:
+                proj_id = p.get("id", 0)
+                if proj_id > last_proj_id:
+                    if last_proj_id != 0:
+                        proj_name = p.get("name") or "New Project"
+                        summary = f"Project: {proj_name}"
+                        body = "New project available"
+                        deep_link = f"ubtms://notification?type=Project&id={proj_id}&odoo_id=1"
+                        record = {
+                            "model": "project.project",
+                            "record_id": proj_id,
+                            "name": proj_name,
+                            "user_id": uid,
+                            "start_date": p.get("date_start"),
+                            "end_date": p.get("date"),
+                            "allocated_hours": float(p.get("allocated_hours") or 0.0),
+                            "description": clean_and_truncate_text(p.get("description"), 500)
+                        }
+                        if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
+                            sent_count += 1
+                    if proj_id > max_seen_proj_id:
+                        max_seen_proj_id = proj_id
+        except Exception as e:
+            logger.warning("Error polling projects for UID %d: %s", uid, e)
 
         conn = get_db()
         cursor = conn.cursor()
@@ -574,10 +710,12 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             UPDATE legacy_subscriptions
             SET last_polled_at = CURRENT_TIMESTAMP,
                 last_activity_id = ?,
-                last_task_id = ?
+                last_task_id = ?,
+                last_project_id = ?,
+                last_project_update_id = ?
             WHERE id = ?
             """,
-            (max_seen_act_id, max_seen_task_id, sub_id)
+            (max_seen_act_id, max_seen_task_id, max_seen_proj_id, max_seen_update_id, sub_id)
         )
         conn.commit()
         if conn is not _mem_conn:
@@ -681,7 +819,7 @@ def trigger_legacy_poll():
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT id, ubports_token, odoo_url, db, username, password, uid, last_activity_id, last_task_id
+        SELECT id, ubports_token, odoo_url, db, username, password, uid, last_activity_id, last_task_id, last_project_id, last_project_update_id
         FROM legacy_subscriptions
         WHERE is_active = 1
         """
@@ -702,7 +840,9 @@ def trigger_legacy_poll():
             "password": r[5],
             "uid": r[6],
             "last_activity_id": r[7],
-            "last_task_id": r[8] if len(r) > 8 else 0
+            "last_task_id": r[8] if len(r) > 8 else 0,
+            "last_project_id": r[9] if len(r) > 9 else 0,
+            "last_project_update_id": r[10] if len(r) > 10 else 0
         }
         total_notifications += poll_single_legacy_subscription(r[0], sub_dict)
 
