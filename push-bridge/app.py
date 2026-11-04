@@ -19,7 +19,7 @@ from pydantic import BaseModel
 import requests
 import xmlrpc.client
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -33,7 +33,8 @@ logger = logging.getLogger("push-bridge")
 
 app = FastAPI(title="ubtms-push-bridge", version="1.0.0")
 
-DB_PATH = os.getenv("BRIDGE_DB_PATH", "subscriptions.db")
+DEFAULT_DB_PATH = str(Path(__file__).resolve().parent / "subscriptions.db")
+DB_PATH = os.getenv("BRIDGE_DB_PATH", DEFAULT_DB_PATH)
 UBPORTS_PUSH_URL = os.getenv("UBPORTS_PUSH_URL", "https://push.ubports.com/notify")
 DEFAULT_APP_ID = os.getenv("UBPORTS_APP_ID", "ubtms_ubtms")
 BRIDGE_PUBLIC_URL = os.getenv("BRIDGE_PUBLIC_URL", "")
@@ -70,6 +71,7 @@ def get_db():
                     poll_interval INTEGER DEFAULT 300,
                     last_polled_at TEXT,
                     last_activity_id INTEGER DEFAULT 0,
+                    last_task_id INTEGER DEFAULT 0,
                     is_active INTEGER DEFAULT 1,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(ubports_token, odoo_url, db, uid)
@@ -104,12 +106,18 @@ def get_db():
             poll_interval INTEGER DEFAULT 300,
             last_polled_at TEXT,
             last_activity_id INTEGER DEFAULT 0,
+            last_task_id INTEGER DEFAULT 0,
             is_active INTEGER DEFAULT 1,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(ubports_token, odoo_url, db, uid)
         )
         """
     )
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(legacy_subscriptions)")
+    existing_cols = {row[1] for row in cursor.fetchall()}
+    if "last_task_id" not in existing_cols:
+        conn.execute("ALTER TABLE legacy_subscriptions ADD COLUMN last_task_id INTEGER DEFAULT 0")
     conn.commit()
     return conn
 
@@ -336,9 +344,11 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
         record_data.update(extra_data)
 
     # Format payload for UBports Push Server
+    expire_on = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
     ubports_payload = {
         "appid": DEFAULT_APP_ID,
         "token": ubports_token,
+        "expire_on": expire_on,
         "data": {
             "notification": {
                 "card": {
@@ -447,9 +457,11 @@ def send_ubports_notification(ubports_token: str, title: str, body: str, deep_li
     if record:
         data_payload["record"] = record
 
+    expire_on = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
     payload = {
         "appid": DEFAULT_APP_ID,
         "token": ubports_token,
+        "expire_on": expire_on,
         "data": data_payload
     }
     try:
@@ -467,7 +479,7 @@ def send_ubports_notification(ubports_token: str, title: str, body: str, deep_li
 
 def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> int:
     """
-    Polls an Odoo 14-16 instance via XML-RPC for newly assigned activities.
+    Polls an Odoo 14-16 instance via XML-RPC for newly assigned activities and tasks.
     Returns number of notifications sent.
     """
     odoo_url = sub_dict["odoo_url"].rstrip("/")
@@ -476,19 +488,22 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
     password = sub_dict["password"]
     token = sub_dict["ubports_token"]
     last_act_id = sub_dict.get("last_activity_id") or 0
+    last_task_id = sub_dict.get("last_task_id") or 0
 
     sent_count = 0
     try:
         models = xmlrpc.client.ServerProxy(f"{odoo_url}/xmlrpc/2/object", allow_none=True)
-        domain = [("user_id", "=", uid)]
+
+        # 1. Poll mail.activity for newly assigned activities
+        act_domain = [("user_id", "=", uid)]
         activities = models.execute_kw(
             db, uid, password,
             "mail.activity", "search_read",
-            [domain],
+            [act_domain],
             {"fields": ["id", "summary", "date_deadline", "res_name", "res_model", "res_id"], "order": "id desc", "limit": 10}
         )
 
-        max_seen_id = last_act_id
+        max_seen_act_id = last_act_id
         for act in activities:
             act_id = act.get("id", 0)
             if act_id > last_act_id:
@@ -506,8 +521,51 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                     }
                     if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                         sent_count += 1
-                if act_id > max_seen_id:
-                    max_seen_id = act_id
+                if act_id > max_seen_act_id:
+                    max_seen_act_id = act_id
+
+        # 2. Poll project.task for newly assigned tasks
+        try:
+            task_domain = [("user_ids", "in", [uid])]
+            tasks = models.execute_kw(
+                db, uid, password,
+                "project.task", "search_read",
+                [task_domain],
+                {"fields": ["id", "name", "project_id", "stage_id", "date_deadline", "description"], "order": "id desc", "limit": 10}
+            )
+        except Exception:
+            task_domain = [("user_id", "=", uid)]
+            tasks = models.execute_kw(
+                db, uid, password,
+                "project.task", "search_read",
+                [task_domain],
+                {"fields": ["id", "name", "project_id", "stage_id", "date_deadline", "description"], "order": "id desc", "limit": 10}
+            )
+
+        max_seen_task_id = last_task_id
+        for task in tasks:
+            task_id = task.get("id", 0)
+            if task_id > last_task_id:
+                if last_task_id != 0:
+                    task_name = task.get("name") or "New Task"
+                    project_info = task.get("project_id")
+                    project_name = project_info[1] if isinstance(project_info, (list, tuple)) and len(project_info) > 1 else "Project"
+                    summary = f"Assigned: {task_name}"
+                    body = f"Project: {project_name}"
+                    deep_link = f"ubtms://notification?type=Task&id={task_id}&odoo_id=1"
+                    record = {
+                        "model": "project.task",
+                        "record_id": task_id,
+                        "name": task_name,
+                        "project_id": project_info,
+                        "stage_id": task.get("stage_id"),
+                        "deadline": task.get("date_deadline"),
+                        "description": task.get("description") or ""
+                    }
+                    if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
+                        sent_count += 1
+                if task_id > max_seen_task_id:
+                    max_seen_task_id = task_id
 
         conn = get_db()
         cursor = conn.cursor()
@@ -515,10 +573,11 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             """
             UPDATE legacy_subscriptions
             SET last_polled_at = CURRENT_TIMESTAMP,
-                last_activity_id = ?
+                last_activity_id = ?,
+                last_task_id = ?
             WHERE id = ?
             """,
-            (max_seen_id, sub_id)
+            (max_seen_act_id, max_seen_task_id, sub_id)
         )
         conn.commit()
         if conn is not _mem_conn:
@@ -622,7 +681,7 @@ def trigger_legacy_poll():
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT id, ubports_token, odoo_url, db, username, password, uid, last_activity_id
+        SELECT id, ubports_token, odoo_url, db, username, password, uid, last_activity_id, last_task_id
         FROM legacy_subscriptions
         WHERE is_active = 1
         """
@@ -642,7 +701,8 @@ def trigger_legacy_poll():
             "username": r[4],
             "password": r[5],
             "uid": r[6],
-            "last_activity_id": r[7]
+            "last_activity_id": r[7],
+            "last_task_id": r[8] if len(r) > 8 else 0
         }
         total_notifications += poll_single_legacy_subscription(r[0], sub_dict)
 
@@ -651,3 +711,23 @@ def trigger_legacy_poll():
         "accounts_polled": total_polled,
         "notifications_sent": total_notifications
     }
+
+
+def background_poll_worker():
+    """Periodically polls legacy Odoo accounts for new activities."""
+    import time
+    while True:
+        try:
+            time.sleep(15)
+            trigger_legacy_poll()
+        except Exception as e:
+            logger.error("Background poll error: %s", e)
+
+
+@app.on_event("startup")
+def start_poll_worker():
+    import threading
+    t = threading.Thread(target=background_poll_worker, daemon=True)
+    t.start()
+    logger.info("Started background legacy polling worker (interval=15s)")
+

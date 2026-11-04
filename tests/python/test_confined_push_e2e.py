@@ -212,14 +212,17 @@ def test_e2e_odoo14_16_legacy_polling_flow():
         mock_models = MagicMock()
         mock_xmlrpc.return_value = mock_models
 
-        # Seed initial activity
-        mock_models.execute_kw.return_value = [
-            {"id": 200, "summary": "Old Activity", "date_deadline": "2026-11-01", "res_name": "Task 1"}
-        ]
+        # Seed initial state
+        activities = [{"id": 200, "summary": "Old Activity", "date_deadline": "2026-11-01", "res_name": "Task 1"}]
+        def fake_exec(db, uid, pwd, model, method, args, kwargs):
+            if model == "mail.activity":
+                return activities
+            return []
+        mock_models.execute_kw.side_effect = fake_exec
         bridge_client.post("/v1/legacy/poll")
 
         # New activity arrives in Odoo
-        mock_models.execute_kw.return_value = [
+        activities = [
             {"id": 201, "summary": "Urgent Review", "date_deadline": "2026-11-04", "res_name": "Bug 404"},
             {"id": 200, "summary": "Old Activity", "date_deadline": "2026-11-01", "res_name": "Task 1"}
         ]

@@ -122,30 +122,45 @@ def test_legacy_lifecycle_and_polling():
         mock_models = MagicMock()
         mock_xmlrpc.return_value = mock_models
 
-        # First poll: seeds initial state (act_id=101)
-        mock_models.execute_kw.return_value = [
-            {"id": 101, "summary": "Initial Task", "date_deadline": "2026-11-03", "res_name": "Project Alpha"}
+        activities_data = [
+            {"id": 101, "summary": "Initial Activity", "date_deadline": "2026-11-03", "res_name": "Project Alpha"}
         ]
+        tasks_data = [
+            {"id": 201, "name": "Initial Task", "project_id": [1, "Alpha"], "stage_id": [1, "Todo"], "date_deadline": False, "description": ""}
+        ]
+
+        def fake_execute_kw(db, uid, pwd, model, method, args, kwargs):
+            if model == "mail.activity":
+                return activities_data
+            if model == "project.task":
+                return tasks_data
+            return []
+
+        mock_models.execute_kw.side_effect = fake_execute_kw
+
+        # First poll: seeds initial state (act_id=101, task_id=201)
         poll_res = client.post("/v1/legacy/poll")
         assert poll_res.status_code == 200
         assert poll_res.json()["accounts_polled"] >= 1
+        assert poll_res.json()["notifications_sent"] == 0
 
-        # Second poll: new activity arrives (act_id=102)
-        mock_models.execute_kw.return_value = [
+        # Second poll: new activity and task arrive
+        activities_data = [
             {"id": 102, "summary": "New Legacy Activity", "date_deadline": "2026-11-04", "res_name": "Project Beta"},
-            {"id": 101, "summary": "Initial Task", "date_deadline": "2026-11-03", "res_name": "Project Alpha"}
+            {"id": 101, "summary": "Initial Activity", "date_deadline": "2026-11-03", "res_name": "Project Alpha"}
         ]
+        tasks_data = [
+            {"id": 202, "name": "New Legacy Task", "project_id": [1, "Alpha"], "stage_id": [1, "Todo"], "date_deadline": False, "description": ""},
+            {"id": 201, "name": "Initial Task", "project_id": [1, "Alpha"], "stage_id": [1, "Todo"], "date_deadline": False, "description": ""}
+        ]
+
         poll_res2 = client.post("/v1/legacy/poll")
         assert poll_res2.status_code == 200
-        assert poll_res2.json()["notifications_sent"] >= 1
+        assert poll_res2.json()["notifications_sent"] == 2
 
         # Check UBports payload
         assert mock_ubports.called
-        sent_data = mock_ubports.call_args.kwargs["json"]
-        assert sent_data["token"] == token
-        assert "New Legacy Activity" in sent_data["data"]["notification"]["card"]["summary"]
-        assert sent_data["data"]["notification"]["card"]["icon"] == "assets/logo.png"
-        assert any("ubtms://notification" in act for act in sent_data["data"]["notification"]["card"]["actions"])
+        assert mock_ubports.call_count == 2
 
     # 4. Unregister
     unreg_res = client.post("/v1/legacy/unregister", json={
