@@ -75,6 +75,41 @@ def store_notification(notif_type, message, payload):
     except Exception:
         pass  # Silent failure - notification display is more important
 
+def is_duplicate_notification(notif_type, record_id, summary, body):
+    """
+    Check if an identical notification was recently received or is currently unread.
+    Returns True if this is a duplicate.
+    """
+    try:
+        db_path = get_db_path()
+        if not Path(db_path).exists():
+            return False
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+
+        # Check 1: Record ID matching unread notification in local database
+        if record_id and int(record_id) > 0:
+            cur.execute("""
+                SELECT id FROM notification 
+                WHERE type = ? AND read_status = 0 AND payload LIKE ?
+                LIMIT 1
+            """, (notif_type, f'%"odoo_record_id": {record_id}%'))
+            if cur.fetchone():
+                conn.close()
+                return True
+
+        # Check 2: Same type and message received recently (within 30 minutes)
+        cur.execute("""
+            SELECT id FROM notification 
+            WHERE type = ? AND message = ? AND timestamp > datetime('now', '-30 minutes')
+            LIMIT 1
+        """, (notif_type, body))
+        row = cur.fetchone()
+        conn.close()
+        return row is not None
+    except Exception:
+        return False
+
 def get_unread_count():
     """Count total unread notifications in local database for launcher emblem badge."""
     try:
@@ -635,8 +670,16 @@ def process_notification(input_data):
         if not card.get("icon"):
             card["icon"] = "assets/logo.png"
 
-        # Ensure card defaults for proper banner display respecting working hours and priority
-        card["popup"] = card.get("popup", True) and should_popup_notification(summary, body, is_urgent)
+        # Tag notification for Lomiri coalescing (replaces previous notification instead of stacking duplicates)
+        if record_id:
+            card["tag"] = f"{notif_type}_{record_id}"
+
+        # Suppress audible popup banner if this is a duplicate delivery
+        is_dup = is_duplicate_notification(notif_type, record_id, summary, body)
+        if is_dup:
+            card["popup"] = False
+        else:
+            card["popup"] = card.get("popup", True) and should_popup_notification(summary, body, is_urgent)
         card["persist"] = card.get("persist", True)
 
         # Build actions: exactly 1 action for standard interactive banner dispatch

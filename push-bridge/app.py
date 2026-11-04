@@ -442,8 +442,32 @@ class LegacyUnregisterRequest(BaseModel):
     uid: int
 
 
+_sent_cache: Dict[str, float] = {}
+
+def is_recent_duplicate(token: str, model: str, record_id: int, ttl_seconds: int = 3600) -> bool:
+    """Check and record dispatch key in TTL cache to prevent duplicate dispatches."""
+    import time
+    key = f"{token}:{model}:{record_id}"
+    now = time.time()
+    if len(_sent_cache) > 2000:
+        expired = [k for k, ts in _sent_cache.items() if now - ts > ttl_seconds]
+        for k in expired:
+            _sent_cache.pop(k, None)
+
+    last_sent = _sent_cache.get(key)
+    if last_sent and (now - last_sent) < ttl_seconds:
+        return True
+    _sent_cache[key] = now
+    return False
+
+
 def send_ubports_notification(ubports_token: str, title: str, body: str, deep_link: Optional[str] = None, record: Optional[dict] = None) -> bool:
     """Helper to send a formatted card to UBports Push Server with avatar icon and deep link."""
+    if record and record.get("record_id") and record.get("model"):
+        if is_recent_duplicate(ubports_token, str(record["model"]), int(record["record_id"])):
+            logger.info("Deduplication: skipped already-dispatched %s #%s to token %s...", record["model"], record["record_id"], ubports_token[:8])
+            return True
+
     actions = []
     pkg_name = DEFAULT_APP_ID.split("_")[0]
     if deep_link:
