@@ -549,10 +549,25 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         except Exception:
             pass
 
-        # 1. Poll mail.activity for newly assigned activities
+        # 1. Poll mail.activity for newly assigned activities or activities on user's tasks
         max_seen_act_id = last_act_id
         try:
-            act_domain = [("user_id", "=", uid)]
+            user_task_ids = []
+            try:
+                user_task_ids = models.execute_kw(
+                    db, uid, password,
+                    "project.task", "search",
+                    [[("user_ids", "in", [uid])]],
+                    {"order": "id desc", "limit": 100}
+                ) or []
+            except Exception:
+                pass
+
+            if user_task_ids:
+                act_domain = ["|", ("user_id", "=", uid), "&", ("res_model", "=", "project.task"), ("res_id", "in", user_task_ids)]
+            else:
+                act_domain = [("user_id", "=", uid)]
+
             act_fields = [
                 "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "res_model_id", "note",
                 "user_id", "create_uid", "activity_type_id"

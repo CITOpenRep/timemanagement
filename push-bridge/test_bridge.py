@@ -143,6 +143,8 @@ def test_legacy_lifecycle_and_polling():
             if model == "mail.activity":
                 return activities_data
             if model == "project.task":
+                if method == "search":
+                    return [t["id"] for t in tasks_data]
                 return tasks_data
             if model == "project.project":
                 return projects_data
