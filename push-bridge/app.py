@@ -553,26 +553,98 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         max_seen_act_id = last_act_id
         try:
             act_domain = [("user_id", "=", uid)]
+            act_fields = [
+                "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "res_model_id", "note",
+                "user_id", "create_uid", "activity_type_id"
+            ]
             activities = models.execute_kw(
                 db, uid, password,
                 "mail.activity", "search_read",
                 [act_domain],
-                {"fields": ["id", "summary", "date_deadline", "res_name", "res_model", "res_id", "note"], "order": "id desc", "limit": 10}
+                {"fields": act_fields, "order": "id desc", "limit": 10}
             )
             for act in activities:
                 act_id = act.get("id", 0)
                 if act_id > last_act_id:
                     if last_act_id != 0:
                         summary = act.get("summary") or "Odoo Activity"
-                        body = f"Due: {act.get('date_deadline') or 'Today'} - {act.get('res_name') or ''}"
+                        res_name = act.get("res_name") or ""
+                        body = f"Due: {act.get('date_deadline') or 'Today'} - {res_name}"
                         deep_link = f"ubtms://notification?type=Activity&id={act_id}&odoo_id=1"
+
+                        user_tuple = act.get("user_id")
+                        assignee_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
+                        assignee_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
+
+                        act_type_tuple = act.get("activity_type_id")
+                        act_type_id = act_type_tuple[0] if isinstance(act_type_tuple, (list, tuple)) and len(act_type_tuple) > 0 else (act_type_tuple or 1)
+                        act_type_name = act_type_tuple[1] if isinstance(act_type_tuple, (list, tuple)) and len(act_type_tuple) > 1 else ""
+
+                        create_tuple = act.get("create_uid")
+                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else (create_tuple or uid)
+
+                        res_model = act.get("res_model") or ""
+                        res_id = act.get("res_id") or 0
+
+                        res_model_id_tuple = act.get("res_model_id")
+                        res_model_id = res_model_id_tuple[0] if isinstance(res_model_id_tuple, (list, tuple)) and len(res_model_id_tuple) > 0 else (res_model_id_tuple or 0)
+
+                        task_id = None
+                        task_name = None
+                        project_id = None
+                        project_name = None
+                        parent_id = None
+
+                        if res_model == "project.task" and res_id:
+                            task_id = res_id
+                            task_name = res_name
+                            try:
+                                t_info = models.execute_kw(db, uid, password, "project.task", "read", [[res_id]], {"fields": ["name", "project_id", "parent_id"]})
+                                if t_info and isinstance(t_info, list) and len(t_info) > 0:
+                                    task_name = t_info[0].get("name") or res_name
+                                    p_tuple = t_info[0].get("project_id")
+                                    if isinstance(p_tuple, (list, tuple)) and len(p_tuple) > 0:
+                                        project_id = p_tuple[0]
+                                        if len(p_tuple) > 1:
+                                            project_name = p_tuple[1]
+                                    pr_tuple = t_info[0].get("parent_id")
+                                    if isinstance(pr_tuple, (list, tuple)) and len(pr_tuple) > 0:
+                                        parent_id = pr_tuple[0]
+                            except Exception:
+                                pass
+                        elif res_model == "project.project" and res_id:
+                            project_id = res_id
+                            project_name = res_name
+                            try:
+                                p_info = models.execute_kw(db, uid, password, "project.project", "read", [[res_id]], {"fields": ["name", "parent_id"]})
+                                if p_info and isinstance(p_info, list) and len(p_info) > 0:
+                                    project_name = p_info[0].get("name") or res_name
+                                    pr_tuple = p_info[0].get("parent_id")
+                                    if isinstance(pr_tuple, (list, tuple)) and len(pr_tuple) > 0:
+                                        parent_id = pr_tuple[0]
+                            except Exception:
+                                pass
+
                         record = {
                             "model": "mail.activity",
                             "record_id": act_id,
                             "summary": summary,
                             "due_date": act.get("date_deadline"),
-                            "res_id": act.get("res_id"),
-                            "res_model": act.get("res_model"),
+                            "res_id": res_id,
+                            "res_model": res_model,
+                            "res_name": res_name,
+                            "res_model_id": res_model_id,
+                            "link_id": res_id,
+                            "task_id": task_id,
+                            "task_name": task_name,
+                            "parent_id": parent_id,
+                            "project_id": project_id,
+                            "project_name": project_name,
+                            "user_id": assignee_id,
+                            "assignee_name": assignee_name,
+                            "create_uid": creator_id,
+                            "activity_type_id": act_type_id,
+                            "activity_type_name": act_type_name,
                             "notes": clean_and_truncate_text(act.get("note") or body, 500)
                         }
                         if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
@@ -653,7 +725,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         # 3. Poll project.update for new project updates
         max_seen_update_id = last_update_id
         try:
-            update_domain = [("message_partner_ids", "in", [partner_id])] if partner_id else [("user_id", "!=", uid)]
+            update_domain = ["|", ("message_partner_ids", "in", [partner_id]), ("project_id.user_id", "=", uid)] if partner_id else [("user_id", "!=", uid)]
             updates = models.execute_kw(
                 db, uid, password,
                 "project.update", "search_read",

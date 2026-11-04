@@ -567,49 +567,153 @@ def pre_populate_record(notif_type, record_id, summary, body, extra_data=None):
             act_type_id = extra.get("activity_type_id")
             if isinstance(act_type_id, (list, tuple)) and len(act_type_id) > 0:
                 act_type_id = act_type_id[0]
+            act_type_name = extra.get("activity_type_name")
+            if not act_type_name and isinstance(extra.get("activity_type_id"), (list, tuple)) and len(extra.get("activity_type_id")) > 1:
+                act_type_name = extra.get("activity_type_id")[1]
+
             due_date = extra.get("due_date") or extra.get("date_deadline")
             user_id = extra.get("user_id")
             if isinstance(user_id, (list, tuple)) and len(user_id) > 0:
                 user_id = user_id[0]
+            assignee_name = extra.get("assignee_name") or extra.get("user_name")
+            if not assignee_name and isinstance(extra.get("user_id"), (list, tuple)) and len(extra.get("user_id")) > 1:
+                assignee_name = extra.get("user_id")[1]
+
             res_id = extra.get("res_id") or extra.get("resId")
-            res_model = extra.get("res_model") or extra.get("resModel")
+            res_model = extra.get("res_model") or extra.get("resModel") or ""
+            link_id = extra.get("link_id") or res_id
+
+            task_id = extra.get("task_id") or (res_id if res_model == "project.task" else None)
+            task_name = extra.get("task_name") or extra.get("res_name") or (f"Task #{task_id}" if task_id else "")
+
+            project_id = extra.get("project_id") or (res_id if res_model == "project.project" else None)
+            project_name = extra.get("project_name") or (extra.get("res_name") if res_model == "project.project" else "")
+            parent_id = extra.get("parent_id")
+
+            # Ensure assignee exists in res_users_app
+            if user_id and int(user_id) > 0 and assignee_name:
+                try:
+                    cursor.execute(
+                        "SELECT id FROM res_users_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(user_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO res_users_app (
+                                name, odoo_record_id, account_id, last_modified, status
+                            ) VALUES (?, ?, ?, ?, '')
+                        """, (str(assignee_name), int(user_id), account_id, now_str))
+                except Exception:
+                    pass
+
+            # Ensure activity type exists in mail_activity_type_app
+            if act_type_id and int(act_type_id) > 0 and act_type_name:
+                try:
+                    cursor.execute(
+                        "SELECT id FROM mail_activity_type_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(act_type_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO mail_activity_type_app (
+                                name, odoo_record_id, account_id, status
+                            ) VALUES (?, ?, ?, '')
+                        """, (str(act_type_name), int(act_type_id), account_id))
+                except Exception:
+                    pass
+
+            # Ensure project placeholder exists
+            if project_id and int(project_id) > 0 and project_name:
+                try:
+                    cursor.execute(
+                        "SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(project_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO project_project_app (
+                                name, account_id, odoo_record_id, last_modified, status, has_draft
+                            ) VALUES (?, ?, ?, ?, '', 0)
+                        """, (str(project_name), account_id, int(project_id), now_str))
+                except Exception:
+                    pass
+
+            # Ensure task placeholder exists
+            if task_id and int(task_id) > 0:
+                try:
+                    cursor.execute(
+                        "SELECT id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(task_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO project_task_app (
+                                name, account_id, odoo_record_id, project_id, parent_id, last_modified, status, has_draft
+                            ) VALUES (?, ?, ?, ?, ?, ?, '', 0)
+                        """, (
+                            str(task_name),
+                            account_id,
+                            int(task_id),
+                            int(project_id) if project_id else -1,
+                            int(parent_id) if parent_id else 0,
+                            now_str
+                        ))
+                except Exception:
+                    pass
 
             if existing:
                 local_id, has_draft = existing
-                update_fields = ["last_modified = ?"]
-                params = [now_str]
-
+                upd_dict = {
+                    "last_modified": now_str,
+                }
                 if not has_draft:
-                    update_fields.append("summary = ?")
-                    params.append(act_summary)
+                    upd_dict["summary"] = act_summary
                     if act_notes:
-                        update_fields.append("notes = ?")
-                        params.append(act_notes)
+                        upd_dict["notes"] = act_notes
                 if due_date:
-                    update_fields.append("due_date = ?")
-                    params.append(str(due_date))
+                    upd_dict["due_date"] = str(due_date)
+                if user_id:
+                    upd_dict["user_id"] = int(user_id)
+                if act_type_id:
+                    upd_dict["activity_type_id"] = int(act_type_id)
+                if link_id:
+                    upd_dict["link_id"] = int(link_id)
+                if res_id:
+                    upd_dict["resId"] = int(res_id)
+                if res_model:
+                    upd_dict["resModel"] = str(res_model)
+                if task_id:
+                    upd_dict["task_id"] = int(task_id)
+                if project_id:
+                    upd_dict["project_id"] = int(project_id)
 
-                params.extend([record_id, account_id])
-                sql = f"UPDATE mail_activity_app SET {', '.join(update_fields)} WHERE odoo_record_id = ? AND account_id = ?"
-                cursor.execute(sql, params)
+                valid_upd = {k: v for k, v in upd_dict.items() if k in act_cols}
+                set_clause = ", ".join(f"{k} = ?" for k in valid_upd.keys())
+                params = list(valid_upd.values()) + [record_id, account_id]
+                cursor.execute(f"UPDATE mail_activity_app SET {set_clause} WHERE odoo_record_id = ? AND account_id = ?", params)
             else:
-                cursor.execute("""
-                    INSERT INTO mail_activity_app (
-                        account_id, activity_type_id, summary, due_date, user_id,
-                        notes, odoo_record_id, last_modified, resId, resModel, state, status, has_draft
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'today', '', 0)
-                """, (
-                    account_id,
-                    int(act_type_id) if act_type_id else 1,
-                    act_summary,
-                    str(due_date) if due_date else None,
-                    int(user_id) if user_id else None,
-                    act_notes,
-                    record_id,
-                    now_str,
-                    int(res_id) if res_id else None,
-                    str(res_model) if res_model else ""
-                ))
+                ins_dict = {
+                    "account_id": account_id,
+                    "activity_type_id": int(act_type_id) if act_type_id else 1,
+                    "summary": act_summary,
+                    "due_date": str(due_date) if due_date else None,
+                    "user_id": int(user_id) if user_id else None,
+                    "notes": act_notes,
+                    "odoo_record_id": record_id,
+                    "last_modified": now_str,
+                    "link_id": int(link_id) if link_id else None,
+                    "task_id": int(task_id) if task_id else None,
+                    "project_id": int(project_id) if project_id else None,
+                    "resId": int(res_id) if res_id else None,
+                    "resModel": str(res_model) if res_model else "",
+                    "state": "today",
+                    "status": "",
+                    "has_draft": 0
+                }
+                valid_ins = {k: v for k, v in ins_dict.items() if k in act_cols}
+                cols_str = ", ".join(valid_ins.keys())
+                placeholders = ", ".join(["?"] * len(valid_ins))
+                cursor.execute(f"INSERT INTO mail_activity_app ({cols_str}) VALUES ({placeholders})", list(valid_ins.values()))
 
         conn.commit()
         conn.close()

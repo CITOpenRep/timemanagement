@@ -136,6 +136,8 @@ def test_legacy_lifecycle_and_polling():
         ]
 
         def fake_execute_kw(db, uid, pwd, model, method, args, kwargs):
+            if uid != 42:
+                return []
             if model == "res.users":
                 return [{"id": 42, "partner_id": [142, "User 42"]}]
             if model == "mail.activity":

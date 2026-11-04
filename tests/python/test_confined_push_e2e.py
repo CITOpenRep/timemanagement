@@ -700,3 +700,172 @@ def test_push_helper_prepopulates_project_update():
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def test_push_helper_prepopulates_activity_with_full_connection_and_assignee():
+    """
+    Test that mail.activity push notifications pre-populate activity record
+    and all relational placeholders (assignee in res_users_app, activity type in mail_activity_type_app,
+    task in project_task_app, project in project_project_app).
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'Default User')")
+        cur.execute("""
+            CREATE TABLE mail_activity_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                activity_type_id INTEGER,
+                summary TEXT,
+                due_date DATE,
+                user_id INTEGER,
+                notes TEXT,
+                odoo_record_id INTEGER,
+                last_modified datetime,
+                link_id INTEGER,
+                project_id INTEGER,
+                task_id INTEGER,
+                resId INTEGER,
+                resModel TEXT,
+                state TEXT,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE res_users_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                odoo_record_id INTEGER,
+                account_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE mail_activity_type_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                odoo_record_id INTEGER,
+                account_id INTEGER,
+                status TEXT DEFAULT '',
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE project_task_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                account_id INTEGER,
+                odoo_record_id INTEGER,
+                project_id INTEGER,
+                parent_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE project_project_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                account_id INTEGER,
+                odoo_record_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        push_helper_path = os.path.join(os.path.dirname(__file__), "..", "..", "push-helper.py")
+        spec = importlib.util.spec_from_file_location("push_helper", push_helper_path)
+        push_helper_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(push_helper_mod)
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            push_payload = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Notify1",
+                        "body": "Due: 2026-11-09 - Notification Test",
+                        "actions": ["ubtms://notification?type=Activity&id=455&odoo_id=1"]
+                    },
+                    "data": {
+                        "model": "mail.activity",
+                        "record_id": 455,
+                        "summary": "Notify1",
+                        "due_date": "2026-11-09",
+                        "res_id": 1523,
+                        "res_model": "project.task",
+                        "res_name": "Notification Test",
+                        "link_id": 1523,
+                        "task_id": 1523,
+                        "task_name": "Notification Test",
+                        "parent_id": None,
+                        "project_id": 59,
+                        "project_name": "26-00018 - Test Project 2 [Parent]",
+                        "user_id": 177,
+                        "assignee_name": "Suraj Yadav",
+                        "activity_type_id": 4,
+                        "activity_type_name": "To-Do",
+                        "notes": "Activity description notes"
+                    }
+                }
+            })
+
+            push_helper_mod.process_notification(push_payload)
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT summary, due_date, user_id, activity_type_id, link_id, task_id, project_id, resModel FROM mail_activity_app WHERE odoo_record_id = 455")
+            row = cur.fetchone()
+            assert row is not None
+            assert row[0] == "Notify1"
+            assert row[1] == "2026-11-09"
+            assert row[2] == 177
+            assert row[3] == 4
+            assert row[4] == 1523
+            assert row[5] == 1523
+            assert row[6] == 59
+            assert row[7] == "project.task"
+
+            # Check assignee placeholder
+            cur.execute("SELECT name, odoo_record_id FROM res_users_app WHERE odoo_record_id = 177")
+            user_row = cur.fetchone()
+            assert user_row is not None
+            assert user_row[0] == "Suraj Yadav"
+
+            # Check activity type placeholder
+            cur.execute("SELECT name, odoo_record_id FROM mail_activity_type_app WHERE odoo_record_id = 4")
+            type_row = cur.fetchone()
+            assert type_row is not None
+            assert type_row[0] == "To-Do"
+
+            # Check task placeholder
+            cur.execute("SELECT name, odoo_record_id, project_id FROM project_task_app WHERE odoo_record_id = 1523")
+            task_row = cur.fetchone()
+            assert task_row is not None
+            assert task_row[0] == "Notification Test"
+            assert task_row[2] == 59
+
+            # Check project placeholder
+            cur.execute("SELECT name, odoo_record_id FROM project_project_app WHERE odoo_record_id = 59")
+            proj_row = cur.fetchone()
+            assert proj_row is not None
+            assert proj_row[0] == "26-00018 - Test Project 2 [Parent]"
+
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)

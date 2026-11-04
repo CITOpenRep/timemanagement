@@ -745,6 +745,18 @@ Page {
         }
     }
     
+    function triggerQuietBackgroundSync() {
+        if (typeof mainView !== "undefined" && mainView.backend_bridge) {
+            mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+                var targetDb = dbPath || "app_settings.db";
+                var acctId = (accountid && accountid > 0) ? accountid : Accounts.getDefaultRemoteAccountId();
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, acctId], function (res) {
+                    console.log("Updates: Quiet background sync initiated for pre-populated record:", res);
+                });
+            });
+        }
+    }
+    
     Component.onCompleted: {
         isInitializing = true;
         
@@ -759,6 +771,7 @@ Page {
                     recordid = currentUpdate.id;
                     accountid = currentUpdate.account_id || accountid;
                     isOdooRecordId = false;
+                    triggerQuietBackgroundSync();
                 } else {
                     // Update not yet synced locally — show error and navigate back
                     Logger.warn("Updates", "ProjectUpdate with odoo_record_id="+ recordid + "not found locally. Not yet synced?")
