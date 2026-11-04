@@ -130,6 +130,185 @@ def should_popup_notification(summary="", body="", is_urgent=False):
             pass
         return True
 
+def pre_populate_record(notif_type, record_id, summary, body, extra_data=None):
+    """
+    Pre-populate incoming record into SQLite (project_task_app or mail_activity_app).
+    Respects Decision 1: Option A (upsert base record, preserve any active local draft).
+    """
+    if not record_id or record_id <= 0:
+        return False
+
+    extra = extra_data if isinstance(extra_data, dict) else {}
+    target_type = extra.get("model") or notif_type
+    if "activity" in str(target_type).lower():
+        model = "mail.activity"
+    elif "project" in str(target_type).lower() and "task" not in str(target_type).lower():
+        model = "project.project"
+    else:
+        model = "project.task"
+
+    try:
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Resolve remote account ID
+        account_id = extra.get("account_id")
+        if not account_id or int(account_id) <= 0:
+            cursor.execute("SELECT id FROM users WHERE is_default = 1 AND id > 0 LIMIT 1")
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute("SELECT id FROM users WHERE id > 0 ORDER BY id ASC LIMIT 1")
+                row = cursor.fetchone()
+            account_id = int(row[0]) if row else 1
+        else:
+            account_id = int(account_id)
+
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+        if model == "project.task":
+            cursor.execute("PRAGMA table_info(project_task_app)")
+            task_cols = {r[1] for r in cursor.fetchall()}
+            if not task_cols:
+                conn.close()
+                return False
+
+            cursor.execute(
+                "SELECT id, has_draft, name, description FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?",
+                (record_id, account_id)
+            )
+            existing = cursor.fetchone()
+
+            task_name = extra.get("name") or extra.get("display_name") or summary or "New Task"
+            task_desc = extra.get("description") or extra.get("notes") or body or ""
+            project_id = extra.get("project_id")
+            if isinstance(project_id, (list, tuple)) and len(project_id) > 0:
+                project_id = project_id[0]
+            stage_id = extra.get("stage_id") or extra.get("state")
+            if isinstance(stage_id, (list, tuple)) and len(stage_id) > 0:
+                stage_id = stage_id[0]
+            user_id = extra.get("user_id")
+            if isinstance(user_id, (list, tuple)) and len(user_id) > 0:
+                user_id = user_id[0]
+            deadline = extra.get("deadline") or extra.get("date_deadline")
+            priority = str(extra.get("priority", "0"))
+
+            if existing:
+                local_id, has_draft, cur_name, cur_desc = existing
+                update_fields = ["last_modified = ?"]
+                params = [now_str]
+
+                # Update title/desc only if local draft is not actively overriding it
+                if not has_draft:
+                    update_fields.append("name = ?")
+                    params.append(task_name)
+                    if task_desc:
+                        update_fields.append("description = ?")
+                        params.append(task_desc)
+
+                if project_id:
+                    update_fields.append("project_id = ?")
+                    params.append(int(project_id))
+                if stage_id:
+                    update_fields.append("state = ?")
+                    params.append(int(stage_id))
+                if user_id:
+                    update_fields.append("user_id = ?")
+                    params.append(int(user_id))
+                if deadline:
+                    update_fields.append("deadline = ?")
+                    params.append(str(deadline))
+
+                params.extend([record_id, account_id])
+                sql = f"UPDATE project_task_app SET {', '.join(update_fields)} WHERE odoo_record_id = ? AND account_id = ?"
+                cursor.execute(sql, params)
+            else:
+                cursor.execute("""
+                    INSERT INTO project_task_app (
+                        name, account_id, project_id, deadline, priority, state,
+                        description, last_modified, user_id, status, has_draft, odoo_record_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, ?)
+                """, (
+                    task_name,
+                    account_id,
+                    int(project_id) if project_id else -1,
+                    str(deadline) if deadline else None,
+                    priority,
+                    int(stage_id) if stage_id else 1,
+                    task_desc,
+                    now_str,
+                    int(user_id) if user_id else None,
+                    record_id
+                ))
+
+        elif model == "mail.activity":
+            cursor.execute("PRAGMA table_info(mail_activity_app)")
+            act_cols = {r[1] for r in cursor.fetchall()}
+            if not act_cols:
+                conn.close()
+                return False
+
+            cursor.execute(
+                "SELECT id, has_draft FROM mail_activity_app WHERE odoo_record_id = ? AND account_id = ?",
+                (record_id, account_id)
+            )
+            existing = cursor.fetchone()
+
+            act_summary = extra.get("summary") or summary or "New Activity"
+            act_notes = extra.get("notes") or extra.get("note") or body or ""
+            act_type_id = extra.get("activity_type_id")
+            if isinstance(act_type_id, (list, tuple)) and len(act_type_id) > 0:
+                act_type_id = act_type_id[0]
+            due_date = extra.get("due_date") or extra.get("date_deadline")
+            user_id = extra.get("user_id")
+            if isinstance(user_id, (list, tuple)) and len(user_id) > 0:
+                user_id = user_id[0]
+            res_id = extra.get("res_id") or extra.get("resId")
+            res_model = extra.get("res_model") or extra.get("resModel")
+
+            if existing:
+                local_id, has_draft = existing
+                update_fields = ["last_modified = ?"]
+                params = [now_str]
+
+                if not has_draft:
+                    update_fields.append("summary = ?")
+                    params.append(act_summary)
+                    if act_notes:
+                        update_fields.append("notes = ?")
+                        params.append(act_notes)
+                if due_date:
+                    update_fields.append("due_date = ?")
+                    params.append(str(due_date))
+
+                params.extend([record_id, account_id])
+                sql = f"UPDATE mail_activity_app SET {', '.join(update_fields)} WHERE odoo_record_id = ? AND account_id = ?"
+                cursor.execute(sql, params)
+            else:
+                cursor.execute("""
+                    INSERT INTO mail_activity_app (
+                        account_id, activity_type_id, summary, due_date, user_id,
+                        notes, odoo_record_id, last_modified, resId, resModel, state, status, has_draft
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'today', '', 0)
+                """, (
+                    account_id,
+                    int(act_type_id) if act_type_id else 1,
+                    act_summary,
+                    str(due_date) if due_date else None,
+                    int(user_id) if user_id else None,
+                    act_notes,
+                    record_id,
+                    now_str,
+                    int(res_id) if res_id else None,
+                    str(res_model) if res_model else ""
+                ))
+
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
 def process_notification(input_data):
     """Process incoming notification and enhance if needed."""
     try:
@@ -233,6 +412,25 @@ def process_notification(input_data):
             store_payload["is_odoo_id"] = True
 
         store_notification(notif_type, body, store_payload)
+
+        # Pre-populate record in local SQLite database (Option 1)
+        extra_record = None
+        for candidate in (
+            notification.get("data", {}).get("record") if isinstance(notification.get("data"), dict) else None,
+            notif.get("data", {}).get("record") if isinstance(notif.get("data"), dict) else None,
+            notification.get("record"),
+            notif.get("record"),
+            card.get("record"),
+            notification.get("data") if isinstance(notification.get("data"), dict) and "record" not in notification.get("data") else None,
+            notif.get("data") if isinstance(notif.get("data"), dict) and "record" not in notif.get("data") else None,
+            card.get("data") if isinstance(card.get("data"), dict) else None,
+        ):
+            if isinstance(candidate, dict) and any(k in candidate for k in ("model", "res_model", "name", "summary", "record_id")):
+                extra_record = candidate
+                break
+
+        if record_id:
+            pre_populate_record(notif_type, record_id, summary, body, extra_record)
 
         # Update launcher badge emblem counter with total unread count
         unread_count = get_unread_count()

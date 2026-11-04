@@ -50,6 +50,14 @@ def main():
                     "count": 1,
                     "visible": True
                 }
+            },
+            "record": {
+                "model": "mail.activity" if args.type == "Activity" else "project.task",
+                "record_id": args.id,
+                "name": args.title,
+                "summary": args.title,
+                "description": args.body,
+                "notes": args.body
             }
         }
     }

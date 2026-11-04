@@ -119,6 +119,7 @@ MainView {
         onReadyChanged: {
             if (backend_bridge && backend_bridge.ready) {
                 startupManager.initializePushNotifications(backend_bridge);
+                triggerAutoSync();
             }
         }
     }
@@ -129,6 +130,7 @@ MainView {
         loadAndApplyTheme();
         updateSystemBadge();
         startupManager.initializePushNotifications(backend_bridge);
+        triggerAutoSync();
         checkForUnsavedDrafts();
         cleanupDeletedRecordDrafts();
         checkStartupArguments();
@@ -149,6 +151,37 @@ MainView {
         }
     }
 
+    Timer {
+        id: foregroundAutoSyncTimer
+        interval: 15 * 60 * 1000
+        repeat: true
+        running: false
+        property int syncAccountId: -1
+        onTriggered: {
+            if (syncAccountId > 0 && backend_bridge && backend_bridge.ready) {
+                backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+                    var targetDb = dbPath || "app_settings.db";
+                    backend_bridge.call("backend.start_sync_in_background", [targetDb, syncAccountId], function (res) {
+                    });
+                });
+            }
+        }
+    }
+
+    function triggerAutoSync() {
+        if (backend_bridge && backend_bridge.ready) {
+            startupManager.triggerAutoSync(backend_bridge, function(enabled, intervalMinutes, accountId) {
+                if (enabled && intervalMinutes > 0 && accountId > 0) {
+                    foregroundAutoSyncTimer.syncAccountId = accountId;
+                    foregroundAutoSyncTimer.interval = intervalMinutes * 60 * 1000;
+                    foregroundAutoSyncTimer.restart();
+                } else {
+                    foregroundAutoSyncTimer.stop();
+                }
+            });
+        }
+    }
+
     function checkStartupArguments() {
         startupManager.checkStartupArguments(Qt.application.arguments);
     }
@@ -159,9 +192,6 @@ MainView {
         } else {
             console.warn("Deep link handler unavailable:", uri);
         }
-    }
-    function checkDaemonSetupNeeded() {
-        startupManager.checkDaemonSetupNeeded();
     }
 
     function updateSystemBadge() {

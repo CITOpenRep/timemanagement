@@ -58,6 +58,62 @@ QtObject {
         }
     }
 
+    function triggerAutoSync(backendBridge, onSyncConfiguredCallback) {
+        if (!backendBridge)
+            return;
+
+        try {
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var autoSyncEnabled = "true";
+            var syncIntervalMinutes = 15;
+            var targetAccountId = -1;
+
+            db.transaction(function (tx) {
+                tx.executeSql("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)");
+                var res = tx.executeSql("SELECT value FROM app_settings WHERE key = ?", ["autosync_enabled"]);
+                if (res.rows.length > 0) {
+                    autoSyncEnabled = res.rows.item(0).value;
+                }
+                var intRes = tx.executeSql("SELECT value FROM app_settings WHERE key = ?", ["sync_interval_minutes"]);
+                if (intRes.rows.length > 0 && parseInt(intRes.rows.item(0).value) > 0) {
+                    syncIntervalMinutes = parseInt(intRes.rows.item(0).value);
+                }
+
+                var accRes = tx.executeSql("SELECT id FROM users WHERE is_default = 1 AND id > 0 LIMIT 1");
+                if (accRes.rows.length > 0) {
+                    targetAccountId = accRes.rows.item(0).id;
+                } else {
+                    var fallbackAcc = tx.executeSql("SELECT id FROM users WHERE id > 0 LIMIT 1");
+                    if (fallbackAcc.rows.length > 0) {
+                        targetAccountId = fallbackAcc.rows.item(0).id;
+                    }
+                }
+            });
+
+            if (autoSyncEnabled === "false" || targetAccountId <= 0) {
+                Logger.debug("StartupManager", "AutoSync disabled or no remote account found (id: " + targetAccountId + ")");
+                if (typeof onSyncConfiguredCallback === "function") {
+                    onSyncConfiguredCallback(false, 0, targetAccountId);
+                }
+                return;
+            }
+
+            Logger.info("StartupManager", "Configuring AutoSync: interval=" + syncIntervalMinutes + "m, account=" + targetAccountId);
+            if (typeof onSyncConfiguredCallback === "function") {
+                onSyncConfiguredCallback(true, syncIntervalMinutes, targetAccountId);
+            }
+
+            backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+                var targetDb = dbPath || "app_settings.db";
+                backendBridge.call("backend.start_sync_in_background", [targetDb, targetAccountId], function (res) {
+                    Logger.info("StartupManager", "Startup AutoSync initiated: " + res);
+                });
+            });
+        } catch (e) {
+            Logger.warn("StartupManager", "Failed to trigger auto-sync on startup:", e);
+        }
+    }
+
     function updateSystemBadge() {
         try {
             var unreadList = Notifications.getUnreadNotifications();

@@ -12,6 +12,7 @@ import "../../../../models/accounts.js" as Accounts
 import "../../../../models/task.js" as Task
 import "../../../../models/project.js" as Project
 import "../../../../models/global.js" as Global
+import "../../../../models/notifications.js" as Notifications
 import "../../../components"
 import "../../../components/richtext"
 
@@ -22,6 +23,19 @@ Page {
     property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
     property bool descriptionExpanded: false
     property real expandedHeight: units.gu(60)
+    property bool isSyncingMissingRecord: false
+    property bool syncFailedForRecord: false
+    property string cachedNotifSummary: ""
+    property string cachedNotifBody: ""
+
+    Connections {
+        target: (typeof mainView !== "undefined" && mainView.backend_bridge) ? mainView.backend_bridge : null
+        onMessageReceived: function(evt) {
+            if (evt && evt.event === "sync_completed") {
+                onSyncFinished(evt.payload);
+            }
+        }
+    }
     property var currentActivity: {
         "summary": "",
         "notes": "",
@@ -411,6 +425,61 @@ Page {
 
             Column {
                 leftPadding: units.gu(1)
+
+                Rectangle {
+                    id: missingRecordBanner
+                    width: flickable.width - units.gu(2)
+                    visible: isSyncingMissingRecord || syncFailedForRecord
+                    height: bannerCol.implicitHeight + units.gu(2)
+                    color: syncFailedForRecord ? "#FFF3CD" : "#E8F4FD"
+                    radius: units.gu(0.5)
+
+                    Column {
+                        id: bannerCol
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: units.gu(1)
+                        spacing: units.gu(1)
+
+                        Row {
+                            spacing: units.gu(1)
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+
+                            ActivityIndicator {
+                                visible: isSyncingMissingRecord
+                                running: isSyncingMissingRecord
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Icon {
+                                visible: syncFailedForRecord
+                                name: "warning"
+                                width: units.gu(2)
+                                height: units.gu(2)
+                                color: "#856404"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Label {
+                                text: isSyncingMissingRecord ? i18n.dtr("ubtms", "Syncing activity details from Odoo...") : i18n.dtr("ubtms", "Showing cached notification. Server unreachable.")
+                                font.bold: true
+                                color: syncFailedForRecord ? "#856404" : "#0C5460"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+
+                        Button {
+                            visible: syncFailedForRecord
+                            text: i18n.dtr("ubtms", "Retry Sync")
+                            color: LomiriColors.orange
+                            onClicked: {
+                                handleMissingOdooActivity(recordid);
+                            }
+                        }
+                    }
+                }
 
                 WorkItemSelector {
                     id: workItem
@@ -845,11 +914,52 @@ Page {
         }
     }
 
-    Component.onCompleted: {
-        // Initialize form modification tracking
-        formModified = false;
-        isInitializing = true;
+    function handleMissingOdooActivity(odooId) {
+        var cached = Notifications.getCachedNotificationForRecord(odooId, "Activity");
+        if (cached) {
+            cachedNotifSummary = cached.summary || ("Activity #" + odooId);
+            cachedNotifBody = cached.message || "";
+            summary.text = cachedNotifSummary;
+            notes.setContent(cachedNotifBody);
+        } else {
+            cachedNotifSummary = "Activity #" + odooId;
+            cachedNotifBody = "";
+            summary.text = cachedNotifSummary;
+        }
 
+        isSyncingMissingRecord = true;
+        syncFailedForRecord = false;
+
+        if (typeof mainView !== "undefined" && mainView.backend_bridge) {
+            mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+                var targetDb = dbPath || "app_settings.db";
+                var acctId = (accountid && accountid > 0) ? accountid : Accounts.getDefaultRemoteAccountId();
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, acctId], function (res) {
+                    console.log("Activities: On-demand sync initiated for missing activity:", res);
+                });
+            });
+        }
+    }
+
+    function onSyncFinished(success) {
+        if (!isSyncingMissingRecord)
+            return;
+
+        var reloaded = Activity.getActivityByOdooId(recordid, accountid);
+        if (reloaded && reloaded.id) {
+            isSyncingMissingRecord = false;
+            syncFailedForRecord = false;
+            recordid = reloaded.id;
+            accountid = reloaded.account_id;
+            isOdooRecordId = false;
+            loadActivity();
+        } else {
+            isSyncingMissingRecord = false;
+            syncFailedForRecord = true;
+        }
+    }
+
+    function loadActivity() {
         if (recordid != 0) {
             // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
             if (isOdooRecordId) {
@@ -861,6 +971,11 @@ Page {
                     recordid = currentActivity.id;
                     accountid = currentActivity.account_id;
                     isOdooRecordId = false; // Now we have the local id
+                    isSyncingMissingRecord = false;
+                    syncFailedForRecord = false;
+                } else {
+                    handleMissingOdooActivity(recordid);
+                    return;
                 }
             } else {
                 // recordid is a local id (from normal navigation)
@@ -946,6 +1061,13 @@ Page {
         
         // Start timer to end initialization phase
         initializationTimer.start();
+    }
+
+    Component.onCompleted: {
+        // Initialize form modification tracking
+        formModified = false;
+        isInitializing = true;
+        loadActivity();
     }
 
     function switchToEditMode() {

@@ -36,6 +36,8 @@ import "../../../../models/utils.js" as Utils
 import "../../../../models/global.js" as Global
 import "../../../../models/activity.js" as Activity
 import "../../../../models/timer_service.js" as TimerService
+import "../../../../models/notifications.js" as Notifications
+import "../../../../models/accounts.js" as Accounts
 import "../js/taskFormUtils.js" as TaskFormUtils
 
 import "../../../components"
@@ -150,6 +152,19 @@ Page {
     property string prefilledProjectName: ""
 
     property var currentTask: {}
+    property bool isSyncingMissingRecord: false
+    property bool syncFailedForRecord: false
+    property string cachedNotifSummary: ""
+    property string cachedNotifBody: ""
+
+    Connections {
+        target: (typeof mainView !== "undefined" && mainView.backend_bridge) ? mainView.backend_bridge : null
+        onMessageReceived: function(evt) {
+            if (evt && evt.event === "sync_completed") {
+                onSyncFinished(evt.payload);
+            }
+        }
+    }
 
     // Track if we're navigating to ReadMorePage to avoid showing save dialog
     property bool navigatingToReadMore: false
@@ -665,6 +680,62 @@ Page {
             spacing: units.gu(1)
             topPadding: units.gu(2)
 
+            Rectangle {
+                id: missingRecordBanner
+                width: parent.width - units.gu(2)
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: isSyncingMissingRecord || syncFailedForRecord
+                height: bannerCol.implicitHeight + units.gu(2)
+                color: syncFailedForRecord ? "#FFF3CD" : "#E8F4FD"
+                radius: units.gu(0.5)
+
+                Column {
+                    id: bannerCol
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: units.gu(1)
+                    spacing: units.gu(1)
+
+                    Row {
+                        spacing: units.gu(1)
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+
+                        ActivityIndicator {
+                            visible: isSyncingMissingRecord
+                            running: isSyncingMissingRecord
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Icon {
+                            visible: syncFailedForRecord
+                            name: "warning"
+                            width: units.gu(2)
+                            height: units.gu(2)
+                            color: "#856404"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Label {
+                            text: isSyncingMissingRecord ? i18n.dtr("ubtms", "Syncing task details from Odoo...") : i18n.dtr("ubtms", "Showing cached notification. Server unreachable.")
+                            font.bold: true
+                            color: syncFailedForRecord ? "#856404" : "#0C5460"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    Button {
+                        visible: syncFailedForRecord
+                        text: i18n.dtr("ubtms", "Retry Sync")
+                        color: LomiriColors.orange
+                        onClicked: {
+                            handleMissingOdooTask(recordid);
+                        }
+                    }
+                }
+            }
+
         Row {
             id: myRow1a
             width: parent.width
@@ -953,6 +1024,48 @@ Page {
     } // end Flickable
     
 
+    function handleMissingOdooTask(odooId) {
+        var cached = Notifications.getCachedNotificationForRecord(odooId, "Task");
+        if (cached) {
+            cachedNotifSummary = cached.summary || ("Task #" + odooId);
+            cachedNotifBody = cached.message || "";
+            taskNameField.text = cachedNotifSummary;
+            description_text.setContent(cachedNotifBody);
+        } else {
+            cachedNotifSummary = "Task #" + odooId;
+            cachedNotifBody = "";
+            taskNameField.text = cachedNotifSummary;
+        }
+
+        isSyncingMissingRecord = true;
+        syncFailedForRecord = false;
+
+        if (typeof mainView !== "undefined" && mainView.backend_bridge) {
+            mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+                var targetDb = dbPath || "app_settings.db";
+                var accountId = Accounts.getDefaultRemoteAccountId();
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, accountId], function (res) {
+                    Logger.info("Tasks", "On-demand sync initiated for missing task: " + res);
+                });
+            });
+        }
+    }
+
+    function onSyncFinished(success) {
+        if (!isSyncingMissingRecord)
+            return;
+
+        var reloaded = Task.getTaskDetailsByOdooId(recordid);
+        if (reloaded && reloaded.id) {
+            isSyncingMissingRecord = false;
+            syncFailedForRecord = false;
+            loadTask();
+        } else {
+            isSyncingMissingRecord = false;
+            syncFailedForRecord = true;
+        }
+    }
+
     function loadTask() {
         draftHandler.trackingSuspended = true;
 
@@ -966,6 +1079,11 @@ Page {
                 if (currentTask && currentTask.id) {
                     recordid = currentTask.id;
                     isOdooRecordId = false; // Now we have the local id
+                    isSyncingMissingRecord = false;
+                    syncFailedForRecord = false;
+                } else {
+                    handleMissingOdooTask(recordid);
+                    return;
                 }
             } else {
                 // recordid is a local id (from normal navigation)

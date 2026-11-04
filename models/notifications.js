@@ -320,3 +320,43 @@ function getUnreadSyncCount() {
         return 0;
     }
 }
+
+/**
+ * Retrieves the most recent cached push notification for an Odoo record.
+ * Used for deep-link fallback display when the full record is not yet in SQLite.
+ *
+ * @param {number} odooRecordId - The remote record ID
+ * @param {string} notifType - Notification type (e.g. 'Task', 'Activity')
+ * @returns {Object|null} Cached notification summary and message, or null
+ */
+function getCachedNotificationForRecord(odooRecordId, notifType) {
+    var notif = null;
+    try {
+        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+        db.transaction(function (tx) {
+            var sql = "SELECT id, message, type, payload FROM " + TABLE_NAME + " WHERE (type = ? OR ? = '') ORDER BY id DESC LIMIT 20";
+            var rs = tx.executeSql(sql, [notifType || "", notifType || ""]);
+            for (var i = 0; i < rs.rows.length; i++) {
+                var row = rs.rows.item(i);
+                try {
+                    var payload = JSON.parse(row.payload || "{}");
+                    var recId = payload.odoo_record_id || payload.id || 0;
+                    if (parseInt(recId) === parseInt(odooRecordId)) {
+                        notif = {
+                            id: row.id,
+                            message: row.message,
+                            summary: payload.summary || row.message,
+                            type: row.type,
+                            payload: payload
+                        };
+                        break;
+                    }
+                } catch (parseErr) {
+                }
+            }
+        });
+    } catch (e) {
+        DBCommon.logException("getCachedNotificationForRecord", e);
+    }
+    return notif;
+}

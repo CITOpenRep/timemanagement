@@ -324,6 +324,17 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
     else:
         actions.append(f"appid://{pkg_name}/ubtms/current-user-version")
 
+    record_data = {
+        "model": res_model or ("mail.activity" if nav_type == "Activity" else "project.task"),
+        "record_id": res_id,
+        "name": notification_title,
+        "summary": notification_title,
+        "description": notification_body,
+        "notes": notification_body
+    }
+    if isinstance(extra_data, dict):
+        record_data.update(extra_data)
+
     # Format payload for UBports Push Server
     ubports_payload = {
         "appid": DEFAULT_APP_ID,
@@ -347,7 +358,8 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
                     "count": 1,
                     "visible": True
                 }
-            }
+            },
+            "record": record_data
         }
     }
 
@@ -402,7 +414,7 @@ class LegacyUnregisterRequest(BaseModel):
     uid: int
 
 
-def send_ubports_notification(ubports_token: str, title: str, body: str, deep_link: Optional[str] = None) -> bool:
+def send_ubports_notification(ubports_token: str, title: str, body: str, deep_link: Optional[str] = None, record: Optional[dict] = None) -> bool:
     """Helper to send a formatted card to UBports Push Server with avatar icon and deep link."""
     actions = []
     pkg_name = DEFAULT_APP_ID.split("_")[0]
@@ -411,30 +423,34 @@ def send_ubports_notification(ubports_token: str, title: str, body: str, deep_li
     else:
         actions.append(f"appid://{pkg_name}/ubtms/current-user-version")
 
+    data_payload = {
+        "notification": {
+            "card": {
+                "summary": title,
+                "body": body,
+                "icon": "assets/logo.png",
+                "popup": True,
+                "persist": True,
+                "actions": actions
+            },
+            "sound": "sounds/lomiri/notifications/Positive.ogg",
+            "vibrate": {
+                "pattern": [200, 100, 200],
+                "repeat": 1
+            },
+            "emblem-counter": {
+                "count": 1,
+                "visible": True
+            }
+        }
+    }
+    if record:
+        data_payload["record"] = record
+
     payload = {
         "appid": DEFAULT_APP_ID,
         "token": ubports_token,
-        "data": {
-            "notification": {
-                "card": {
-                    "summary": title,
-                    "body": body,
-                    "icon": "assets/logo.png",
-                    "popup": True,
-                    "persist": True,
-                    "actions": actions
-                },
-                "sound": "sounds/lomiri/notifications/Positive.ogg",
-                "vibrate": {
-                    "pattern": [200, 100, 200],
-                    "repeat": 1
-                },
-                "emblem-counter": {
-                    "count": 1,
-                    "visible": True
-                }
-            }
-        }
+        "data": data_payload
     }
     try:
         resp = requests.post(
@@ -480,7 +496,15 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                     summary = act.get("summary") or "Odoo Activity"
                     body = f"Due: {act.get('date_deadline') or 'Today'} - {act.get('res_name') or ''}"
                     deep_link = f"ubtms://notification?type=Activity&id={act_id}&odoo_id=1"
-                    if send_ubports_notification(token, summary, body, deep_link=deep_link):
+                    record = {
+                        "model": "mail.activity",
+                        "record_id": act_id,
+                        "summary": summary,
+                        "due_date": act.get("date_deadline"),
+                        "res_id": act.get("res_id"),
+                        "res_model": act.get("res_model")
+                    }
+                    if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                         sent_count += 1
                 if act_id > max_seen_id:
                     max_seen_id = act_id

@@ -340,3 +340,163 @@ def test_push_helper_schedule_and_priority_enforcement():
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def test_push_helper_prepopulates_new_task():
+    """
+    Test Option 1: Data-bearing push pre-populates a new task into project_task_app in SQLite.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'Default User')")
+        cur.execute("""
+            CREATE TABLE project_task_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                account_id INTEGER,
+                project_id INTEGER,
+                deadline date,
+                priority TEXT,
+                state INTEGER,
+                description TEXT,
+                last_modified datetime,
+                user_id INTEGER,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                odoo_record_id INTEGER,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            push_payload = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Implement Feature X",
+                        "body": "Detailed requirements for feature X",
+                        "actions": ["ubtms://notification?type=Task&id=105&odoo_id=1"]
+                    }
+                },
+                "data": {
+                    "record": {
+                        "model": "project.task",
+                        "record_id": 105,
+                        "name": "Implement Feature X",
+                        "description": "Detailed requirements for feature X",
+                        "project_id": [42, "Mobile App"],
+                        "stage_id": [2, "In Progress"],
+                        "deadline": "2026-12-01",
+                        "priority": "1"
+                    }
+                }
+            })
+
+            push_helper_mod.process_notification(push_payload)
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT name, description, project_id, state, deadline, odoo_record_id, has_draft FROM project_task_app WHERE odoo_record_id = 105")
+            row = cur.fetchone()
+            conn.close()
+
+            assert row is not None
+            assert row[0] == "Implement Feature X"
+            assert row[1] == "Detailed requirements for feature X"
+            assert row[2] == 42
+            assert row[3] == 2
+            assert row[4] == "2026-12-01"
+            assert row[5] == 105
+            assert row[6] == 0
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
+def test_push_helper_preserves_local_draft():
+    """
+    Test Decision 1 Option A: Existing record with has_draft=1 preserves user's title/desc edits.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'Default User')")
+        cur.execute("""
+            CREATE TABLE project_task_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                account_id INTEGER,
+                project_id INTEGER,
+                deadline date,
+                priority TEXT,
+                state INTEGER,
+                description TEXT,
+                last_modified datetime,
+                user_id INTEGER,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                odoo_record_id INTEGER,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        # Insert task with local draft in progress
+        cur.execute("""
+            INSERT INTO project_task_app (
+                name, account_id, project_id, deadline, priority, state, description,
+                last_modified, user_id, status, has_draft, odoo_record_id
+            ) VALUES ('My Draft Task Title', 1, 10, '2026-11-20', '0', 1, 'My draft notes', '2026-11-01', 1, '', 1, 200)
+        """)
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            push_payload = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Remote Updated Title",
+                        "body": "Remote updated description",
+                        "actions": ["ubtms://notification?type=Task&id=200&odoo_id=1"]
+                    }
+                },
+                "data": {
+                    "record": {
+                        "model": "project.task",
+                        "record_id": 200,
+                        "name": "Remote Updated Title",
+                        "description": "Remote updated description",
+                        "project_id": 25,
+                        "stage_id": 3
+                    }
+                }
+            })
+
+            push_helper_mod.process_notification(push_payload)
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT name, description, project_id, state, has_draft FROM project_task_app WHERE odoo_record_id = 200")
+            row = cur.fetchone()
+            conn.close()
+
+            assert row is not None
+            # User's draft title and description must be preserved
+            assert row[0] == "My Draft Task Title"
+            assert row[1] == "My draft notes"
+            # Metadata like project and state can still update
+            assert row[2] == 25
+            assert row[3] == 3
+            # has_draft must remain 1
+            assert row[4] == 1
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
