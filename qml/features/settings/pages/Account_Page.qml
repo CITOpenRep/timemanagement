@@ -181,6 +181,9 @@ Page {
                         }
                         notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
                         isReadOnly = true;
+                        if (typeof mainView !== "undefined" && mainView.startupManager && mainView.backend_bridge) {
+                            mainView.startupManager.initializePushNotifications(mainView.backend_bridge);
+                        }
                     }
                 }
             } else {
