@@ -1,13 +1,14 @@
 # fly.toml app configuration file for ubtms-push-bridge
 # Generated for Fly.io deployment
 
-app = "ubtms-push-bridge"
+app = "ubtms-push-bridge-suraj"
 primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile"
 
 [env]
+  BRIDGE_PUBLIC_URL = "https://ubtms-push-bridge-suraj.fly.dev"
   BRIDGE_DB_PATH = "/app/data/subscriptions.db"
   UBPORTS_PUSH_URL = "https://push.ubports.com/notify"
   UBPORTS_APP_ID = "ubtms_ubtms"

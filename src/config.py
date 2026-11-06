@@ -58,7 +58,7 @@ DEFAULT_SETTINGS = {
     "notification_active_end": "18:00",  # End of active hours (HH:MM format)
     "notification_working_days": "1,2,3,4,5",  # Working days (0=Sun,1=Mon,...,6=Sat) - CSV
     "push_token": "",
-    "push_bridge_url": os.getenv("UBTMS_PUSH_BRIDGE_URL", "https://renounce-antsy-grunt.ngrok-free.dev"),
+    "push_bridge_url": os.getenv("UBTMS_PUSH_BRIDGE_URL", "https://ubtms-push-bridge-suraj.fly.dev"),
 }
 
 
@@ -83,7 +83,17 @@ def get_setting(db_path, key, default=None):
         row = cur.fetchone()
         conn.close()
         if row:
-            return row[0]
+            val = row[0]
+            if key == "push_bridge_url" and "ngrok" in (val or ""):
+                val = DEFAULT_SETTINGS["push_bridge_url"]
+                try:
+                    conn2 = sqlite3.connect(db_path)
+                    conn2.execute("UPDATE app_settings SET value = ? WHERE key = ?", (val, key))
+                    conn2.commit()
+                    conn2.close()
+                except Exception:
+                    pass
+            return val
         return default
     except sqlite3.OperationalError as e:
         # Table doesn't exist yet
