@@ -200,6 +200,43 @@ def test_legacy_lifecycle_and_polling():
     assert len(list_after.json()["subscriptions"]) == 0
 
 
+def test_token_validation():
+    # Invalid characters
+    res = client.get("/v1/subscription/bad token with spaces")
+    assert res.status_code in (400, 404)
+
+    res = client.get("/v1/subscription/bad$token")
+    assert res.status_code == 400
+
+    # Path traversal attempt
+    res = client.get("/v1/subscription/../../etc/passwd")
+    assert res.status_code in (400, 404)
+
+    # Oversized token (> 256 chars)
+    res = client.get(f"/v1/subscription/{'a' * 300}")
+    assert res.status_code == 400
+
+
+def test_security_headers_and_body_limits():
+    # Security headers on responses
+    res = client.get("/health")
+    assert res.status_code == 200
+    assert res.headers.get("x-content-type-options") == "nosniff"
+    assert res.headers.get("x-frame-options") == "DENY"
+    assert res.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+    assert "default-src 'none'" in res.headers.get("content-security-policy", "")
+    assert "max-age=31536000" in res.headers.get("strict-transport-security", "")
+
+    # Reject oversized payload (> 64 KB)
+    oversized_data = b"x" * (65 * 1024)
+    res_large = client.post(
+        "/v1/relay/valid_device_token_123",
+        content=oversized_data,
+        headers={"Content-Type": "application/octet-stream"}
+    )
+    assert res_large.status_code == 413
+
+
 if __name__ == "__main__":
     test_health()
     test_subscription_creation()

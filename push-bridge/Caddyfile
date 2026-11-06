@@ -1,0 +1,31 @@
+{$DOMAIN:localhost} {
+	tls {
+		protocols tls1.2 tls1.3
+	}
+
+	request_body {
+		max_size 64KB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+	}
+
+	handle /health {
+		reverse_proxy push-bridge:8000
+	}
+
+	handle {
+		reverse_proxy push-bridge:8000
+	}
+}
+
+http://localhost {
+	handle /health {
+		reverse_proxy push-bridge:8000
+	}
+}

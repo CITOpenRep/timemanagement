@@ -1,16 +1,28 @@
-version: '3.8'
-
 services:
   push-bridge:
     build: .
     container_name: ubtms-push-bridge
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     environment:
-      - BRIDGE_PUBLIC_URL=https://push.example.com
-      - UBPORTS_PUSH_URL=https://push.ubports.com/notify
-      - UBPORTS_APP_ID=ubtms_ubtms
-      - BRIDGE_DB_PATH=/app/data/subscriptions.db
+      - BRIDGE_PUBLIC_URL=${BRIDGE_PUBLIC_URL:-https://${DOMAIN:-localhost}}
+      - BRIDGE_DB_PATH=${BRIDGE_DB_PATH:-/app/data/subscriptions.db}
+      - UBPORTS_PUSH_URL=${UBPORTS_PUSH_URL:-https://push.ubports.com/notify}
+      - UBPORTS_APP_ID=${UBPORTS_APP_ID:-ubtms_ubtms}
     volumes:
       - ./data:/app/data
+
+  caddy:
+    image: caddy:alpine
+    container_name: ubtms-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+    depends_on:
+      - push-bridge

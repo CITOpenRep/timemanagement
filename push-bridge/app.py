@@ -40,6 +40,57 @@ UBPORTS_PUSH_URL = os.getenv("UBPORTS_PUSH_URL", "https://push.ubports.com/notif
 DEFAULT_APP_ID = os.getenv("UBPORTS_APP_ID", "ubtms_ubtms")
 BRIDGE_PUBLIC_URL = os.getenv("BRIDGE_PUBLIC_URL", "")
 
+MAX_BODY_SIZE = 64 * 1024
+TOKEN_REGEX = re.compile(r"^[a-zA-Z0-9_\-\:\.+=]{1,256}$")
+
+def validate_ubports_token(token: str) -> str:
+    if not token or not TOKEN_REGEX.match(token):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid UBports token format"
+        )
+    return token
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > MAX_BODY_SIZE:
+                return JSONResponse(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    content={"detail": "Payload too large. Maximum allowed size is 64 KB."}
+                )
+        except ValueError:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"detail": "Invalid Content-Length header"}
+            )
+
+    if request.method in ("POST", "PUT", "PATCH"):
+        total_size = 0
+        chunks = []
+        async for chunk in request.stream():
+            total_size += len(chunk)
+            if total_size > MAX_BODY_SIZE:
+                return JSONResponse(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    content={"detail": "Payload too large. Maximum allowed size is 64 KB."}
+                )
+            chunks.append(chunk)
+        request._body = b"".join(chunks)
+
+    response = await call_next(request)
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+    return response
+
 
 _mem_conn = None
 
@@ -236,8 +287,7 @@ def get_or_create_subscription(ubports_token: str, request: Request):
     Returns the VAPID WebPush subscription endpoint and keys for the given UBports device token.
     Called by the Ubuntu Touch app during Odoo login.
     """
-    if not ubports_token:
-        raise HTTPException(status_code=400, detail="Missing UBports token")
+    validate_ubports_token(ubports_token)
 
     conn = get_db()
     cursor = conn.cursor()
@@ -281,10 +331,14 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
     """
     Receives WebPush notifications from Odoo and forwards them to UBports Push Server.
     """
-    if not ubports_token:
-        raise HTTPException(status_code=400, detail="Missing UBports token")
+    validate_ubports_token(ubports_token)
 
     body_bytes = await request.body()
+    if len(body_bytes) > MAX_BODY_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="Payload too large. Maximum allowed size is 64 KB."
+        )
     content_encoding = request.headers.get("content-encoding", "").lower()
 
     notification_title = "Odoo Notification"
@@ -843,6 +897,13 @@ def register_legacy_odoo(req: LegacyRegisterRequest):
     """
     Registers an Odoo 14-16 account for bridge-side polling.
     """
+    validate_ubports_token(req.ubports_token)
+    if not (req.odoo_url.startswith("http://") or req.odoo_url.startswith("https://")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Odoo URL: must start with http:// or https://"
+        )
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
@@ -874,6 +935,8 @@ def unregister_legacy_odoo(req: LegacyUnregisterRequest):
     """
     Unregisters or deactivates legacy polling for an account.
     """
+    validate_ubports_token(req.ubports_token)
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
@@ -892,6 +955,8 @@ def unregister_legacy_odoo(req: LegacyUnregisterRequest):
 
 @app.get("/v1/legacy/subscriptions/{ubports_token}")
 def list_legacy_subscriptions(ubports_token: str):
+    validate_ubports_token(ubports_token)
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
