@@ -1,0 +1,38 @@
+# fly.toml app configuration file for ubtms-push-bridge
+# Generated for Fly.io deployment
+
+app = "ubtms-push-bridge"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  BRIDGE_DB_PATH = "/app/data/subscriptions.db"
+  UBPORTS_PUSH_URL = "https://push.ubports.com/notify"
+  UBPORTS_APP_ID = "ubtms_ubtms"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/health"
+
+[mounts]
+  source = "push_data"
+  destination = "/app/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

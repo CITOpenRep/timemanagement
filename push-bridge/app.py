@@ -144,6 +144,13 @@ def get_db():
             _mem_conn.commit()
         return _mem_conn
 
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+        except Exception:
+            pass
+
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
         """
@@ -314,7 +321,13 @@ def get_or_create_subscription(ubports_token: str, request: Request):
     if conn is not _mem_conn:
         conn.close()
 
-    base_url = BRIDGE_PUBLIC_URL or str(request.base_url).rstrip("/")
+    if BRIDGE_PUBLIC_URL:
+        base_url = BRIDGE_PUBLIC_URL
+    else:
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+        base_url = f"{proto}://{host}".rstrip("/")
+
     relay_endpoint = f"{base_url}/v1/relay/{ubports_token}"
 
     return {

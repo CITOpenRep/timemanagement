@@ -8,7 +8,28 @@ The stack consists of:
 
 ---
 
-## Deployment on Oracle Cloud Infrastructure (OCI Always Free)
+## Deployment Option A: Fly.io (Zero DNS, Built-in HTTPS)
+
+If you do not own a custom domain, Fly.io provides an automated public HTTPS URL (e.g. `https://<app-name>.fly.dev`) and 3 GB free persistent volume storage for SQLite.
+
+### 1-Command Fly.io Deployment
+From the repository root:
+```bash
+cd push-bridge
+./deploy_fly.sh
+```
+
+The script automatically:
+1. Installs `flyctl` if not present.
+2. Prompts to authenticate (`fly auth login`).
+3. Sets up a unique app name.
+4. Creates a 1 GB persistent volume `push_data` in Amsterdam (`ams`).
+5. Configures `auto_stop_machines = "off"` to ensure continuous 24/7 background polling for legacy Odoo accounts.
+6. Deploys the container stack and runs `./verify_deployment.sh https://<app-name>.fly.dev`.
+
+---
+
+## Deployment Option B: Oracle Cloud Infrastructure (OCI Always Free)
 
 Follow these steps to deploy on an Always Free OCI compute instance.
 
