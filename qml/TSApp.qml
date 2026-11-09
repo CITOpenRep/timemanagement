@@ -41,6 +41,7 @@ MainView {
     property alias accountPicker: globalWidgets.accountPicker
     property alias notifPopup: globalWidgets.notifPopup
     property alias infobar: globalWidgets.infobar
+    property alias startupManager: startupManager
 
     property int currentAccountId: -1
     property string currentAccountName: ""

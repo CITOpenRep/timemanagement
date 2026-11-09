@@ -166,12 +166,15 @@ def save_push_token(settings_db=None, token=""):
         token = settings_db
         settings_db = None
 
-    if not token:
-        return False
-
     if not settings_db:
         from .storage import resolve_qml_db_path
         settings_db = resolve_qml_db_path("ubtms") or "app_settings.db"
+
+    if not token:
+        token = get_setting(settings_db, "push_token", "")
+
+    if not token:
+        return False
 
     set_setting(settings_db, "push_token", token)
     log.info(f"[PUSH] Saved push token to settings: {token[:8]}...")

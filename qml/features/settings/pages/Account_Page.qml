@@ -51,7 +51,6 @@ Page {
     property bool isReadOnly: false
     property int accountId: -1  // -1 means create mode, otherwise edit mode
     property bool openInEditMode: false
-    property bool useCustomSyncSettings: false  // Whether per-account sync overrides are enabled
 
     header: PageHeader {
         id: pageHeader
@@ -150,9 +149,13 @@ Page {
                             notifPopup.open("Error", accountResult.message || "Unable to update account.", "error");
                         }
                     } else {
-                        savePerAccountSyncSettings(accountId);
                         notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been updated successfully!"), "success");
                         isReadOnly = true;
+                        if (typeof mainView !== "undefined" && mainView.startupManager && mainView.backend_bridge) {
+                            mainView.startupManager.initializePushNotifications(mainView.backend_bridge);
+                        } else if (typeof backend_bridge !== "undefined" && backend_bridge) {
+                            backend_bridge.call("backend.save_push_token", [""], function(res) {});
+                        }
                         // Signal to refresh accounts list in Settings_Page
                         if (typeof settings !== 'undefined') {
                             settings.fetch_accounts();
@@ -171,18 +174,12 @@ Page {
                             notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
                         }
                     } else {
-                        // For new accounts, get the newly created account's ID to save sync settings
-                        var newAccounts = Accounts.getAccountsList();
-                        for (var a = 0; a < newAccounts.length; a++) {
-                            if (newAccounts[a].name === accountNameInput.text) {
-                                savePerAccountSyncSettings(newAccounts[a].id);
-                                break;
-                            }
-                        }
                         notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
                         isReadOnly = true;
                         if (typeof mainView !== "undefined" && mainView.startupManager && mainView.backend_bridge) {
                             mainView.startupManager.initializePushNotifications(mainView.backend_bridge);
+                        } else if (typeof backend_bridge !== "undefined" && backend_bridge) {
+                            backend_bridge.call("backend.save_push_token", [""], function(res) {});
                         }
                     }
                 }
@@ -238,29 +235,6 @@ Page {
                 isReadOnly = !openInEditMode;
                 activeBackendAccount = true;
                 
-                // Load per-account sync settings
-                var syncSettings = Accounts.getAccountSyncSettings(accId);
-                if (syncSettings.sync_interval_minutes !== null ||
-                    syncSettings.sync_direction !== null ||
-                    syncSettings.autosync_enabled !== null) {
-                    useCustomSyncSettings = true;
-                    
-                    // Set interval selector
-                    var savedInterval = parseInt(syncSettings.sync_interval_minutes || getGlobalSyncDefault("sync_interval_minutes")) || 15;
-                    syncIntervalSelector.applyDeferredSelection(savedInterval, false);
-                    
-                    // Set direction selector
-                    var directionValues = ["both", "download_only", "upload_only"];
-                    var savedDirection = syncSettings.sync_direction || getGlobalSyncDefault("sync_direction");
-                    var dirIdx = directionValues.indexOf(savedDirection);
-                    syncDirectionSelector.applyDeferredSelection(dirIdx === -1 ? 0 : dirIdx, false);
-                    
-                    // Set enable switch
-                    perAccountSyncSwitch.checked = (syncSettings.autosync_enabled === null) ? true : (syncSettings.autosync_enabled === 1);
-                } else {
-                    useCustomSyncSettings = false;
-                }
-                
                 break;
             }
         }
@@ -284,58 +258,6 @@ Page {
         activeBackendAccount = false;
         accountId = -1;
         isManualDbMode = false;
-        useCustomSyncSettings = false;
-    }
-
-    // Read a global sync default from app_settings table
-    function getGlobalSyncDefault(key) {
-        var defaults = {
-            "autosync_enabled": "true",
-            "sync_interval_minutes": "15",
-            "sync_direction": "both"
-        };
-        try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
-            var result = defaults[key] || "";
-            db.transaction(function (tx) {
-                tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
-                var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', [key]);
-                if (rs.rows.length > 0) {
-                    result = rs.rows.item(0).value;
-                }
-            });
-            return result;
-        } catch (e) {
-            return defaults[key] || "";
-        }
-    }
-
-    // Format minutes into human-readable interval text
-    function formatSyncInterval(minutes) {
-        var m = parseInt(minutes);
-        if (isNaN(m) || m <= 0) return minutes + " min";
-        if (m < 60) return m + " min";
-        if (m === 60) return "1 hour";
-        if (m < 1440) return (m / 60) + " hours";
-        if (m === 1440) return "1 day";
-        if (m < 10080) return (m / 1440) + " days";
-        if (m === 10080) return "1 week";
-        return m + " min";
-    }
-
-    // Save per-account sync settings after account is saved
-    function savePerAccountSyncSettings(accId) {
-        if (!useCustomSyncSettings) {
-            // Reset to global defaults (NULL)
-            Accounts.updateAccountSyncSettings(accId, null, null, null);
-            return;
-        }
-        var directionValues = ["both", "download_only", "upload_only"];
-        var interval = syncIntervalSelector.selectedId !== -1 ? syncIntervalSelector.selectedId : 15;
-        var dirIdx = syncDirectionSelector.selectedId;
-        var direction = (dirIdx >= 0 && dirIdx < directionValues.length) ? directionValues[dirIdx] : "both";
-        var enabled = perAccountSyncSwitch.checked ? 1 : 0;
-        Accounts.updateAccountSyncSettings(accId, interval, direction, enabled);
     }
 
     Python {
@@ -576,135 +498,6 @@ Page {
                 }
             }
 
-            // =============================================================
-            // SECTION 4: PER-ACCOUNT SYNC SETTINGS
-            // =============================================================
-            Rectangle {
-                id: syncSettingsSection
-                visible: activeBackendAccount
-                width: parent.width
-                height: syncSettingsColumn.height + units.gu(3)
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#1a1a1a" : "white"
-                radius: units.gu(1)
-
-                Column {
-                    id: syncSettingsColumn
-                    width: parent.width - units.gu(3)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top
-                    anchors.topMargin: units.gu(1.5)
-                    spacing: units.gu(2)
-
-                    Text {
-                        text: i18n.dtr("ubtms", "Sync Preferences")
-                        font.pixelSize: units.gu(1.8)
-                        font.bold: true
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: units.gu(2)
-                        Text {
-                            text: i18n.dtr("ubtms", "Custom Sync Settings")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - customSyncCheckbox.width - units.gu(4)
-                        }
-                        Switch {
-                            id: customSyncCheckbox
-                            checked: useCustomSyncSettings
-                            enabled: !isReadOnly
-                            anchors.verticalCenter: parent.verticalCenter
-                            style: Component {
-                                SwitchStyle {
-                                    checkedBackgroundColor: LomiriColors.orange
-                                }
-                            }
-                            onCheckedChanged: {
-                                useCustomSyncSettings = checked;
-                            }
-                        }
-                    }
-
-                    Text {
-                        visible: !useCustomSyncSettings
-                        text: i18n.dtr("ubtms", "Using global sync defaults (interval: ") +
-                              formatSyncInterval(getGlobalSyncDefault("sync_interval_minutes")) +
-                              i18n.dtr("ubtms", ", direction: ") +
-                              getGlobalSyncDefault("sync_direction") + ")"
-                        font.pixelSize: units.gu(1.3)
-                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#888" : "#555"
-                        wrapMode: Text.WordWrap
-                        width: parent.width
-                    }
-
-                    Row {
-                        width: parent.width
-                        visible: useCustomSyncSettings
-                        spacing: units.gu(2)
-                        Text {
-                            text: i18n.dtr("ubtms", "Enable Sync")
-                            font.pixelSize: units.gu(1.5)
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#e0e0e0" : "black"
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - perAccountSyncSwitch.width - units.gu(4)
-                        }
-                        Switch {
-                            id: perAccountSyncSwitch
-                            checked: true
-                            enabled: !isReadOnly
-                            anchors.verticalCenter: parent.verticalCenter
-                            style: Component {
-                                SwitchStyle {
-                                    checkedBackgroundColor: LomiriColors.orange
-                                }
-                            }
-                        }
-                    }
-
-                    InlineOptionSelector {
-                        id: syncIntervalSelector
-                        width: parent.width
-                        visible: useCustomSyncSettings
-                        labelText: i18n.dtr("ubtms", "Sync Interval")
-                        selectorType: "syncInterval"
-                        modelData: [
-                            {id: 1,    name: i18n.dtr("ubtms", "1 minute")},
-                            {id: 5,    name: i18n.dtr("ubtms", "5 minutes")},
-                            {id: 15,   name: i18n.dtr("ubtms", "15 minutes")},
-                            {id: 30,   name: i18n.dtr("ubtms", "30 minutes")},
-                            {id: 60,   name: i18n.dtr("ubtms", "1 hour")},
-                            {id: 120,  name: i18n.dtr("ubtms", "2 hours")},
-                            {id: 360,  name: i18n.dtr("ubtms", "6 hours")},
-                            {id: 720,  name: i18n.dtr("ubtms", "12 hours")},
-                            {id: 1440, name: i18n.dtr("ubtms", "1 day")},
-                            {id: 4320, name: i18n.dtr("ubtms", "3 days")},
-                            {id: 10080,name: i18n.dtr("ubtms", "1 week")}
-                        ]
-                        selectedId: 15
-                        readOnly: isReadOnly
-                        enabledState: !isReadOnly && perAccountSyncSwitch.checked
-                    }
-
-                    InlineOptionSelector {
-                        id: syncDirectionSelector
-                        width: parent.width
-                        visible: useCustomSyncSettings
-                        labelText: i18n.dtr("ubtms", "Sync Direction")
-                        selectorType: "syncDirection"
-                        modelData: [
-                            {id: 0, name: i18n.dtr("ubtms", "Both (Up & Down)")},
-                            {id: 1, name: i18n.dtr("ubtms", "Download Only")},
-                            {id: 2, name: i18n.dtr("ubtms", "Upload Only")}
-                        ]
-                        selectedId: 0
-                        readOnly: isReadOnly
-                        enabledState: !isReadOnly && perAccountSyncSwitch.checked
-                    }
-                }
-            }
         }
     }
     NotificationPopup {

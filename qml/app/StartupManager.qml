@@ -37,6 +37,22 @@ QtObject {
         }
     }
 
+    property int pushRetryCount: 0
+
+    Timer {
+        id: pushRetryTimer
+        interval: 2500
+        repeat: false
+        onTriggered: {
+            if (startupManager.pushRetryCount < 3) {
+                startupManager.pushRetryCount++;
+                Logger.info("StartupManager", "Retrying push token retrieval (attempt " + startupManager.pushRetryCount + ")...");
+                var bridge = (typeof mainView !== "undefined" && mainView.backend_bridge) ? mainView.backend_bridge : null;
+                startupManager.initializePushNotifications(bridge);
+            }
+        }
+    }
+
     function initializePushNotifications(backendBridge) {
         if (!notificationSystem || typeof notificationSystem.get_push_token !== "function")
             return;
@@ -51,7 +67,10 @@ QtObject {
                     });
                 }
             } else {
-                Logger.debug("StartupManager", "No push token returned by push service");
+                Logger.debug("StartupManager", "No push token returned by push service, scheduling retry");
+                if (pushRetryCount < 3) {
+                    pushRetryTimer.start();
+                }
             }
         } catch (e) {
             Logger.warn("StartupManager", "Could not initialize push notifications:", e);

@@ -86,17 +86,6 @@ Page {
         }
 
         SettingsListItem {
-            iconName: "sync-idle"
-            iconColor: "#27ae60"
-            text: i18n.dtr("ubtms", "Background Sync")
-            active: settings.selectedSettingsPageUrl === "Settings_Sync.qml"
-            onClicked: {
-                settings.selectedSettingsPageUrl = "Settings_Sync.qml";
-                apLayout.addPageToNextColumn(settings, Qt.resolvedUrl('Settings_Sync.qml'));
-            }
-        }
-
-        SettingsListItem {
             iconName: "preferences-color-symbolic"
             iconColor: "#8e44ad"
             text: i18n.dtr("ubtms", "Theme Settings")
