@@ -869,3 +869,165 @@ def test_push_helper_prepopulates_activity_with_full_connection_and_assignee():
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def test_notification_payload_contains_all_required_fields_and_account_id():
+    """
+    Verify that incoming notifications store all rich fields in notification.payload
+    and correctly associate the resolved account_id in the notification table and SQLite tables.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp_db:
+        tmp_db_path = tmp_db.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+
+        # Schema with users table containing multiple accounts
+        cur.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                link TEXT,
+                database TEXT,
+                username TEXT,
+                is_default INTEGER DEFAULT 0
+            )
+        """)
+        cur.execute("INSERT INTO users (id, name, link, database, username, is_default) VALUES (1, 'Local', '', '', '', 0)")
+        cur.execute("INSERT INTO users (id, name, link, database, username, is_default) VALUES (2, 'Remote Company A', 'https://odoo-a.example.com', 'db_a', 'admin_a', 1)")
+        cur.execute("INSERT INTO users (id, name, link, database, username, is_default) VALUES (3, 'Remote Company B', 'https://odoo-b.example.com', 'db_b', 'admin_b', 0)")
+
+        cur.execute("""
+            CREATE TABLE notification (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                timestamp TEXT,
+                message TEXT,
+                type TEXT,
+                payload TEXT,
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE project_task_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                account_id INTEGER,
+                project_id INTEGER,
+                sub_project_id INTEGER,
+                parent_id INTEGER,
+                start_date date,
+                end_date date,
+                deadline date,
+                initial_planned_hours FLOAT,
+                priority TEXT,
+                state INTEGER,
+                personal_stage INTEGER,
+                description TEXT,
+                last_modified datetime,
+                user_id INTEGER,
+                create_uid INTEGER,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0,
+                odoo_record_id INTEGER
+            )
+        """)
+        cur.execute("CREATE TABLE project_project_app (id INTEGER PRIMARY KEY, name TEXT, account_id INTEGER, odoo_record_id INTEGER, last_modified datetime, status TEXT, has_draft INTEGER)")
+        cur.execute("CREATE TABLE project_task_type_app (id INTEGER PRIMARY KEY, name TEXT, account_id INTEGER, odoo_record_id INTEGER)")
+        cur.execute("CREATE TABLE res_users_app (id INTEGER PRIMARY KEY, name TEXT, account_id INTEGER, odoo_record_id INTEGER, status TEXT)")
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            push_input = {
+                "notification": {
+                    "card": {
+                        "summary": "Assigned: Design System Overhaul",
+                        "body": "Project: Core UI",
+                        "popup": True
+                    }
+                },
+                "data": {
+                    "record": {
+                        "model": "project.task",
+                        "record_id": 8801,
+                        "name": "Design System Overhaul",
+                        "project_id": 44,
+                        "project_name": "Core UI",
+                        "parent_id": 12,
+                        "stage_id": 3,
+                        "stage_name": "In Progress",
+                        "personal_stage": 101,
+                        "user_id": 20,
+                        "assignee_name": "John Doe",
+                        "create_uid": 15,
+                        "assigner_name": "Jane Lead",
+                        "assigner_avatar": "iVBORw0KGgoAAAANSUhEUg==",
+                        "deadline": "2026-11-20",
+                        "start_date": "2026-11-10",
+                        "end_date": "2026-11-25",
+                        "allocated_hours": 16.5,
+                        "priority": "2",
+                        "description": "Rebuild design token architecture",
+                        "odoo_url": "https://odoo-b.example.com",
+                        "db": "db_b",
+                        "username": "admin_b",
+                        "account_user_id": 20
+                    }
+                }
+            }
+
+            push_helper_mod.process_notification(json.dumps(push_input))
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+
+            # Verify notification row
+            cur.execute("SELECT account_id, type, payload FROM notification WHERE type = 'Task'")
+            notif_row = cur.fetchone()
+            assert notif_row is not None
+            # Must match Account ID 3 (odoo-b.example.com)
+            assert notif_row[0] == 3
+
+            parsed_payload = json.loads(notif_row[2])
+            assert parsed_payload["name"] == "Design System Overhaul"
+            assert parsed_payload["project_name"] == "Core UI"
+            assert parsed_payload["assigner_name"] == "Jane Lead"
+            assert parsed_payload["assigner_avatar"] == "iVBORw0KGgoAAAANSUhEUg=="
+            assert parsed_payload["stage_name"] == "In Progress"
+            assert parsed_payload["deadline"] == "2026-11-20"
+            assert parsed_payload["priority"] == "2"
+            assert parsed_payload["account_id"] == 3
+            assert parsed_payload["odoo_record_id"] == 8801
+
+            # Verify project_task_app populated row
+            cur.execute("""
+                SELECT name, account_id, project_id, parent_id, state, personal_stage,
+                       user_id, create_uid, deadline, start_date, end_date, initial_planned_hours,
+                       priority, description, odoo_record_id
+                FROM project_task_app WHERE odoo_record_id = 8801
+            """)
+            task_row = cur.fetchone()
+            assert task_row is not None
+            assert task_row[0] == "Design System Overhaul"
+            assert task_row[1] == 3
+            assert task_row[2] == 44
+            assert task_row[3] == 12
+            assert task_row[4] == 3
+            assert task_row[5] == 101
+            assert task_row[6] == 20
+            assert task_row[7] == 15
+            assert task_row[8] == "2026-11-20"
+            assert task_row[9] == "2026-11-10"
+            assert task_row[10] == "2026-11-25"
+            assert task_row[11] == 16.5
+            assert task_row[12] == "2"
+            assert task_row[13] == "Rebuild design token architecture"
+            assert task_row[14] == 8801
+
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)

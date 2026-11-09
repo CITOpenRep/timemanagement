@@ -86,7 +86,7 @@ Item {
 
         var options = { "recordid": recordId, "isOdooRecordId": isOdooId || false, "isReadOnly": true };
 
-        if (navType === "Activity" || navType === "ProjectUpdate") {
+        if (accountId && accountId > 0) {
             options["accountid"] = accountId;
         }
 

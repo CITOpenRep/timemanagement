@@ -96,6 +96,7 @@ Page {
     property bool isReadOnly: recordid != 0 // Set read-only immediately based on recordid
     property var recordid: 0
     property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
+    property var accountid: 0
     property int project_color: 0
     property var project: {}
     property bool descriptionExpanded: false
@@ -433,16 +434,22 @@ Page {
         // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
         if (isOdooRecordId) {
             // projectId is an odoo_record_id (stable, from notification deep link)
-            project = Project.getProjectDetailsByOdooId(projectId);
+            project = Project.getProjectDetailsByOdooId(projectId, accountid > 0 ? accountid : undefined);
             //console.log("Projects: Loaded by odoo_record_id:", projectId, "found local id:", project ? project.id : "null");
             // Update recordid to local id for subsequent operations
             if (project && project.id) {
                 recordid = project.id;
+                if (accountid === 0 && project.account_id) {
+                    accountid = project.account_id;
+                }
                 isOdooRecordId = false; // Now we have the local id
             }
         } else {
             // projectId is a local id (from normal navigation)
             project = Project.getProjectDetails(projectId);
+            if (accountid === 0 && project && project.account_id) {
+                accountid = project.account_id;
+            }
         }
         if (project && Object.keys(project).length > 0) {
             // Set all fields with project details

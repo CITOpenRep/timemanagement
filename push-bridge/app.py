@@ -593,6 +593,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
     """
     odoo_url = sub_dict["odoo_url"].rstrip("/")
     db = sub_dict["db"]
+    username = sub_dict.get("username", "")
     uid = sub_dict["uid"]
     password = sub_dict["password"]
     token = sub_dict["ubports_token"]
@@ -664,6 +665,16 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
 
                         create_tuple = act.get("create_uid")
                         creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else (create_tuple or uid)
+                        creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else ""
+
+                        deadline_str = act.get("date_deadline") or ""
+                        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                        if deadline_str and deadline_str < today_str:
+                            act_state = "overdue"
+                        elif deadline_str == today_str:
+                            act_state = "today"
+                        else:
+                            act_state = "planned"
 
                         res_model = act.get("res_model") or ""
                         res_id = act.get("res_id") or 0
@@ -712,6 +723,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                             "record_id": act_id,
                             "summary": summary,
                             "due_date": act.get("date_deadline"),
+                            "state": act_state,
                             "res_id": res_id,
                             "res_model": res_model,
                             "res_name": res_name,
@@ -725,9 +737,14 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                             "user_id": assignee_id,
                             "assignee_name": assignee_name,
                             "create_uid": creator_id,
+                            "assigner_name": creator_name,
                             "activity_type_id": act_type_id,
                             "activity_type_name": act_type_name,
-                            "notes": clean_and_truncate_text(act.get("note") or body, 500)
+                            "notes": clean_and_truncate_text(act.get("note") or body, 1000),
+                            "odoo_url": odoo_url,
+                            "db": db,
+                            "username": username,
+                            "account_user_id": uid
                         }
                         if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                             sent_count += 1
@@ -740,7 +757,11 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         max_seen_task_id = last_task_id
         try:
             task_domain = [("user_ids", "in", [uid])]
-            task_fields = ["id", "name", "project_id", "parent_id", "stage_id", "personal_stage_type_id", "date_deadline", "planned_date_start", "planned_date_end", "priority", "description"]
+            task_fields = [
+                "id", "name", "project_id", "parent_id", "stage_id", "personal_stage_type_id",
+                "date_deadline", "planned_date_start", "planned_date_end", "priority",
+                "description", "create_uid", "user_id"
+            ]
             try:
                 tasks = models.execute_kw(
                     db, uid, password,
@@ -777,6 +798,19 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         stage_name = stage_tuple[1] if isinstance(stage_tuple, (list, tuple)) and len(stage_tuple) > 1 else ""
                         hours = float(task.get("allocated_hours") or task.get("planned_hours") or 0.0)
 
+                        parent_tuple = task.get("parent_id")
+                        parent_id = parent_tuple[0] if isinstance(parent_tuple, (list, tuple)) and len(parent_tuple) > 0 else (parent_tuple or -1)
+
+                        personal_tuple = task.get("personal_stage_type_id")
+                        personal_stage_id = personal_tuple[0] if isinstance(personal_tuple, (list, tuple)) and len(personal_tuple) > 0 else (personal_tuple or None)
+
+                        create_tuple = task.get("create_uid")
+                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else None
+                        creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else ""
+
+                        user_tuple = task.get("user_id")
+                        assignee_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
+
                         summary = f"Assigned: {task_name}"
                         body = f"Project: {proj_name}" if proj_name else f"Task #{task_id}"
                         deep_link = f"ubtms://notification?type=Task&id={task_id}&odoo_id=1"
@@ -786,16 +820,26 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                             "name": task_name,
                             "project_id": proj_id,
                             "project_name": proj_name,
+                            "parent_id": parent_id,
                             "stage_id": stage_id,
                             "stage_name": stage_name,
+                            "personal_stage": personal_stage_id,
+                            "personal_stage_type_id": personal_stage_id,
                             "user_id": uid,
+                            "assignee_name": assignee_name,
+                            "create_uid": creator_id,
+                            "assigner_name": creator_name,
                             "deadline": task.get("date_deadline"),
                             "start_date": task.get("planned_date_start"),
                             "end_date": task.get("planned_date_end"),
                             "allocated_hours": hours,
                             "initial_planned_hours": hours,
                             "priority": str(task.get("priority", "0")),
-                            "description": clean_and_truncate_text(task.get("description"), 500)
+                            "description": clean_and_truncate_text(task.get("description"), 1000),
+                            "odoo_url": odoo_url,
+                            "db": db,
+                            "username": username,
+                            "account_user_id": uid
                         }
                         if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                             sent_count += 1
@@ -807,13 +851,29 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         # 3. Poll project.update for new project updates
         max_seen_update_id = last_update_id
         try:
-            update_domain = ["|", ("message_partner_ids", "in", [partner_id]), ("project_id.user_id", "=", uid)] if partner_id else [("user_id", "!=", uid)]
-            updates = models.execute_kw(
-                db, uid, password,
-                "project.update", "search_read",
-                [update_domain],
-                {"fields": ["id", "name", "status", "progress", "project_id", "user_id", "date", "description"], "order": "id desc", "limit": 10}
-            )
+            update_domain = [("id", ">", last_update_id)] if last_update_id > 0 else []
+            try:
+                updates = models.execute_kw(
+                    db, uid, password,
+                    "project.update", "search_read",
+                    [update_domain],
+                    {
+                        "fields": ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"],
+                        "order": "id desc",
+                        "limit": 10
+                    }
+                )
+            except Exception:
+                updates = models.execute_kw(
+                    db, uid, password,
+                    "project.update", "search_read",
+                    [[]],
+                    {
+                        "fields": ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"],
+                        "order": "id desc",
+                        "limit": 10
+                    }
+                )
             for up in updates:
                 update_id = up.get("id", 0)
                 if update_id > last_update_id:
@@ -824,9 +884,17 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         proj_name = project_tuple[1] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 1 else ""
                         status_val = up.get("status") or "on_track"
 
+                        user_tuple = up.get("user_id")
+                        author_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
+                        author_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
+
+                        create_tuple = up.get("create_uid")
+                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else author_id
+                        creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else author_name
+
                         summary = f"Update: {proj_name}" if proj_name else f"Update: {update_name}"
                         body = f"{update_name} ({status_val})"
-                        deep_link = f"ubtms://notification?type=ProjectUpdate&id={update_id}&account_id=0&odoo_id=1"
+                        deep_link = f"ubtms://notification?type=ProjectUpdate&id={update_id}&odoo_id=1"
                         record = {
                             "model": "project.update",
                             "record_id": update_id,
@@ -835,9 +903,16 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                             "project_name": proj_name,
                             "project_status": status_val,
                             "progress": up.get("progress") or 0,
-                            "user_id": uid,
+                            "user_id": author_id,
+                            "user_name": author_name,
+                            "create_uid": creator_id,
+                            "assigner_name": creator_name,
                             "date": up.get("date"),
-                            "description": clean_and_truncate_text(up.get("description"), 500)
+                            "description": clean_and_truncate_text(up.get("description"), 1000),
+                            "odoo_url": odoo_url,
+                            "db": db,
+                            "username": username,
+                            "account_user_id": uid
                         }
                         if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                             sent_count += 1
@@ -850,17 +925,42 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         max_seen_proj_id = last_proj_id
         try:
             proj_domain = ["|", ("user_id", "=", uid), ("message_partner_ids", "in", [partner_id])] if partner_id else [("user_id", "=", uid)]
-            projects = models.execute_kw(
-                db, uid, password,
-                "project.project", "search_read",
-                [proj_domain],
-                {"fields": ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description"], "order": "id desc", "limit": 10}
-            )
+            try:
+                projects = models.execute_kw(
+                    db, uid, password,
+                    "project.project", "search_read",
+                    [proj_domain],
+                    {"fields": ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description", "parent_id", "stage_id", "color", "create_uid"], "order": "id desc", "limit": 10}
+                )
+            except Exception:
+                projects = models.execute_kw(
+                    db, uid, password,
+                    "project.project", "search_read",
+                    [[("user_id", "=", uid)]],
+                    {"fields": ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description"], "order": "id desc", "limit": 10}
+                )
             for p in projects:
                 proj_id = p.get("id", 0)
                 if proj_id > last_proj_id:
                     if last_proj_id != 0:
                         proj_name = p.get("name") or "New Project"
+                        parent_tuple = p.get("parent_id")
+                        parent_id = parent_tuple[0] if isinstance(parent_tuple, (list, tuple)) and len(parent_tuple) > 0 else (parent_tuple or -1)
+
+                        stage_tuple = p.get("stage_id")
+                        stage_id = stage_tuple[0] if isinstance(stage_tuple, (list, tuple)) and len(stage_tuple) > 0 else (stage_tuple or None)
+                        stage_name = stage_tuple[1] if isinstance(stage_tuple, (list, tuple)) and len(stage_tuple) > 1 else ""
+
+                        color_val = p.get("color") or 0
+
+                        user_tuple = p.get("user_id")
+                        manager_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
+                        manager_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
+
+                        create_tuple = p.get("create_uid")
+                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else manager_id
+                        creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else manager_name
+
                         summary = f"Project: {proj_name}"
                         body = "New project available"
                         deep_link = f"ubtms://notification?type=Project&id={proj_id}&odoo_id=1"
@@ -868,11 +968,24 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                             "model": "project.project",
                             "record_id": proj_id,
                             "name": proj_name,
-                            "user_id": uid,
+                            "parent_id": parent_id,
+                            "stage": stage_id,
+                            "stage_id": stage_id,
+                            "stage_name": stage_name,
+                            "color_pallet": str(color_val),
+                            "color": color_val,
+                            "user_id": manager_id,
+                            "manager_name": manager_name,
+                            "create_uid": creator_id,
+                            "assigner_name": creator_name,
                             "start_date": p.get("date_start"),
                             "end_date": p.get("date"),
                             "allocated_hours": float(p.get("allocated_hours") or 0.0),
-                            "description": clean_and_truncate_text(p.get("description"), 500)
+                            "description": clean_and_truncate_text(p.get("description"), 1000),
+                            "odoo_url": odoo_url,
+                            "db": db,
+                            "username": username,
+                            "account_user_id": uid
                         }
                         if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                             sent_count += 1

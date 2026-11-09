@@ -98,6 +98,7 @@ Page {
     }
     property var recordid: 0 //0 means creation mode
     property bool isOdooRecordId: false // If true, recordid is an odoo_record_id, not local id
+    property var accountid: 0
     property int tempAttachmentId: recordid === 0 ? -(Math.floor(Date.now() % 100000000) + 1) : 0
 
     property string currentEditingField: ""
@@ -1067,7 +1068,7 @@ Page {
         if (!isSyncingMissingRecord)
             return;
 
-        var reloaded = Task.getTaskDetailsByOdooId(recordid);
+        var reloaded = Task.getTaskDetailsByOdooId(recordid, accountid > 0 ? accountid : undefined);
         if (reloaded && reloaded.id) {
             isSyncingMissingRecord = false;
             syncFailedForRecord = false;
@@ -1086,10 +1087,13 @@ Page {
             // Use appropriate lookup based on whether recordid is a local id or odoo_record_id
             if (isOdooRecordId) {
                 // recordid is an odoo_record_id (stable, from notification deep link)
-                currentTask = Task.getTaskDetailsByOdooId(recordid);
+                currentTask = Task.getTaskDetailsByOdooId(recordid, accountid > 0 ? accountid : undefined);
                 // Update recordid to local id for subsequent operations
                 if (currentTask && currentTask.id) {
                     recordid = currentTask.id;
+                    if (accountid === 0 && currentTask.account_id) {
+                        accountid = currentTask.account_id;
+                    }
                     isOdooRecordId = false; // Now we have the local id
                     isSyncingMissingRecord = false;
                     syncFailedForRecord = false;
@@ -1101,6 +1105,9 @@ Page {
             } else {
                 // recordid is a local id (from normal navigation)
                 currentTask = Task.getTaskDetails(recordid);
+                if (accountid === 0 && currentTask && currentTask.account_id) {
+                    accountid = currentTask.account_id;
+                }
             }
 
             let instanceId = (currentTask.account_id !== undefined && currentTask.account_id !== null) ? currentTask.account_id : -1;
