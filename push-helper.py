@@ -8,6 +8,8 @@ Handles incoming push notifications and formats them for display.
 import sys
 import json
 import os
+import re
+import urllib.parse
 import sqlite3
 from pathlib import Path
 from datetime import datetime, timezone
@@ -54,8 +56,12 @@ def resolve_account_id(cursor, extra):
         uname = (extra.get("username") or "").strip()
 
         if odoo_url:
-            cursor.execute("SELECT id FROM users WHERE link = ? OR link = ? OR link LIKE ? ORDER BY id ASC LIMIT 1",
-                           (odoo_url, f"{odoo_url}/", f"{odoo_url}%"))
+            clean_host = re.sub(r"^https?://", "", odoo_url).strip("/")
+            cursor.execute("""
+                SELECT id FROM users 
+                WHERE link = ? OR link = ? OR link LIKE ? OR link LIKE ? 
+                ORDER BY id ASC LIMIT 1
+            """, (odoo_url, f"{odoo_url}/", f"{odoo_url}%", f"%{clean_host}%"))
             row = cursor.fetchone()
             if row and row[0] is not None:
                 return int(row[0])
@@ -504,29 +510,32 @@ def pre_populate_record(notif_type, record_id, summary, body, extra_data=None):
                 creator_name = extra.get("create_uid")[1]
 
             # Ensure project placeholder exists
-            if project_id and int(project_id) > 0 and project_name:
-                cursor.execute(
-                    "SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
-                    (int(project_id), account_id)
-                )
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        INSERT INTO project_project_app (
-                            name, account_id, odoo_record_id, last_modified, status, has_draft
-                        ) VALUES (?, ?, ?, ?, '', 0)
-                    """, (str(project_name), account_id, int(project_id), now_str))
+            try:
+                if project_id and int(project_id) > 0 and project_name:
+                    cursor.execute(
+                        "SELECT id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(project_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO project_project_app (
+                                name, account_id, odoo_record_id, last_modified, status, has_draft
+                            ) VALUES (?, ?, ?, ?, '', 0)
+                        """, (str(project_name), account_id, int(project_id), now_str))
 
-            if creator_id and int(creator_id) > 0 and creator_name:
-                cursor.execute(
-                    "SELECT id FROM res_users_app WHERE odoo_record_id = ? AND account_id = ?",
-                    (int(creator_id), account_id)
-                )
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        INSERT INTO res_users_app (
-                            name, account_id, odoo_record_id, status
-                        ) VALUES (?, ?, ?, '')
-                    """, (str(creator_name), account_id, int(creator_id)))
+                if creator_id and int(creator_id) > 0 and creator_name:
+                    cursor.execute(
+                        "SELECT id FROM res_users_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(creator_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO res_users_app (
+                                name, account_id, odoo_record_id, status
+                            ) VALUES (?, ?, ?, '')
+                        """, (str(creator_name), account_id, int(creator_id)))
+            except Exception:
+                pass
 
             cursor.execute(
                 "SELECT id, has_draft FROM project_update_app WHERE odoo_record_id = ? AND account_id = ?",
@@ -615,29 +624,32 @@ def pre_populate_record(notif_type, record_id, summary, body, extra_data=None):
             if not creator_name and isinstance(extra.get("create_uid"), (list, tuple)) and len(extra.get("create_uid")) > 1:
                 creator_name = extra.get("create_uid")[1]
 
-            if stage and int(stage) > 0 and stage_name:
-                cursor.execute(
-                    "SELECT id FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ?",
-                    (int(stage), account_id)
-                )
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        INSERT INTO project_project_stage_app (
-                            name, account_id, odoo_record_id, active
-                        ) VALUES (?, ?, ?, 1)
-                    """, (str(stage_name), account_id, int(stage)))
+            try:
+                if stage and int(stage) > 0 and stage_name:
+                    cursor.execute(
+                        "SELECT id FROM project_project_stage_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(stage), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO project_project_stage_app (
+                                name, account_id, odoo_record_id, active
+                            ) VALUES (?, ?, ?, 1)
+                        """, (str(stage_name), account_id, int(stage)))
 
-            if creator_id and int(creator_id) > 0 and creator_name:
-                cursor.execute(
-                    "SELECT id FROM res_users_app WHERE odoo_record_id = ? AND account_id = ?",
-                    (int(creator_id), account_id)
-                )
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        INSERT INTO res_users_app (
-                            name, account_id, odoo_record_id, status
-                        ) VALUES (?, ?, ?, '')
-                    """, (str(creator_name), account_id, int(creator_id)))
+                if creator_id and int(creator_id) > 0 and creator_name:
+                    cursor.execute(
+                        "SELECT id FROM res_users_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(creator_id), account_id)
+                    )
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                            INSERT INTO res_users_app (
+                                name, account_id, odoo_record_id, status
+                            ) VALUES (?, ?, ?, '')
+                        """, (str(creator_name), account_id, int(creator_id)))
+            except Exception:
+                pass
 
             cursor.execute(
                 "SELECT id, has_draft FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
@@ -1165,6 +1177,8 @@ def process_notification(input_data):
             store_payload["is_odoo_id"] = True
 
         if extra_record:
+            if not extra_record.get("assigner_name"):
+                extra_record["assigner_name"] = extra_record.get("user_name") or extra_record.get("manager_name") or ""
             for k in (
                 "name", "project_name", "project_id", "assigner_name", "assigner_avatar",
                 "due_date", "deadline", "priority", "stage_name", "activity_type_name",
