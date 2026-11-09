@@ -5,8 +5,9 @@ import "../../models/draft_manager.js" as DraftManager
 import "../../models/notifications.js" as Notifications
 import "../../models/logger.js" as Logger
 
-QtObject {
+Item {
     id: startupManager
+    visible: false
 
     property var notifPopup
     property var notificationSystem
