@@ -606,14 +606,16 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
     try:
         models = xmlrpc.client.ServerProxy(f"{odoo_url}/xmlrpc/2/object", allow_none=True)
 
-        # Resolve partner_id for user (needed for follower checks)
+        # Resolve partner_id and user_name (needed for follower checks and assignees)
         partner_id = None
+        user_name = username
         try:
-            u_info = models.execute_kw(db, uid, password, "res.users", "read", [[uid]], {"fields": ["partner_id"]})
+            u_info = models.execute_kw(db, uid, password, "res.users", "read", [[uid]], {"fields": ["partner_id", "name"]})
             if u_info and isinstance(u_info, list) and len(u_info) > 0:
                 p_val = u_info[0].get("partner_id")
                 if isinstance(p_val, (list, tuple)) and len(p_val) > 0:
                     partner_id = p_val[0]
+                user_name = u_info[0].get("name") or username
         except Exception:
             pass
 
@@ -629,7 +631,15 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                     {"order": "id desc", "limit": 100}
                 ) or []
             except Exception:
-                pass
+                try:
+                    user_task_ids = models.execute_kw(
+                        db, uid, password,
+                        "project.task", "search",
+                        [[("user_id", "=", uid)]],
+                        {"order": "id desc", "limit": 100}
+                    ) or []
+                except Exception:
+                    pass
 
             if user_task_ids:
                 act_domain = ["|", ("user_id", "=", uid), "&", ("res_model", "=", "project.task"), ("res_id", "in", user_task_ids)]
@@ -640,12 +650,24 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                 "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "res_model_id", "note",
                 "user_id", "create_uid", "activity_type_id"
             ]
-            activities = models.execute_kw(
-                db, uid, password,
-                "mail.activity", "search_read",
-                [act_domain],
-                {"fields": act_fields, "order": "id desc", "limit": 10}
-            )
+            activities = []
+            try:
+                activities = models.execute_kw(
+                    db, uid, password,
+                    "mail.activity", "search_read",
+                    [act_domain],
+                    {"fields": act_fields, "order": "id desc", "limit": 10}
+                )
+            except Exception:
+                try:
+                    activities = models.execute_kw(
+                        db, uid, password,
+                        "mail.activity", "search_read",
+                        [[("user_id", "=", uid)]],
+                        {"fields": act_fields, "order": "id desc", "limit": 10}
+                    )
+                except Exception:
+                    pass
             for act in activities:
                 act_id = act.get("id", 0)
                 if act_id > last_act_id:
@@ -756,34 +778,80 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         # 2. Poll project.task for newly assigned tasks
         max_seen_task_id = last_task_id
         try:
-            task_domain = [("user_ids", "in", [uid])]
-            task_fields = [
-                "id", "name", "project_id", "parent_id", "stage_id", "personal_stage_type_id",
-                "date_deadline", "planned_date_start", "planned_date_end", "priority",
-                "description", "create_uid", "user_id"
+            task_domain_modern = [("user_ids", "in", [uid])]
+            task_domain_legacy = [("user_id", "=", uid)]
+            task_configs = [
+                # 1. Modern Odoo 17+ (user_ids, allocated_hours, personal_stage_type_id, planned dates)
+                (
+                    task_domain_modern,
+                    [
+                        "id", "name", "project_id", "parent_id", "stage_id", "personal_stage_type_id",
+                        "date_deadline", "planned_date_start", "planned_date_end", "priority",
+                        "description", "create_uid", "user_ids", "allocated_hours"
+                    ]
+                ),
+                # 2. Modern Odoo 15/16 (user_ids, planned_hours, personal_stage_type_id)
+                (
+                    task_domain_modern,
+                    [
+                        "id", "name", "project_id", "parent_id", "stage_id", "personal_stage_type_id",
+                        "date_deadline", "planned_date_start", "planned_date_end", "priority",
+                        "description", "create_uid", "user_ids", "planned_hours"
+                    ]
+                ),
+                # 3. Modern Odoo without planned dates or personal stage
+                (
+                    task_domain_modern,
+                    [
+                        "id", "name", "project_id", "parent_id", "stage_id",
+                        "date_deadline", "priority", "description", "create_uid", "user_ids", "allocated_hours"
+                    ]
+                ),
+                (
+                    task_domain_modern,
+                    [
+                        "id", "name", "project_id", "parent_id", "stage_id",
+                        "date_deadline", "priority", "description", "create_uid", "user_ids"
+                    ]
+                ),
+                # 4. Legacy Odoo 12/13/14 (user_id Many2one, planned_hours)
+                (
+                    task_domain_legacy,
+                    [
+                        "id", "name", "project_id", "parent_id", "stage_id",
+                        "date_deadline", "priority", "description", "create_uid", "user_id", "planned_hours"
+                    ]
+                ),
+                (
+                    task_domain_legacy,
+                    [
+                        "id", "name", "project_id", "parent_id", "stage_id",
+                        "date_deadline", "priority", "description", "create_uid", "user_id"
+                    ]
+                ),
+                # 5. Ultra-safe minimal fallbacks
+                (
+                    task_domain_modern,
+                    ["id", "name", "project_id", "stage_id", "date_deadline", "description", "user_ids"]
+                ),
+                (
+                    task_domain_legacy,
+                    ["id", "name", "project_id", "stage_id", "date_deadline", "description", "user_id"]
+                ),
             ]
-            try:
-                tasks = models.execute_kw(
-                    db, uid, password,
-                    "project.task", "search_read",
-                    [task_domain],
-                    {"fields": task_fields + ["allocated_hours"], "order": "id desc", "limit": 10}
-                )
-            except Exception:
+
+            tasks = []
+            for t_dom, t_fields in task_configs:
                 try:
                     tasks = models.execute_kw(
                         db, uid, password,
                         "project.task", "search_read",
-                        [task_domain],
-                        {"fields": task_fields + ["planned_hours"], "order": "id desc", "limit": 10}
+                        [t_dom],
+                        {"fields": t_fields, "order": "id desc", "limit": 10}
                     )
+                    break
                 except Exception:
-                    tasks = models.execute_kw(
-                        db, uid, password,
-                        "project.task", "search_read",
-                        [[("user_id", "=", uid)]],
-                        {"fields": ["id", "name", "project_id", "stage_id", "date_deadline", "description"], "order": "id desc", "limit": 10}
-                    )
+                    continue
 
             for task in tasks:
                 task_id = task.get("id", 0)
@@ -809,7 +877,12 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else ""
 
                         user_tuple = task.get("user_id")
-                        assignee_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
+                        if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1:
+                            assignee_name = user_tuple[1]
+                        elif user_name:
+                            assignee_name = user_name
+                        else:
+                            assignee_name = username
 
                         summary = f"Assigned: {task_name}"
                         body = f"Project: {proj_name}" if proj_name else f"Task #{task_id}"
@@ -852,28 +925,26 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         max_seen_update_id = last_update_id
         try:
             update_domain = [("id", ">", last_update_id)] if last_update_id > 0 else []
-            try:
-                updates = models.execute_kw(
-                    db, uid, password,
-                    "project.update", "search_read",
-                    [update_domain],
-                    {
-                        "fields": ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"],
-                        "order": "id desc",
-                        "limit": 10
-                    }
-                )
-            except Exception:
-                updates = models.execute_kw(
-                    db, uid, password,
-                    "project.update", "search_read",
-                    [[]],
-                    {
-                        "fields": ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"],
-                        "order": "id desc",
-                        "limit": 10
-                    }
-                )
+            update_configs = [
+                (update_domain, ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
+                (update_domain, ["id", "name", "project_id", "user_id", "date", "description", "create_uid"]),
+                (update_domain, ["id", "name", "project_id", "user_id", "description"]),
+                ([], ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
+                ([], ["id", "name", "project_id", "user_id", "description"]),
+            ]
+            updates = []
+            for u_dom, u_fields in update_configs:
+                try:
+                    updates = models.execute_kw(
+                        db, uid, password,
+                        "project.update", "search_read",
+                        [u_dom],
+                        {"fields": u_fields, "order": "id desc", "limit": 10}
+                    )
+                    break
+                except Exception:
+                    continue
+
             for up in updates:
                 update_id = up.get("id", 0)
                 if update_id > last_update_id:
@@ -925,20 +996,27 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         max_seen_proj_id = last_proj_id
         try:
             proj_domain = ["|", ("user_id", "=", uid), ("message_partner_ids", "in", [partner_id])] if partner_id else [("user_id", "=", uid)]
-            try:
-                projects = models.execute_kw(
-                    db, uid, password,
-                    "project.project", "search_read",
-                    [proj_domain],
-                    {"fields": ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description", "parent_id", "stage_id", "color", "create_uid"], "order": "id desc", "limit": 10}
-                )
-            except Exception:
-                projects = models.execute_kw(
-                    db, uid, password,
-                    "project.project", "search_read",
-                    [[("user_id", "=", uid)]],
-                    {"fields": ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description"], "order": "id desc", "limit": 10}
-                )
+            proj_configs = [
+                (proj_domain, ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description", "parent_id", "stage_id", "color", "create_uid"]),
+                (proj_domain, ["id", "name", "user_id", "date_start", "date", "description", "parent_id", "create_uid"]),
+                (proj_domain, ["id", "name", "user_id", "date_start", "date", "description"]),
+                ([("user_id", "=", uid)], ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description"]),
+                ([("user_id", "=", uid)], ["id", "name", "user_id", "date_start", "date", "description"]),
+                ([], ["id", "name", "user_id", "date_start", "date", "description"]),
+            ]
+            projects = []
+            for p_dom, p_fields in proj_configs:
+                try:
+                    projects = models.execute_kw(
+                        db, uid, password,
+                        "project.project", "search_read",
+                        [p_dom],
+                        {"fields": p_fields, "order": "id desc", "limit": 10}
+                    )
+                    break
+                except Exception:
+                    continue
+
             for p in projects:
                 proj_id = p.get("id", 0)
                 if proj_id > last_proj_id:
