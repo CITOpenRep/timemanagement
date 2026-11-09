@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: ubtms-push-bridge
+    runtime: docker
+    dockerfilePath: push-bridge/Dockerfile
+    dockerContext: push-bridge
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: BRIDGE_DB_PATH
+        value: /app/data/subscriptions.db
+      - key: UBPORTS_PUSH_URL
+        value: https://push.ubports.com/notify
+      - key: UBPORTS_APP_ID
+        value: ubtms_ubtms

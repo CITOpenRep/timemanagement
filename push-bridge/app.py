@@ -38,7 +38,7 @@ DEFAULT_DB_PATH = str(Path(__file__).resolve().parent / "subscriptions.db")
 DB_PATH = os.getenv("BRIDGE_DB_PATH", DEFAULT_DB_PATH)
 UBPORTS_PUSH_URL = os.getenv("UBPORTS_PUSH_URL", "https://push.ubports.com/notify")
 DEFAULT_APP_ID = os.getenv("UBPORTS_APP_ID", "ubtms_ubtms")
-BRIDGE_PUBLIC_URL = os.getenv("BRIDGE_PUBLIC_URL", "")
+BRIDGE_PUBLIC_URL = os.getenv("BRIDGE_PUBLIC_URL") or os.getenv("RENDER_EXTERNAL_URL", "")
 
 MAX_BODY_SIZE = 64 * 1024
 TOKEN_REGEX = re.compile(r"^[a-zA-Z0-9_\-\:\.+=]{1,256}$")

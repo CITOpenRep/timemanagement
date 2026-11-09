@@ -8,7 +8,36 @@ The stack consists of:
 
 ---
 
-## Deployment Option A: Fly.io (Zero DNS, Built-in HTTPS)
+## Deployment Option A: Render.com (100% Free, Zero Card Required)
+
+Render allows deploying web services directly from GitHub without entering a payment card.
+
+### Deploy Steps
+1. Push your repository to GitHub.
+2. Sign up / Log in to [Render.com](https://render.com) using your GitHub account.
+3. Click **New +** -> **Web Service**.
+4. Connect your `timemanagement` repository.
+5. Set:
+   - **Name**: `ubtms-push-bridge`
+   - **Language / Environment**: `Docker`
+   - **Root Directory**: `push-bridge`
+   - **Dockerfile Path**: `Dockerfile`
+   - **Instance Type**: `Free`
+6. Click **Deploy Web Service**.
+7. Once deployed, Render provides a public HTTPS URL: `https://ubtms-push-bridge.onrender.com`.
+
+### Keep Awake 24/7 Setup
+To prevent Render from sleeping after 15 minutes of inactivity:
+1. Create a free account at [UptimeRobot](https://uptimerobot.com).
+2. Add a new monitor:
+   - **Type**: HTTP(s)
+   - **URL**: `https://<your-render-subdomain>.onrender.com/health`
+   - **Interval**: `10 minutes`
+3. Save monitor. This keeps the push bridge and legacy background poller running 24/7 within Render's free 750 hours/month allowance.
+
+---
+
+## Deployment Option B: Fly.io (Zero DNS, Built-in HTTPS)
 
 If you do not own a custom domain, Fly.io provides an automated public HTTPS URL (e.g. `https://<app-name>.fly.dev`) and 3 GB free persistent volume storage for SQLite.
 
@@ -29,7 +58,7 @@ The script automatically:
 
 ---
 
-## Deployment Option B: Oracle Cloud Infrastructure (OCI Always Free)
+## Deployment Option C: Oracle Cloud Infrastructure (OCI Always Free)
 
 Follow these steps to deploy on an Always Free OCI compute instance.
 
