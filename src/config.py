@@ -84,7 +84,7 @@ def get_setting(db_path, key, default=None):
         conn.close()
         if row:
             val = row[0]
-            if key == "push_bridge_url" and "ngrok" in (val or ""):
+            if key == "push_bridge_url" and (not val or "ngrok" in val or "fly.dev" in val):
                 val = DEFAULT_SETTINGS["push_bridge_url"]
                 try:
                     conn2 = sqlite3.connect(db_path)

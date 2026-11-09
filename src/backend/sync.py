@@ -57,9 +57,9 @@ def sync(settings_db, account_id):
     # Automatically register device push token with Odoo (native or legacy bridge)
     push_token = get_setting(settings_db, "push_token", "")
     if push_token:
-        bridge_url = get_setting(settings_db, "push_bridge_url", "")
+        bridge_url = get_setting(settings_db, "push_bridge_url") or "https://ubtms-push-bridge.onrender.com"
         try:
-            reg_res = client.register_push_device(push_token, bridge_url=bridge_url or None)
+            reg_res = client.register_push_device(push_token, bridge_url=bridge_url)
             if isinstance(reg_res, dict):
                 mode = reg_res.get("mode", "none")
                 set_setting(settings_db, f"push_mode_{account_id}", mode)
@@ -176,7 +176,7 @@ def save_push_token(settings_db=None, token=""):
     set_setting(settings_db, "push_token", token)
     log.info(f"[PUSH] Saved push token to settings: {token[:8]}...")
 
-    bridge_url = get_setting(settings_db, "push_bridge_url", "")
+    bridge_url = get_setting(settings_db, "push_bridge_url") or "https://ubtms-push-bridge.onrender.com"
     try:
         accounts = get_all_accounts(settings_db)
         for acc in accounts:
@@ -188,7 +188,7 @@ def save_push_token(settings_db=None, token=""):
                         acc["username"],
                         acc["api_key"]
                     )
-                    reg_res = c.register_push_device(token, bridge_url=bridge_url or None)
+                    reg_res = c.register_push_device(token, bridge_url=bridge_url)
                     if isinstance(reg_res, dict):
                         mode = reg_res.get("mode", "none")
                         set_setting(settings_db, f"push_mode_{acc['id']}", mode)
