@@ -119,6 +119,20 @@ def sync_background(settings_db, account_id):
                 selected["username"],
                 selected["api_key"],
             )
+
+            # Automatically register device push token with Odoo (native or legacy bridge)
+            push_token = get_setting(settings_db, "push_token", "")
+            if push_token:
+                bridge_url = get_setting(settings_db, "push_bridge_url") or "https://ubtms-push-bridge.onrender.com"
+                try:
+                    reg_res = client.register_push_device(push_token, bridge_url=bridge_url)
+                    if isinstance(reg_res, dict):
+                        mode = reg_res.get("mode", "none")
+                        set_setting(settings_db, f"push_mode_{account_id}", mode)
+                        set_setting(settings_db, "push_mode", mode)
+                except Exception as e:
+                    log.debug(f"[PUSH] Push device registration skipped: {e}")
+
             send("sync_progress", 30)
             log.debug("Syncing from odoo: ID Is " + selected["link"])
             sync_all_from_odoo(client, account_id, settings_db, account_name=selected.get("name", ""))

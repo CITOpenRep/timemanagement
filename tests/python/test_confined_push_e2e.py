@@ -1031,3 +1031,197 @@ def test_notification_payload_contains_all_required_fields_and_account_id():
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def test_new_user_with_zero_initial_items_receives_subsequent_notification():
+    """
+    Verify that a brand new user who initially has 0 tasks/activities receives
+    notifications when their first task arrives (not dropped as a false baseline).
+    """
+    test_token = "ubports_token_new_user_zero_items"
+
+    reg_payload = {
+        "ubports_token": test_token,
+        "odoo_url": "https://odoo-new.example.com",
+        "db": "db_new",
+        "username": "newbie",
+        "password": "secret",
+        "uid": 55,
+        "poll_interval": 300
+    }
+    reg_res = bridge_client.post("/v1/legacy/register", json=reg_payload)
+    assert reg_res.status_code == 200
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Initial poll: new user has 0 items
+        mock_models.execute_kw.return_value = []
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+        assert poll_res.json()["notifications_sent"] == 0
+
+        # Second poll: first task ever is assigned to user
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "project.task" and method == "search_read":
+                return [{
+                    "id": 105,
+                    "name": "First Onboarding Task",
+                    "project_id": [10, "Onboarding"],
+                    "stage_id": [1, "New"],
+                    "user_ids": [55],
+                    "date_deadline": "2026-11-15",
+                    "description": "Welcome to the team",
+                    "create_uid": [1, "Admin"]
+                }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res2 = bridge_client.post("/v1/legacy/poll")
+        assert poll_res2.status_code == 200
+        assert poll_res2.json()["notifications_sent"] >= 1
+
+        sent_payload = mock_ubports_post.call_args.kwargs["json"]
+        assert sent_payload["token"] == test_token
+        assert sent_payload["data"]["notification"]["card"]["summary"] == "Assigned: First Onboarding Task"
+
+
+def test_multi_user_account_resolution_on_same_odoo_server():
+    """
+    Verify that when multiple users share the same Odoo server URL,
+    incoming notifications are routed to the specific target user account.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp_db:
+        tmp_db_path = tmp_db.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                link TEXT,
+                database TEXT,
+                username TEXT,
+                is_default INTEGER DEFAULT 0
+            )
+        """)
+        # Account 1: Alice on server
+        cur.execute("INSERT INTO users (id, name, link, database, username, is_default) VALUES (1, 'Alice', 'https://odoo.corp.com', 'corp_db', 'alice@corp.com', 1)")
+        # Account 2: Bob on same server
+        cur.execute("INSERT INTO users (id, name, link, database, username, is_default) VALUES (2, 'Bob', 'https://odoo.corp.com', 'corp_db', 'bob@corp.com', 0)")
+
+        cur.execute("""
+            CREATE TABLE notification (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                timestamp TEXT,
+                message TEXT,
+                type TEXT,
+                payload TEXT,
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
+            )
+        """)
+        cur.execute("CREATE TABLE project_task_app (id INTEGER PRIMARY KEY, name TEXT, account_id INTEGER, odoo_record_id INTEGER, description TEXT, status TEXT, has_draft INTEGER)")
+        cur.execute("CREATE TABLE project_project_app (id INTEGER PRIMARY KEY, name TEXT, account_id INTEGER, odoo_record_id INTEGER, status TEXT, has_draft INTEGER)")
+        cur.execute("CREATE TABLE project_task_type_app (id INTEGER PRIMARY KEY, name TEXT, account_id INTEGER, odoo_record_id INTEGER)")
+        cur.execute("CREATE TABLE res_users_app (id INTEGER PRIMARY KEY, name TEXT, account_id INTEGER, odoo_record_id INTEGER, status TEXT)")
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            # Incoming push for Bob
+            push_input = {
+                "notification": {
+                    "card": {
+                        "summary": "Assigned: Bob Task",
+                        "body": "Project: Corp Project"
+                    }
+                },
+                "data": {
+                    "record": {
+                        "model": "project.task",
+                        "record_id": 9901,
+                        "name": "Bob Task",
+                        "odoo_url": "https://odoo.corp.com",
+                        "db": "corp_db",
+                        "username": "bob@corp.com",
+                        "account_user_id": 44
+                    }
+                }
+            }
+
+            push_helper_mod.process_notification(json.dumps(push_input))
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT account_id FROM notification WHERE type = 'Task'")
+            row = cur.fetchone()
+            assert row is not None
+            # Must resolve to Bob (id=2), not Alice (id=1)
+            assert row[0] == 2
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
+def test_sync_background_registers_push_device():
+    """
+    Verify that background sync automatically registers push token with Odoo.
+    """
+    from backend.sync import sync_background
+    import time
+
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp_db:
+        tmp_db_path = tmp_db.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                link TEXT,
+                database TEXT,
+                username TEXT,
+                api_key TEXT,
+                sync_interval_minutes INTEGER DEFAULT 15,
+                sync_direction TEXT DEFAULT 'both',
+                autosync_enabled INTEGER DEFAULT 1,
+                last_synced_at TEXT
+            )
+        """)
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (1, 'Main', 'https://odoo.example.com', 'db1', 'user1', 'key1')")
+        cur.execute("""
+            CREATE TABLE app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        cur.execute("INSERT INTO app_settings (key, value) VALUES ('push_token', 'test_token_12345')")
+        cur.execute("INSERT INTO app_settings (key, value) VALUES ('push_bridge_url', 'https://bridge.test')")
+        conn.commit()
+        conn.close()
+
+        with patch("odoo_client.OdooClient._login", return_value=1), \
+             patch("odoo_client.OdooClient._get_model_proxy"), \
+             patch("odoo_client.OdooClient.register_push_device", return_value={"mode": "legacy_bridge", "success": True}) as mock_reg, \
+             patch("backend.sync.sync_all_from_odoo"), \
+             patch("backend.sync.sync_all_to_odoo"):
+
+            sync_background(tmp_db_path, 1)
+            # Give background thread time to execute
+            time.sleep(0.3)
+
+            assert mock_reg.called
+            assert mock_reg.call_args.args[0] == "test_token_12345"
+            assert get_push_mode(tmp_db_path, 1) == "legacy_bridge"
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)

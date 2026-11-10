@@ -358,6 +358,10 @@ class OdooClient:
                 "https://ubtms-push-bridge.onrender.com"
             )
 
+        if not self.uid or not isinstance(self.uid, int) or self.uid <= 0:
+            logging.info(f"[PUSH] Cannot register push device: invalid UID {self.uid}")
+            return {"mode": "none", "success": False}
+
         major_version = self.get_server_major_version()
         logging.info(f"[PUSH] Target Odoo major version: {major_version}")
 

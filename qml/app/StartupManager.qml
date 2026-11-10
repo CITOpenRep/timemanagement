@@ -55,20 +55,21 @@ Item {
     }
 
     function initializePushNotifications(backendBridge) {
-        if (!notificationSystem || typeof notificationSystem.get_push_token !== "function")
+        if (!backendBridge)
             return;
 
         try {
-            var token = notificationSystem.get_push_token();
+            var token = (notificationSystem && typeof notificationSystem.get_push_token === "function") ? notificationSystem.get_push_token() : "";
             if (token && token.length > 0) {
                 Logger.info("StartupManager", "Push token obtained, registering with backend: " + token.substring(0, 8) + "...");
-                if (backendBridge) {
-                    backendBridge.call("backend.save_push_token", [token], function (res) {
-                        Logger.info("StartupManager", "Push token registered with backend: " + res);
-                    });
-                }
+                backendBridge.call("backend.save_push_token", [token], function (res) {
+                    Logger.info("StartupManager", "Push token registered with backend: " + res);
+                });
             } else {
-                Logger.debug("StartupManager", "No push token returned by push service, scheduling retry");
+                Logger.debug("StartupManager", "No immediate push token returned, registering with saved settings fallback");
+                backendBridge.call("backend.save_push_token", [""], function (res) {
+                    Logger.info("StartupManager", "Push registration fallback with saved settings: " + res);
+                });
                 if (pushRetryCount < 3) {
                     pushRetryTimer.start();
                 }

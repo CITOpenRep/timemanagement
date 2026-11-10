@@ -601,6 +601,10 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
     last_task_id = sub_dict.get("last_task_id") or 0
     last_proj_id = sub_dict.get("last_project_id") or 0
     last_update_id = sub_dict.get("last_project_update_id") or 0
+    last_polled_at = sub_dict.get("last_polled_at")
+
+    has_prior_history = (last_act_id > 0 or last_task_id > 0 or last_proj_id > 0 or last_update_id > 0)
+    is_first_poll = (last_polled_at is None) and not has_prior_history
 
     sent_count = 0
     try:
@@ -671,7 +675,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for act in activities:
                 act_id = act.get("id", 0)
                 if act_id > last_act_id:
-                    if last_act_id != 0:
+                    if not is_first_poll:
                         summary = act.get("summary") or "Odoo Activity"
                         res_name = act.get("res_name") or ""
                         body = f"Due: {act.get('date_deadline') or 'Today'} - {res_name}"
@@ -856,7 +860,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for task in tasks:
                 task_id = task.get("id", 0)
                 if task_id > last_task_id:
-                    if last_task_id != 0:
+                    if not is_first_poll:
                         task_name = task.get("name") or "New Task"
                         project_tuple = task.get("project_id")
                         proj_id = project_tuple[0] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 0 else (project_tuple or -1)
@@ -948,7 +952,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for up in updates:
                 update_id = up.get("id", 0)
                 if update_id > last_update_id:
-                    if last_update_id != 0:
+                    if not is_first_poll:
                         update_name = up.get("name") or "Project Update"
                         project_tuple = up.get("project_id")
                         proj_id = project_tuple[0] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 0 else (project_tuple or -1)
@@ -1020,7 +1024,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for p in projects:
                 proj_id = p.get("id", 0)
                 if proj_id > last_proj_id:
-                    if last_proj_id != 0:
+                    if not is_first_poll:
                         proj_name = p.get("name") or "New Project"
                         parent_tuple = p.get("parent_id")
                         parent_id = parent_tuple[0] if isinstance(parent_tuple, (list, tuple)) and len(parent_tuple) > 0 else (parent_tuple or -1)
@@ -1199,7 +1203,7 @@ def trigger_legacy_poll():
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT id, ubports_token, odoo_url, db, username, password, uid, last_activity_id, last_task_id, last_project_id, last_project_update_id
+        SELECT id, ubports_token, odoo_url, db, username, password, uid, last_activity_id, last_task_id, last_project_id, last_project_update_id, last_polled_at
         FROM legacy_subscriptions
         WHERE is_active = 1
         """
@@ -1222,7 +1226,8 @@ def trigger_legacy_poll():
             "last_activity_id": r[7],
             "last_task_id": r[8] if len(r) > 8 else 0,
             "last_project_id": r[9] if len(r) > 9 else 0,
-            "last_project_update_id": r[10] if len(r) > 10 else 0
+            "last_project_update_id": r[10] if len(r) > 10 else 0,
+            "last_polled_at": r[11] if len(r) > 11 else None
         }
         total_notifications += poll_single_legacy_subscription(r[0], sub_dict)
 

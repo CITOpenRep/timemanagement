@@ -40,11 +40,13 @@ def resolve_account_id(cursor, extra):
     """
     Resolve target account ID in SQLite users table using:
     1. Direct account_id if already present.
-    2. odoo_url matching link column.
+    2. odoo_url and username (and database) matching users table.
     3. database and username matching users table.
-    4. Default remote account (is_default = 1 and id > 0).
-    5. First remote account (id > 0).
-    6. Fallback to 1.
+    4. username matching users table.
+    5. odoo_url matching link column.
+    6. Default remote account (is_default = 1 and id > 0).
+    7. First remote account (id > 0).
+    8. Fallback to 1.
     """
     if isinstance(extra, dict):
         account_id = extra.get("account_id")
@@ -55,13 +57,26 @@ def resolve_account_id(cursor, extra):
         db_name = (extra.get("db") or "").strip()
         uname = (extra.get("username") or "").strip()
 
-        if odoo_url:
+        # Prioritize URL + username combination to distinguish multiple users on the same server
+        if odoo_url and uname:
             clean_host = re.sub(r"^https?://", "", odoo_url).strip("/")
+            if db_name:
+                cursor.execute("""
+                    SELECT id FROM users 
+                    WHERE (link = ? OR link = ? OR link LIKE ? OR link LIKE ?)
+                      AND database = ? AND username = ?
+                    ORDER BY id ASC LIMIT 1
+                """, (odoo_url, f"{odoo_url}/", f"{odoo_url}%", f"%{clean_host}%", db_name, uname))
+                row = cursor.fetchone()
+                if row and row[0] is not None:
+                    return int(row[0])
+
             cursor.execute("""
                 SELECT id FROM users 
-                WHERE link = ? OR link = ? OR link LIKE ? OR link LIKE ? 
+                WHERE (link = ? OR link = ? OR link LIKE ? OR link LIKE ?)
+                  AND username = ?
                 ORDER BY id ASC LIMIT 1
-            """, (odoo_url, f"{odoo_url}/", f"{odoo_url}%", f"%{clean_host}%"))
+            """, (odoo_url, f"{odoo_url}/", f"{odoo_url}%", f"%{clean_host}%", uname))
             row = cursor.fetchone()
             if row and row[0] is not None:
                 return int(row[0])
@@ -69,6 +84,24 @@ def resolve_account_id(cursor, extra):
         if db_name and uname:
             cursor.execute("SELECT id FROM users WHERE database = ? AND username = ? ORDER BY id ASC LIMIT 1",
                            (db_name, uname))
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                return int(row[0])
+
+        if uname:
+            cursor.execute("SELECT id FROM users WHERE username = ? AND id > 0 ORDER BY id ASC LIMIT 1",
+                           (uname,))
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                return int(row[0])
+
+        if odoo_url:
+            clean_host = re.sub(r"^https?://", "", odoo_url).strip("/")
+            cursor.execute("""
+                SELECT id FROM users 
+                WHERE (link = ? OR link = ? OR link LIKE ? OR link LIKE ?) AND id > 0
+                ORDER BY id ASC LIMIT 1
+            """, (odoo_url, f"{odoo_url}/", f"{odoo_url}%", f"%{clean_host}%"))
             row = cursor.fetchone()
             if row and row[0] is not None:
                 return int(row[0])
