@@ -11,6 +11,7 @@ import struct
 import sqlite3
 import logging
 import re
+from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
 from pathlib import Path
 
@@ -32,7 +33,17 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("push-bridge")
 
-app = FastAPI(title="ubtms-push-bridge", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import threading
+    t = threading.Thread(target=background_poll_worker, daemon=True)
+    t.start()
+    logger.info("Started background legacy polling worker (interval=15s)")
+    yield
+
+
+app = FastAPI(title="ubtms-push-bridge", version="1.0.0", lifespan=lifespan)
 
 DEFAULT_DB_PATH = str(Path(__file__).resolve().parent / "subscriptions.db")
 DB_PATH = os.getenv("BRIDGE_DB_PATH", DEFAULT_DB_PATH)
@@ -430,6 +441,28 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
     if isinstance(extra_data, dict):
         record_data.update(extra_data)
 
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT odoo_url, db, username, uid FROM legacy_subscriptions WHERE ubports_token = ? AND is_active = 1 LIMIT 1",
+            (ubports_token,)
+        )
+        sub_row = cursor.fetchone()
+        if conn is not _mem_conn:
+            conn.close()
+        if sub_row:
+            record_data.setdefault("odoo_url", sub_row[0])
+            record_data.setdefault("db", sub_row[1])
+            record_data.setdefault("username", sub_row[2])
+            record_data.setdefault("account_user_id", sub_row[3])
+    except Exception as e:
+        logger.debug("Could not enrich relay record with subscription: %s", e)
+
+    if res_id and is_recent_duplicate(ubports_token, str(record_data.get("model", "unknown")), int(res_id)):
+        logger.info("Deduplication: skipped already-dispatched %s #%s via relay to token %s...", record_data.get("model"), res_id, ubports_token[:8])
+        return Response(status_code=status.HTTP_200_OK)
+
     # Format payload for UBports Push Server
     expire_on = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
     ubports_payload = {
@@ -625,33 +658,10 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         except Exception:
             pass
 
-        # 1. Poll mail.activity for newly assigned activities or activities on user's tasks
+        # 1. Poll mail.activity for newly assigned activities strictly assigned to this user
         max_seen_act_id = last_act_id
         try:
-            user_task_ids = []
-            try:
-                user_task_ids = models.execute_kw(
-                    db, uid, password,
-                    "project.task", "search",
-                    [[("user_ids", "in", [uid])]],
-                    {"order": "id desc", "limit": 100}
-                ) or []
-            except Exception:
-                try:
-                    user_task_ids = models.execute_kw(
-                        db, uid, password,
-                        "project.task", "search",
-                        [[("user_id", "=", uid)]],
-                        {"order": "id desc", "limit": 100}
-                    ) or []
-                except Exception:
-                    pass
-
-            if user_task_ids:
-                act_domain = ["|", ("user_id", "=", uid), "&", ("res_model", "=", "project.task"), ("res_id", "in", user_task_ids)]
-            else:
-                act_domain = [("user_id", "=", uid)]
-
+            act_domain = [("id", ">", last_act_id), ("user_id", "=", uid)] if last_act_id > 0 else [("user_id", "=", uid)]
             act_fields = [
                 "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "res_model_id", "note",
                 "user_id", "create_uid", "activity_type_id"
@@ -677,6 +687,12 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for act in activities:
                 act_id = act.get("id", 0)
                 if act_id > last_act_id:
+                    user_tuple = act.get("user_id")
+                    assignee_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
+                    if assignee_id != uid:
+                        logger.info("Privacy filter: skipped activity %d assigned to UID %s (polled for UID %d)", act_id, assignee_id, uid)
+                        continue
+
                     if not is_first_poll:
                         summary = act.get("summary") or "Odoo Activity"
                         res_name = act.get("res_name") or ""
@@ -862,6 +878,20 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for task in tasks:
                 task_id = task.get("id", 0)
                 if task_id > last_task_id:
+                    task_uids = []
+                    if "user_ids" in task and isinstance(task["user_ids"], (list, tuple)):
+                        task_uids = [u for u in task["user_ids"] if isinstance(u, int)]
+                    elif "user_id" in task:
+                        u_val = task.get("user_id")
+                        if isinstance(u_val, (list, tuple)) and len(u_val) > 0:
+                            task_uids = [u_val[0]]
+                        elif isinstance(u_val, int):
+                            task_uids = [u_val]
+
+                    if task_uids and uid not in task_uids:
+                        logger.info("Privacy filter: skipped task %d assigned to %s (polled for UID %d)", task_id, task_uids, uid)
+                        continue
+
                     if not is_first_poll:
                         task_name = task.get("name") or "New Task"
                         project_tuple = task.get("project_id")
@@ -930,13 +960,28 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         # 3. Poll project.update for new project updates
         max_seen_update_id = last_update_id
         try:
-            update_domain = [("id", ">", last_update_id)] if last_update_id > 0 else []
+            if partner_id:
+                update_domain = [
+                    "|",
+                    ("project_id.user_id", "=", uid),
+                    ("project_id.message_partner_ids", "in", [partner_id])
+                ]
+            else:
+                update_domain = [("project_id.user_id", "=", uid)]
+
+            if last_update_id > 0:
+                update_domain = [("id", ">", last_update_id)] + update_domain
+
+            fallback_update_domain = [("id", ">", last_update_id), ("project_id.user_id", "=", uid)] if last_update_id > 0 else [("project_id.user_id", "=", uid)]
+
             update_configs = [
                 (update_domain, ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
                 (update_domain, ["id", "name", "project_id", "user_id", "date", "description", "create_uid"]),
                 (update_domain, ["id", "name", "project_id", "user_id", "description"]),
                 (update_domain, ["id", "name", "project_id", "description"]),
                 (update_domain, ["id", "name"]),
+                (fallback_update_domain, ["id", "name", "project_id", "user_id", "description"]),
+                (fallback_update_domain, ["id", "name"]),
             ]
             updates = []
             for u_dom, u_fields in update_configs:
@@ -1008,7 +1053,6 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                 (proj_domain, ["id", "name", "user_id", "date_start", "date", "description"]),
                 ([("user_id", "=", uid)], ["id", "name", "user_id", "date_start", "date", "allocated_hours", "description"]),
                 ([("user_id", "=", uid)], ["id", "name", "user_id", "date_start", "date", "description"]),
-                ([], ["id", "name", "user_id", "date_start", "date", "description"]),
             ]
             projects = []
             for p_dom, p_fields in proj_configs:
@@ -1286,11 +1330,4 @@ def background_poll_worker():
         except Exception as e:
             logger.error("Background poll error: %s", e)
 
-
-@app.on_event("startup")
-def start_poll_worker():
-    import threading
-    t = threading.Thread(target=background_poll_worker, daemon=True)
-    t.start()
-    logger.info("Started background legacy polling worker (interval=15s)")
 

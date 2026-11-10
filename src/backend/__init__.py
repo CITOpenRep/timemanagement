@@ -68,6 +68,7 @@ from .sync import (
     sync_background,
     sync_in_progress,
     sync_lock,
+    unregister_account_push,
 )
 from .voice import (
     cancel_voice_model_download,
@@ -114,6 +115,7 @@ __all__ = [
     # Sync
     "get_push_mode",
     "save_push_token",
+    "unregister_account_push",
     "sync",
     "sync_background",
     "start_sync_in_background",

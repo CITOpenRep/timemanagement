@@ -120,15 +120,35 @@ Page {
                 onClicked: {
                     if (accountToDelete !== -1) {
                         var deletedId = accountToDelete;
+                        var deletedAccountData = null;
+                        try {
+                            var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
+                            db.readTransaction(function (tx) {
+                                var res = tx.executeSql("SELECT id, link, database, username, api_key FROM users WHERE id = ?", [deletedId]);
+                                if (res.rows.length > 0) {
+                                    deletedAccountData = {
+                                        id: res.rows.item(0).id,
+                                        link: res.rows.item(0).link,
+                                        database: res.rows.item(0).database,
+                                        username: res.rows.item(0).username,
+                                        api_key: res.rows.item(0).api_key
+                                    };
+                                }
+                            });
+                        } catch (e) {}
+
                         Accounts.deleteAccountAndRelatedData(deletedId);
                         if (accountIndexToDelete !== -1) {
                             accountListModel.remove(accountIndexToDelete);
                         }
 
-                        // Cleanup orphan attachment files from disk
+                        // Cleanup orphan attachment files and unregister push for deleted account
                         if (typeof backend_bridge !== "undefined" && backend_bridge) {
                             backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                                 if (path) {
+                                    if (deletedAccountData) {
+                                        backend_bridge.call("backend.unregister_account_push", [path, deletedId, deletedAccountData], function (res) {});
+                                    }
                                     backend_bridge.call("backend.cleanup_orphan_attachment_files", [path], function (res) {
                                         // Cleanup completed
                                     });

@@ -22,6 +22,8 @@
 # SOFTWARE.
 
 import threading
+import json
+import urllib.request
 
 from bus import send
 from common import write_sync_report_to_db
@@ -271,3 +273,62 @@ def get_push_mode(settings_db=None, account_id=-1):
             return mode
 
     return get_setting(settings_db, "push_mode", "none")
+
+
+def unregister_account_push(settings_db=None, account_id=-1, account_data=None):
+    """
+    Unregister an account from push bridge and clear push mode settings.
+    """
+    if not settings_db:
+        from .storage import resolve_qml_db_path
+        settings_db = resolve_qml_db_path("ubtms") or "app_settings.db"
+
+    token = get_setting(settings_db, "push_token", "")
+    bridge_url = get_setting(settings_db, "push_bridge_url") or "https://ubtms-push-bridge.onrender.com"
+
+    acc = account_data
+    if not acc and account_id > 0:
+        try:
+            accounts = get_all_accounts(settings_db)
+            for a in accounts:
+                if a.get("id") == account_id:
+                    acc = a
+                    break
+        except Exception:
+            pass
+
+    if not acc or not token:
+        if account_id > 0:
+            set_setting(settings_db, f"push_mode_{account_id}", "none")
+        return False
+
+    link = acc.get("link")
+    database = acc.get("database")
+    username = acc.get("username")
+    api_key = acc.get("api_key")
+
+    if link and database and username and api_key:
+        try:
+            import urllib.request
+            c = OdooClient(link, database, username, api_key)
+            unreg_url = f"{bridge_url.rstrip('/')}/v1/legacy/unregister"
+            payload = json.dumps({
+                "ubports_token": token,
+                "odoo_url": c.url,
+                "db": c.db,
+                "uid": c.uid
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                unreg_url,
+                data=payload,
+                headers={"Content-Type": "application/json", "User-Agent": "ubtms/1.3.4"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                log.info(f"[PUSH] Unregistered account {account_id} (UID {c.uid}) from bridge: {resp.status}")
+        except Exception as e:
+            log.debug(f"[PUSH] Bridge unregister attempt failed for account {account_id}: {e}")
+
+    if account_id > 0:
+        set_setting(settings_db, f"push_mode_{account_id}", "none")
+    return True
+

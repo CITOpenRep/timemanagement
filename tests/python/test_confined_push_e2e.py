@@ -40,7 +40,7 @@ push_helper_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(push_helper_mod)
 
 from odoo_client import OdooClient
-from backend.sync import save_push_token, get_push_mode
+from backend.sync import save_push_token, get_push_mode, unregister_account_push
 from config import set_setting, get_setting
 
 
@@ -1392,3 +1392,245 @@ def test_odoo18_registers_poller_and_delivers_project_updates():
         assert "ubtms://notification?type=ProjectUpdate&id=83&odoo_id=1" in card["actions"]
         assert sent_payload["data"]["record"]["model"] == "project.update"
         assert sent_payload["data"]["record"]["record_id"] == 83
+
+
+def test_privacy_activity_recipient_isolation():
+    """
+    Verify that an activity assigned to User B is NEVER sent to User A,
+    even if User A created it or is assigned to the underlying task.
+    """
+    token_a = "ubports_token_user_a_privacy"
+    token_b = "ubports_token_user_b_privacy"
+
+    # Register User A (UID 177) and User B (UID 248)
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_a,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "suraj",
+        "password": "key",
+        "uid": 177,
+        "poll_interval": 300
+    })
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_b,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "parvathy",
+        "password": "key",
+        "uid": 248,
+        "poll_interval": 300
+    })
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Initial poll to establish baseline watermarks
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        # New activity 474 created: assigned to User B (248), created by User A (177)
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "mail.activity" and method == "search_read":
+                # Only return if the domain query targets user 248
+                dom = args[0] if args else []
+                for term in dom:
+                    if isinstance(term, (list, tuple)) and term[0] == "user_id":
+                        if term[2] == 248:
+                            return [{
+                                "id": 474,
+                                "summary": "Test activity for Paru - 01",
+                                "date_deadline": "2026-11-15",
+                                "res_name": "Task 1547",
+                                "res_model": "project.task",
+                                "res_id": 1547,
+                                "user_id": [248, "Parvathy Nair"],
+                                "create_uid": [177, "Suraj Yadav"],
+                                "activity_type_id": [1, "To Do"]
+                            }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+
+        # Check all calls to push server
+        sent_tokens = [call.kwargs["json"]["token"] for call in mock_ubports_post.call_args_list]
+        # User B must receive it
+        assert token_b in sent_tokens
+        # User A must NOT receive it
+        assert token_a not in sent_tokens
+
+
+def test_privacy_task_recipient_isolation():
+    """
+    Verify that a task assigned solely to User B is NEVER dispatched to User A.
+    """
+    token_a = "ubports_token_task_iso_a"
+    token_b = "ubports_token_task_iso_b"
+
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_a,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "suraj",
+        "password": "key",
+        "uid": 177,
+        "poll_interval": 300
+    })
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_b,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "parvathy",
+        "password": "key",
+        "uid": 248,
+        "poll_interval": 300
+    })
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Baseline
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        # New task 1549 arrives: assigned to User B (248) only
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "project.task" and method == "search_read":
+                dom = args[0] if args else []
+                # If queried for uid 248
+                for term in dom:
+                    if isinstance(term, (list, tuple)) and term[0] in ("user_ids", "user_id"):
+                        u_target = term[2] if isinstance(term[2], int) else (term[2][0] if isinstance(term[2], list) else None)
+                        if u_target == 248:
+                            return [{
+                                "id": 1549,
+                                "name": "New Task for Paru - 01",
+                                "project_id": [10, "Core"],
+                                "stage_id": [1, "New"],
+                                "user_ids": [248],
+                                "date_deadline": "2026-11-20",
+                                "create_uid": [177, "Suraj Yadav"]
+                            }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+
+        sent_tokens = [call.kwargs["json"]["token"] for call in mock_ubports_post.call_args_list]
+        assert token_b in sent_tokens
+        assert token_a not in sent_tokens
+
+
+def test_privacy_project_update_recipient_isolation():
+    """
+    Verify that a project update is only dispatched to users who follow or manage that project.
+    """
+    token_mgr = "ubports_token_proj_mgr"
+    token_stranger = "ubports_token_proj_stranger"
+
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_mgr,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "manager",
+        "password": "key",
+        "uid": 100,
+        "poll_interval": 300
+    })
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_stranger,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "stranger",
+        "password": "key",
+        "uid": 200,
+        "poll_interval": 300
+    })
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Baseline
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        # Project update for Project 88 (manager is UID 100)
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "res.users" and method == "read":
+                return [{"partner_id": [uid + 10, f"User {uid}"], "name": f"User {uid}"}]
+            if model == "project.update" and method == "search_read":
+                dom = args[0] if args else []
+                # Check if this subscriber matches project 88
+                is_mgr = any(isinstance(t, (list, tuple)) and t[0] == "project_id.user_id" and t[2] == 100 for t in dom)
+                if is_mgr:
+                    return [{
+                        "id": 90,
+                        "name": "Sprint 3 Done",
+                        "status": "on_track",
+                        "progress": 80,
+                        "project_id": [88, "Secret Project"],
+                        "user_id": [100, "Manager"],
+                        "date": "2026-11-10",
+                        "create_uid": [100, "Manager"]
+                    }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+
+        sent_tokens = [call.kwargs["json"]["token"] for call in mock_ubports_post.call_args_list]
+        assert token_mgr in sent_tokens
+        assert token_stranger not in sent_tokens
+
+
+def test_unregister_account_push_flow():
+    """
+    Verify that unregister_account_push sends unregister request to bridge and updates settings.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp_db:
+        tmp_db_path = tmp_db.name
+
+    try:
+        set_setting(tmp_db_path, "push_token", "test_device_token_unreg")
+        set_setting(tmp_db_path, "push_mode_1", "legacy_bridge")
+        set_setting(tmp_db_path, "push_bridge_url", "https://bridge.local")
+
+        acc_data = {
+            "id": 1,
+            "link": "https://odoo.corp.com",
+            "database": "corp_db",
+            "username": "user",
+            "api_key": "pass"
+        }
+
+        with patch.object(OdooClient, "_login", return_value=55), \
+             patch("urllib.request.urlopen") as mock_urlopen:
+            mock_resp = MagicMock()
+            mock_resp.status = 200
+            mock_urlopen.return_value.__enter__.return_value = mock_resp
+
+            result = unregister_account_push(tmp_db_path, 1, acc_data)
+            assert result is True
+            assert get_push_mode(tmp_db_path, 1) == "none"
+
+            # Verify URL and unregister payload sent to bridge
+            req = mock_urlopen.call_args[0][0]
+            assert req.full_url == "https://bridge.local/v1/legacy/unregister"
+            sent_data = json.loads(req.data.decode("utf-8"))
+            assert sent_data["ubports_token"] == "test_device_token_unreg"
+            assert sent_data["uid"] == 55
+            assert sent_data["db"] == "corp_db"
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
