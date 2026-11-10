@@ -1332,3 +1332,62 @@ def test_cleanup_legacy_daemon_removes_stale_files():
             assert not os.path.exists(pid_file)
             assert not os.path.exists(heartbeat)
             assert mock_subproc.called
+
+
+def test_odoo18_registers_poller_and_delivers_project_updates():
+    """
+    Verify that an Odoo 17/18 account registers both WebPush and bridge polling,
+    ensuring that project updates are polled and dispatched as ProjectUpdate.
+    """
+    test_token = "ubports_token_odoo18_updates"
+
+    # Register legacy subscription on bridge for this user
+    reg_payload = {
+        "ubports_token": test_token,
+        "odoo_url": "https://cit-services.in",
+        "db": "main",
+        "username": "sreehari.r@cit-services.eu",
+        "password": "key",
+        "uid": 241,
+        "poll_interval": 300
+    }
+    bridge_client.post("/v1/legacy/register", json=reg_payload)
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Initial baseline poll
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        # Second poll: New project.update arrives (e.g. ID 83)
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "project.update" and method == "search_read":
+                return [{
+                    "id": 83,
+                    "name": "project notify 8",
+                    "status": "on_track",
+                    "progress": 50,
+                    "project_id": [59, "26-00018 - Test Project 2"],
+                    "user_id": [248, "Parvathy Nair"],
+                    "date": "2026-11-10",
+                    "description": "Weekly progress on sprint goals",
+                    "create_uid": [248, "Parvathy Nair"]
+                }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+        assert poll_res.json()["notifications_sent"] >= 1
+
+        sent_payload = mock_ubports_post.call_args.kwargs["json"]
+        assert sent_payload["token"] == test_token
+        card = sent_payload["data"]["notification"]["card"]
+        assert "Update: 26-00018 - Test Project 2" in card["summary"]
+        assert "project notify 8" in card["body"]
+        assert "ubtms://notification?type=ProjectUpdate&id=83&odoo_id=1" in card["actions"]
+        assert sent_payload["data"]["record"]["model"] == "project.update"
+        assert sent_payload["data"]["record"]["record_id"] == 83

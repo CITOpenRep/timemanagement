@@ -405,6 +405,8 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
     nav_type = "Task"
     if "activity" in res_model.lower() or "Activity" in notification_title:
         nav_type = "Activity"
+    elif "project.update" in res_model.lower() or "update" in res_model.lower() or "Update" in notification_title:
+        nav_type = "ProjectUpdate"
     elif "project" in res_model.lower() or "Project" in notification_title:
         nav_type = "Project"
     elif "timesheet" in res_model.lower() or "Timesheet" in notification_title:
@@ -933,8 +935,8 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                 (update_domain, ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
                 (update_domain, ["id", "name", "project_id", "user_id", "date", "description", "create_uid"]),
                 (update_domain, ["id", "name", "project_id", "user_id", "description"]),
-                ([], ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
-                ([], ["id", "name", "project_id", "user_id", "description"]),
+                (update_domain, ["id", "name", "project_id", "description"]),
+                (update_domain, ["id", "name"]),
             ]
             updates = []
             for u_dom, u_fields in update_configs:

@@ -377,6 +377,8 @@ class OdooClient:
         except Exception:
             pass
 
+        registered_mode = "none"
+
         # Attempt native Odoo 17+ WebPush if version >= 17 or unknown
         if major_version >= 17 or major_version == 0:
             try:
@@ -406,11 +408,14 @@ class OdooClient:
                                     }
                                 )
                                 logging.info(f"[PUSH] Registered native push device on Odoo for UID {self.uid}")
-                                return {"mode": "native", "success": True}
+                                registered_mode = "native"
             except Exception as e:
                 logging.info(f"[PUSH] Native WebPush unavailable: {e}")
 
-        # Fallback for Odoo 14-16: Register account with Bridge-side polling worker
+        # Always register account with Bridge-side polling worker
+        # This ensures project.update, project.task, and project.project notifications
+        # are monitored and dispatched for all Odoo versions (14, 15, 16, 17, 18+),
+        # since Odoo core does not emit native WebPush for project updates or projects.
         try:
             legacy_url = f"{bridge_url.rstrip('/')}/v1/legacy/register"
             payload = json.dumps({
@@ -431,9 +436,12 @@ class OdooClient:
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.status in (200, 201):
-                    logging.info(f"[PUSH] Registered legacy bridge poller for Odoo {major_version} (UID {self.uid})")
-                    return {"mode": "legacy_bridge", "success": True}
+                    logging.info(f"[PUSH] Registered bridge poller for Odoo {major_version} (UID {self.uid})")
+                    return {"mode": registered_mode if registered_mode != "none" else "legacy_bridge", "success": True}
         except Exception as e:
-            logging.warning(f"[PUSH] Legacy bridge poller registration failed: {e}")
+            logging.warning(f"[PUSH] Bridge poller registration failed: {e}")
+
+        if registered_mode != "none":
+            return {"mode": registered_mode, "success": True}
 
         return {"mode": "none", "success": False}
