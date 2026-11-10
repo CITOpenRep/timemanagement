@@ -960,19 +960,40 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         # 3. Poll project.update for new project updates
         max_seen_update_id = last_update_id
         try:
-            if partner_id:
+            user_project_ids = []
+            try:
+                user_project_ids = models.execute_kw(
+                    db, uid, password,
+                    "project.project", "search",
+                    [[]],
+                    {"limit": 100}
+                ) or []
+            except Exception:
+                pass
+
+            update_domain = []
+            if user_project_ids:
+                update_domain = [("id", ">", last_update_id), ("project_id", "in", user_project_ids)] if last_update_id > 0 else [("project_id", "in", user_project_ids)]
+            elif partner_id:
                 update_domain = [
+                    "|",
+                    ("user_id", "=", uid),
                     "|",
                     ("project_id.user_id", "=", uid),
                     ("project_id.message_partner_ids", "in", [partner_id])
                 ]
+                if last_update_id > 0:
+                    update_domain = [("id", ">", last_update_id)] + update_domain
             else:
-                update_domain = [("project_id.user_id", "=", uid)]
+                update_domain = [
+                    "|",
+                    ("user_id", "=", uid),
+                    ("project_id.user_id", "=", uid)
+                ]
+                if last_update_id > 0:
+                    update_domain = [("id", ">", last_update_id)] + update_domain
 
-            if last_update_id > 0:
-                update_domain = [("id", ">", last_update_id)] + update_domain
-
-            fallback_update_domain = [("id", ">", last_update_id), ("project_id.user_id", "=", uid)] if last_update_id > 0 else [("project_id.user_id", "=", uid)]
+            fallback_update_domain = [("id", ">", last_update_id), ("user_id", "=", uid)] if last_update_id > 0 else [("user_id", "=", uid)]
 
             update_configs = [
                 (update_domain, ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
@@ -999,20 +1020,27 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for up in updates:
                 update_id = up.get("id", 0)
                 if update_id > last_update_id:
+                    update_name = up.get("name") or "Project Update"
+                    project_tuple = up.get("project_id")
+                    proj_id = project_tuple[0] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 0 else (project_tuple or -1)
+                    proj_name = project_tuple[1] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 1 else ""
+                    status_val = up.get("status") or "on_track"
+
+                    user_tuple = up.get("user_id")
+                    author_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
+                    author_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
+
+                    create_tuple = up.get("create_uid")
+                    creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else author_id
+                    creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else author_name
+
+                    is_author = (author_id == uid or creator_id == uid)
+                    is_user_proj = (not user_project_ids or proj_id in user_project_ids)
+                    if not is_author and not is_user_proj:
+                        logger.info("Privacy filter: skipped update %d (project %s) for UID %d", update_id, proj_id, uid)
+                        continue
+
                     if not is_first_poll:
-                        update_name = up.get("name") or "Project Update"
-                        project_tuple = up.get("project_id")
-                        proj_id = project_tuple[0] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 0 else (project_tuple or -1)
-                        proj_name = project_tuple[1] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 1 else ""
-                        status_val = up.get("status") or "on_track"
-
-                        user_tuple = up.get("user_id")
-                        author_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
-                        author_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
-
-                        create_tuple = up.get("create_uid")
-                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else author_id
-                        creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else author_name
 
                         summary = f"Update: {proj_name}" if proj_name else f"Update: {update_name}"
                         body = f"{update_name} ({status_val})"
