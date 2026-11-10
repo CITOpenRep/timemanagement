@@ -1209,11 +1209,12 @@ def test_sync_background_registers_push_device():
         conn.commit()
         conn.close()
 
-        with patch("odoo_client.OdooClient._login", return_value=1), \
-             patch("odoo_client.OdooClient._get_model_proxy"), \
-             patch("odoo_client.OdooClient.register_push_device", return_value={"mode": "legacy_bridge", "success": True}) as mock_reg, \
-             patch("backend.sync.sync_all_from_odoo"), \
-             patch("backend.sync.sync_all_to_odoo"):
+        sync_mod = sys.modules["backend.sync"]
+        with patch.object(OdooClient, "_login", return_value=1), \
+             patch.object(OdooClient, "_get_model_proxy"), \
+             patch.object(OdooClient, "register_push_device", return_value={"mode": "legacy_bridge", "success": True}) as mock_reg, \
+             patch.object(sync_mod, "sync_all_from_odoo"), \
+             patch.object(sync_mod, "sync_all_to_odoo"):
 
             sync_background(tmp_db_path, 1)
             # Give background thread time to execute
