@@ -171,10 +171,46 @@ def start_sync_in_background(settings_db, account_id):
     return sync_background(settings_db, account_id)
 
 
+def cleanup_legacy_daemon():
+    """
+    Safely clean up any leftover artifacts from the decommissioned background daemon.
+    """
+    import os
+    import subprocess
+
+    home = os.path.expanduser("~")
+    try:
+        subprocess.run(["systemctl", "--user", "stop", "ubtms-daemon"], capture_output=True, timeout=2)
+        subprocess.run(["systemctl", "--user", "disable", "ubtms-daemon"], capture_output=True, timeout=2)
+    except Exception:
+        pass
+
+    try:
+        subprocess.run(["pkill", "-f", "python3.*daemon.py"], capture_output=True, timeout=2)
+    except Exception:
+        pass
+
+    stale_files = [
+        os.path.join(home, ".daemon.pid"),
+        os.path.join(home, ".daemon_heartbeat"),
+        os.path.join(home, "daemon.log"),
+        os.path.join(home, ".ubtms_needs_setup"),
+        os.path.join(home, ".config", "systemd", "user", "ubtms-daemon.service"),
+        os.path.join(home, ".config", "autostart", "ubtms-daemon.desktop"),
+    ]
+    for path in stale_files:
+        try:
+            if os.path.isfile(path) or os.path.islink(path):
+                os.remove(path)
+        except Exception:
+            pass
+
+
 def save_push_token(settings_db=None, token=""):
     """
     Save UBports push token to settings and attempt registration on all remote accounts.
     """
+    cleanup_legacy_daemon()
     # Allow calling as save_push_token(token) or save_push_token(settings_db, token)
     if not token and settings_db and isinstance(settings_db, str) and "/" not in settings_db and not settings_db.endswith(".sqlite") and not settings_db.endswith(".db"):
         token = settings_db
@@ -209,9 +245,13 @@ def save_push_token(settings_db=None, token=""):
                     if isinstance(reg_res, dict):
                         mode = reg_res.get("mode", "none")
                         set_setting(settings_db, f"push_mode_{acc['id']}", mode)
-                        set_setting(settings_db, "push_mode", mode)
+                        if mode != "none":
+                            set_setting(settings_db, "push_mode", mode)
+                    else:
+                        set_setting(settings_db, f"push_mode_{acc['id']}", "none")
                 except Exception as ex:
                     log.debug(f"[PUSH] Account registration attempt skipped: {ex}")
+                    set_setting(settings_db, f"push_mode_{acc['id']}", "none")
     except Exception as e:
         log.warning(f"[PUSH] Error broadcasting push token to accounts: {e}")
     return True

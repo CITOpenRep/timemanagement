@@ -1225,3 +1225,110 @@ def test_sync_background_registers_push_device():
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def test_save_push_token_with_many_and_broken_accounts():
+    """
+    Verify that when a device has many accounts (e.g. 10 accounts) and some
+    accounts are broken/unreachable, push registration proceeds for all working accounts.
+    """
+    from backend.sync import save_push_token
+
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp_db:
+        tmp_db_path = tmp_db.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                link TEXT,
+                database TEXT,
+                username TEXT,
+                api_key TEXT,
+                sync_interval_minutes INTEGER DEFAULT 15,
+                sync_direction TEXT DEFAULT 'both',
+                autosync_enabled INTEGER DEFAULT 1,
+                last_synced_at TEXT
+            )
+        """)
+        # Account 1: Local
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (1, 'Local', '', '', '', '')")
+        # Accounts 2-5: Working remote accounts
+        for i in range(2, 6):
+            cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (?, ?, ?, ?, ?, ?)",
+                        (i, f"Working {i}", f"https://odoo{i}.example.com", f"db{i}", f"user{i}", f"pass{i}"))
+        # Accounts 6-8: Broken accounts (auth fail / server down)
+        for i in range(6, 9):
+            cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (?, ?, ?, ?, ?, ?)",
+                        (i, f"Broken {i}", f"https://broken{i}.example.com", f"db{i}", f"user{i}", f"wrongpass{i}"))
+        # Accounts 9-10: More working accounts
+        for i in range(9, 11):
+            cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (?, ?, ?, ?, ?, ?)",
+                        (i, f"Working {i}", f"https://odoo{i}.example.com", f"db{i}", f"user{i}", f"pass{i}"))
+
+        cur.execute("""
+            CREATE TABLE app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        def fake_client_init(self, url, db, username, password):
+            self.url = url
+            self.db = db
+            self.username = username
+            self.password = password
+            if "broken" in url:
+                raise ConnectionError("Host unreachable or authentication failed")
+            self.uid = 1
+            self.models = MagicMock()
+
+        with patch.object(OdooClient, "__init__", fake_client_init), \
+             patch.object(OdooClient, "register_push_device", return_value={"mode": "native", "success": True}) as mock_reg:
+
+            success = save_push_token(tmp_db_path, "token_10_accounts_test")
+            assert success is True
+
+            # Accounts 2, 3, 4, 5, 9, 10 must be registered successfully (6 working remote accounts)
+            assert mock_reg.call_count == 6
+
+            # Check push mode persisted for working accounts
+            for working_id in [2, 3, 4, 5, 9, 10]:
+                assert get_push_mode(tmp_db_path, working_id) == "native"
+            # Broken accounts should have no push mode or 'none'
+            for broken_id in [6, 7, 8]:
+                assert get_push_mode(tmp_db_path, broken_id) == "none"
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
+def test_cleanup_legacy_daemon_removes_stale_files():
+    """
+    Verify cleanup_legacy_daemon safely removes old daemon files and handles missing ones.
+    """
+    from backend.sync import cleanup_legacy_daemon
+
+    with tempfile.TemporaryDirectory() as tmp_home:
+        # Create dummy legacy daemon files in fake home
+        pid_file = os.path.join(tmp_home, ".daemon.pid")
+        with open(pid_file, "w") as f:
+            f.write("12345")
+
+        heartbeat = os.path.join(tmp_home, ".daemon_heartbeat")
+        with open(heartbeat, "w") as f:
+            f.write("heartbeat")
+
+        with patch("os.path.expanduser", return_value=tmp_home), \
+             patch("subprocess.run") as mock_subproc:
+
+            cleanup_legacy_daemon()
+
+            assert not os.path.exists(pid_file)
+            assert not os.path.exists(heartbeat)
+            assert mock_subproc.called
