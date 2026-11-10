@@ -1240,6 +1240,42 @@ def trigger_legacy_poll():
     }
 
 
+@app.get("/v1/legacy/stats")
+def get_legacy_stats():
+    """Returns status and polling watermarks for active legacy subscriptions."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, ubports_token, odoo_url, db, username, uid, last_task_id, last_activity_id, last_project_id, last_project_update_id, last_polled_at, is_active
+        FROM legacy_subscriptions
+        """
+    )
+    rows = cursor.fetchall()
+    if conn is not _mem_conn:
+        conn.close()
+
+    result = []
+    for r in rows:
+        token_str = str(r[1]) if r[1] else ""
+        masked = (token_str[:8] + "..." + token_str[-4:]) if len(token_str) > 12 else token_str
+        result.append({
+            "id": r[0],
+            "token_masked": masked,
+            "odoo_url": r[2],
+            "db": r[3],
+            "username": r[4],
+            "uid": r[5],
+            "last_task_id": r[6],
+            "last_activity_id": r[7],
+            "last_project_id": r[8],
+            "last_project_update_id": r[9],
+            "last_polled_at": r[10],
+            "is_active": r[11]
+        })
+    return {"subscriptions": result}
+
+
 def background_poll_worker():
     """Periodically polls legacy Odoo accounts for new activities."""
     import time

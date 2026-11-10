@@ -381,36 +381,39 @@ class OdooClient:
 
         # Attempt native Odoo 17+ WebPush if version >= 17 or unknown
         if major_version >= 17 or major_version == 0:
-            try:
-                vapid_key = self.models.execute_kw(
-                    self.db, self.uid, self.password,
-                    'mail.partner.device', 'get_web_push_vapid_public_key', []
-                )
-                if vapid_key:
-                    sub_url = f"{bridge_url.rstrip('/')}/v1/subscription/{ubports_token}"
-                    req = urllib.request.Request(
-                        sub_url,
-                        headers={"User-Agent": "ubtms/1.3.4"}
+            push_models = ["mail.push.device", "mail.partner.device"] if major_version >= 18 else ["mail.partner.device", "mail.push.device"]
+            for p_model in push_models:
+                try:
+                    vapid_key = self.models.execute_kw(
+                        self.db, self.uid, self.password,
+                        p_model, 'get_web_push_vapid_public_key', []
                     )
-                    with urllib.request.urlopen(req, timeout=5) as resp:
-                        if resp.status == 200:
-                            sub_data = json.loads(resp.read().decode("utf-8"))
-                            endpoint = sub_data.get("endpoint")
-                            keys = sub_data.get("keys")
-                            if endpoint and keys:
-                                self.models.execute_kw(
-                                    self.db, self.uid, self.password,
-                                    'mail.partner.device', 'register_devices', [],
-                                    {
-                                        'endpoint': endpoint,
-                                        'keys': keys,
-                                        'vapid_public_key': vapid_key,
-                                    }
-                                )
-                                logging.info(f"[PUSH] Registered native push device on Odoo for UID {self.uid}")
-                                registered_mode = "native"
-            except Exception as e:
-                logging.info(f"[PUSH] Native WebPush unavailable: {e}")
+                    if vapid_key:
+                        sub_url = f"{bridge_url.rstrip('/')}/v1/subscription/{ubports_token}"
+                        req = urllib.request.Request(
+                            sub_url,
+                            headers={"User-Agent": "ubtms/1.3.4"}
+                        )
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            if resp.status == 200:
+                                sub_data = json.loads(resp.read().decode("utf-8"))
+                                endpoint = sub_data.get("endpoint")
+                                keys = sub_data.get("keys")
+                                if endpoint and keys:
+                                    self.models.execute_kw(
+                                        self.db, self.uid, self.password,
+                                        p_model, 'register_devices', [],
+                                        {
+                                            'endpoint': endpoint,
+                                            'keys': keys,
+                                            'vapid_public_key': vapid_key,
+                                        }
+                                    )
+                                    logging.info(f"[PUSH] Registered native push device on Odoo ({p_model}) for UID {self.uid}")
+                                    registered_mode = "native"
+                                    break
+                except Exception as e:
+                    logging.debug(f"[PUSH] Native WebPush unavailable on {p_model}: {e}")
 
         # Always register account with Bridge-side polling worker
         # This ensures project.update, project.task, and project.project notifications
