@@ -50,6 +50,13 @@ def resolve_qml_db_path(app_id="ubtms"):
     """
     Resolve and find the QML application database path across different environments.
     """
+    # 1. Check direct settings database match by name
+    settings_db = resolve_settings_db_path("myDatabase", app_id=app_id)
+    if settings_db and is_file_present(settings_db):
+        if check_table_exists(settings_db, "project_project_app") or check_table_exists(settings_db, "users"):
+            log.debug(f"[INFO] Found QML DB via resolve_settings_db_path: {settings_db}")
+            return str(settings_db)
+
     db_paths = []
     user_home = Path.home()
     db_paths.append(user_home / ".local" / "share" / app_id / "Databases")
@@ -65,17 +72,12 @@ def resolve_qml_db_path(app_id="ubtms"):
 
         sqlite_files = list(db_dir.glob("*.sqlite"))
         if sqlite_files:
-            latest = max(sqlite_files, key=lambda f: f.stat().st_mtime)
-            log.debug(f"[INFO] Found QML DB: {latest}")
-            if is_file_present(latest):
-                log.debug(f"file is present {latest}")
-                if check_table_exists(latest, "project_project_app"):
-                    log.debug(
-                        f"project_project_app present,confirms that {latest} app db"
-                    )
-                    return str(latest)
-                else:
-                    log.critical("SQlite file found , but do not see a table")
+            sorted_candidates = sorted(sqlite_files, key=lambda f: f.stat().st_mtime, reverse=True)
+            for candidate in sorted_candidates:
+                if is_file_present(candidate):
+                    if check_table_exists(candidate, "project_project_app") or check_table_exists(candidate, "users"):
+                        log.debug(f"[INFO] Found QML DB: {candidate}")
+                        return str(candidate)
 
     log.debug("[ERROR] No QML DB found.")
     return None

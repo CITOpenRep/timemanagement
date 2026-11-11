@@ -194,6 +194,29 @@ class TestResolveQmlDbPath:
 
         assert resolved is None
 
+    def test_returns_valid_db_when_newest_is_empty(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        db_dir = tmp_path / ".local" / "share" / "ubtms" / "Databases"
+        db_dir.mkdir(parents=True, exist_ok=True)
+
+        valid_db = db_dir / "valid.sqlite"
+        valid_db.write_text("valid db")
+        empty_newer = db_dir / "empty_newer.sqlite"
+        empty_newer.write_text("empty newer")
+
+        import os
+        valid_stat = valid_db.stat()
+        os.utime(empty_newer, (valid_stat.st_atime + 20, valid_stat.st_mtime + 20))
+
+        def mock_check(path, table):
+            return "valid.sqlite" in str(path) and table == "project_project_app"
+
+        monkeypatch.setattr(storage, "check_table_exists", mock_check)
+
+        resolved = storage.resolve_qml_db_path(app_id="ubtms")
+
+        assert resolved == str(valid_db)
+
     def test_returns_none_when_no_directory_exists(self, tmp_path, monkeypatch):
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 

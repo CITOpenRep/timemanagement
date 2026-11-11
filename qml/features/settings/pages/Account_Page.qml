@@ -136,9 +136,11 @@ Page {
                 let apikey = passwordInput.text;
 
                 var accountResult;
+                var bridge = (typeof mainView !== "undefined" && mainView.backend_bridge) ? mainView.backend_bridge : ((typeof backend_bridge !== "undefined" && backend_bridge) ? backend_bridge : null);
+
                 if (accountId !== -1) {
                     // Edit mode - update existing account
-                    accountResult = Accounts.updateAccount(accountId, accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
+                    accountResult = Accounts.updateAccount(accountId, accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey, result['uid'], result['name_of_user']);
                     
                     if (!accountResult.success) {
                         if (accountResult.duplicateType === "name") {
@@ -151,19 +153,22 @@ Page {
                     } else {
                         notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been updated successfully!"), "success");
                         isReadOnly = true;
-                        if (typeof mainView !== "undefined" && mainView.startupManager && mainView.backend_bridge) {
-                            mainView.startupManager.initializePushNotifications(mainView.backend_bridge);
-                        } else if (typeof backend_bridge !== "undefined" && backend_bridge) {
-                            backend_bridge.call("backend.save_push_token", [""], function(res) {});
+                        if (typeof mainView !== "undefined" && mainView.startupManager && bridge) {
+                            mainView.startupManager.initializePushNotifications(bridge);
+                        } else if (bridge) {
+                            bridge.call("backend.save_push_token", [""], function(res) {});
                         }
                         // Signal to refresh accounts list in Settings_Page
-                        if (typeof settings !== 'undefined') {
+                        if (typeof settings !== 'undefined' && typeof settings.fetch_accounts === 'function') {
                             settings.fetch_accounts();
+                        }
+                        if (typeof mainView !== "undefined" && mainView && mainView.accountDataRefreshRequested) {
+                            mainView.accountDataRefreshRequested(accountId);
                         }
                     }
                 } else {
                     // Create mode - create new account
-                    accountResult = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey);
+                    accountResult = Accounts.createAccount(accountNameInput.text, linkInput.text, result['database'], usernameInput.text, selectedconnectwithId, apikey, result['uid'], result['name_of_user']);
 
                     if (accountResult.duplicateFound) {
                         if (accountResult.duplicateType === "name") {
@@ -174,12 +179,35 @@ Page {
                             notifPopup.open("Error", accountResult.message || "Unable to create account due to duplicate data.", "error");
                         }
                     } else {
+                        var newAccountId = accountResult.accountId;
+                        if (newAccountId > 0) {
+                            accountId = newAccountId;
+                        }
                         notifPopup.open("Saved", i18n.dtr("ubtms","Your account has been saved, Enjoy using the app !"), "success");
                         isReadOnly = true;
-                        if (typeof mainView !== "undefined" && mainView.startupManager && mainView.backend_bridge) {
-                            mainView.startupManager.initializePushNotifications(mainView.backend_bridge);
-                        } else if (typeof backend_bridge !== "undefined" && backend_bridge) {
-                            backend_bridge.call("backend.save_push_token", [""], function(res) {});
+                        if (typeof mainView !== "undefined" && mainView.startupManager && bridge) {
+                            mainView.startupManager.initializePushNotifications(bridge);
+                        } else if (bridge) {
+                            bridge.call("backend.save_push_token", [""], function(res) {});
+                        }
+
+                        // Signal to refresh accounts list in Settings_Page
+                        if (typeof settings !== 'undefined' && typeof settings.fetch_accounts === 'function') {
+                            settings.fetch_accounts();
+                        }
+
+                        if (typeof mainView !== "undefined" && mainView && mainView.accountDataRefreshRequested) {
+                            mainView.accountDataRefreshRequested(newAccountId);
+                        }
+
+                        // Trigger immediate background sync for the newly created account
+                        if (bridge && newAccountId > 0) {
+                            bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                var targetDb = path || "app_settings.db";
+                                bridge.call("backend.start_sync_in_background", [targetDb, newAccountId], function (syncStarted) {
+                                    console.log("Initial background sync initiated for account:", newAccountId, syncStarted);
+                                });
+                            });
                         }
                     }
                 }

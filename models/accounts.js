@@ -278,11 +278,12 @@ function fetchParsedSyncLog(accountId) {
  * @param {string} apikey - The API key if the connection type requires it.
  * @returns {object} - Returns result object with duplicateFound, message, and duplicateType.
  */
-function createAccount(name, link, database, username, selectedConnectWithId, apikey) {
+function createAccount(name, link, database, username, selectedConnectWithId, apikey, odooUid, displayName) {
     let result = {
         duplicateFound: false,
         message: "",
-        duplicateType: null
+        duplicateType: null,
+        accountId: -1
     };
 
     try {
@@ -320,10 +321,20 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
 
 
             const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
-            tx.executeSql(
+            const insertResult = tx.executeSql(
                 'INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)',
                 [name, link, database, username, selectedConnectWithId, apiKeyToStore]
             );
+            const newAccountId = insertResult.insertId;
+            result.accountId = newAccountId;
+
+            if (odooUid && odooUid > 0) {
+                var userDisplayName = displayName || name || username;
+                tx.executeSql(
+                    'INSERT OR REPLACE INTO res_users_app (account_id, odoo_record_id, name, login, email, work_email, active) VALUES (?, ?, ?, ?, ?, ?, 1)',
+                    [newAccountId, odooUid, userDisplayName, username, username, username]
+                );
+            }
 
             DBCommon.log("New user account created successfully: " + name);
             result.message = "Account created successfully.";
@@ -348,9 +359,11 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
  * @param {string} username - The new username for the account.
  * @param {number} selectedConnectWithId - The connection type identifier.
  * @param {string} apikey - The new API key if the connection type requires it.
+ * @param {number} [odooUid] - Optional Odoo user ID.
+ * @param {string} [displayName] - Optional user display name.
  * @returns {object} - Returns result object with success, message, and duplicateType.
  */
-function updateAccount(accountId, name, link, database, username, selectedConnectWithId, apikey) {
+function updateAccount(accountId, name, link, database, username, selectedConnectWithId, apikey, odooUid, displayName) {
     let result = {
         success: false,
         message: "",
@@ -393,6 +406,14 @@ function updateAccount(accountId, name, link, database, username, selectedConnec
                 'UPDATE users SET name = ?, link = ?, database = ?, username = ?, connectwith_id = ?, api_key = ? WHERE id = ?',
                 [name, link, database, username, selectedConnectWithId, apiKeyToStore, accountId]
             );
+
+            if (odooUid && odooUid > 0) {
+                var userDisplayName = displayName || name || username;
+                tx.executeSql(
+                    'INSERT OR REPLACE INTO res_users_app (account_id, odoo_record_id, name, login, email, work_email, active) VALUES (?, ?, ?, ?, ?, ?, 1)',
+                    [accountId, odooUid, userDisplayName, username, username, username]
+                );
+            }
 
             DBCommon.log("User account updated successfully: " + name);
             result.success = true;
@@ -515,13 +536,24 @@ function getCurrentUserOdooId(accountId) {
 
             DBCommon.log(`Found username: ${username}, now checking res_users_app`);
 
-            const userResult = tx.executeSql("SELECT odoo_record_id FROM res_users_app WHERE (login = ? OR email = ? OR work_email = ?) AND account_id = ? LIMIT 1", [username, username, username, accountId]);
+            const userResult = tx.executeSql(
+                "SELECT odoo_record_id FROM res_users_app WHERE (LOWER(login) = LOWER(?) OR LOWER(email) = LOWER(?) OR LOWER(work_email) = LOWER(?)) AND account_id = ? LIMIT 1",
+                [username, username, username, accountId]
+            );
 
             if (userResult.rows.length > 0) {
                 odooId = userResult.rows.item(0).odoo_record_id;
                 DBCommon.log(`Found odoo_record_id: ${odooId}`);
             } else {
-                DBCommon.log(`No match found in res_users_app for username: ${username}`);
+                DBCommon.log(`No direct match found in res_users_app for username: ${username}, checking active account user fallback`);
+                var fallbackRes = tx.executeSql(
+                    "SELECT odoo_record_id FROM res_users_app WHERE account_id = ? AND (active = 1 OR active IS NULL) AND odoo_record_id IS NOT NULL AND odoo_record_id > 0 ORDER BY id ASC LIMIT 1",
+                    [accountId]
+                );
+                if (fallbackRes.rows.length > 0) {
+                    odooId = fallbackRes.rows.item(0).odoo_record_id;
+                    DBCommon.log(`Found fallback odoo_record_id: ${odooId}`);
+                }
             }
         });
     } catch (e) {
@@ -1461,6 +1493,8 @@ function getDashboardSingleUserDefault(accountId, availableUsers) {
                 id: loggedInUid,
                 name: userName || ("User #" + loggedInUid)
             };
+        } else if (availableUsers && availableUsers.length === 1) {
+            return availableUsers[0];
         }
     }
 

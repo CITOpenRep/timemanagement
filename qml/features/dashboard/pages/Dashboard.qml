@@ -116,6 +116,16 @@ Page {
         onTriggered: _doRefreshData()
     }
 
+    function updateDashboardHeader(accountName) {
+        var acctName = accountName || ((typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountName) ? accountPicker.selectedAccountName : "");
+        var targetAccId = (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined) ? accountPicker.selectedAccountId : -1;
+        if (targetAccId === -1 || !acctName || acctName === i18n.dtr("ubtms", "All Accounts")) {
+            headerContents.title = i18n.dtr("ubtms", "Dashboard");
+        } else {
+            headerContents.title = i18n.dtr("ubtms", "Dashboard") + " [" + acctName + "]";
+        }
+    }
+
     onVisibleChanged: {
         if (visible) {
             // Update navigation tracking when Dashboard becomes visible
@@ -124,6 +134,7 @@ Page {
             var currentAccId = (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined)
                 ? accountPicker.selectedAccountId
                 : -1;
+            updateDashboardHeader();
             if (lastFilterAccountId !== currentAccId || availableUsers.length === 0) {
                 initUserFilterForCurrentAccount(currentAccId);
             }
@@ -622,14 +633,12 @@ Page {
     Connections {
         target: typeof accountPicker !== "undefined" ? accountPicker : null
         onSelectedAccountIdChanged: {
-            if (accountPicker.selectedAccountName) {
-                header.title = i18n.dtr("ubtms", "Account") + " [" + accountPicker.selectedAccountName + "]";
-            }
+            updateDashboardHeader(accountPicker.selectedAccountName);
             initUserFilterForCurrentAccount(accountPicker.selectedAccountId);
             refreshData();
         }
         onAccepted: function (accountId, accountName) {
-            header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
+            updateDashboardHeader(accountName);
             initUserFilterForCurrentAccount(accountId);
             refreshData();
         }
@@ -638,11 +647,12 @@ Page {
     Connections {
         target: (typeof mainView !== "undefined" && mainView) ? mainView : ((typeof rootApp !== "undefined" && rootApp) ? rootApp : null)
         onGlobalAccountChanged: function (accountId, accountName) {
-            header.title = i18n.dtr("ubtms", "Account") + " [" + accountName + "]";
+            updateDashboardHeader(accountName);
             initUserFilterForCurrentAccount(accountId);
             refreshData(true);
         }
         onAccountDataRefreshRequested: function (accountId) {
+            updateDashboardHeader();
             initUserFilterForCurrentAccount(accountId);
             refreshData(true);
         }
@@ -658,6 +668,19 @@ Page {
                 assigneeFilterMenu.selectedAssigneeIds = [assigneeFilterMenu.createSelection(userId, accId)];
             }
             refreshData(true);
+        }
+    }
+
+    Connections {
+        target: (typeof mainView !== "undefined" && mainView.backend_bridge) ? mainView.backend_bridge : null
+        onMessageReceived: function (evt) {
+            if (evt && evt.event === "sync_completed" && evt.payload === true) {
+                var currentAccId = (typeof accountPicker !== "undefined" && accountPicker && accountPicker.selectedAccountId !== undefined)
+                    ? accountPicker.selectedAccountId
+                    : -1;
+                initUserFilterForCurrentAccount(currentAccId);
+                refreshData(true);
+            }
         }
     }
 

@@ -84,6 +84,13 @@ Item {
             var resDupConn = AccountsModel.createAccount("CreatedAccount Two", "https://odoo1.com", "db1", "admin1", 1, "apikey2");
             verify(resDupConn.duplicateFound);
             compare(resDupConn.duplicateType, "connection");
+
+            // Account creation with odooUid and displayName maps user to res_users_app
+            var resWithUid = AccountsModel.createAccount("CreatedAccount WithUid", "https://odoo-uid.com", "db_uid", "parvathy_login", 1, "key", 42, "Parvathy Nair");
+            verify(!resWithUid.duplicateFound);
+            verify(resWithUid.accountId > 0);
+            compare(AccountsModel.getCurrentUserOdooId(resWithUid.accountId), 42);
+            compare(AccountsModel.getUserNameByOdooId(42, resWithUid.accountId), "Parvathy Nair");
         }
 
         // --- 3. Account Name and Update ---

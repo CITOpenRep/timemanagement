@@ -51,6 +51,8 @@ Page {
         ]
     }
 
+    readonly property var backendBridge: (typeof mainView !== "undefined" && mainView.backend_bridge) ? mainView.backend_bridge : ((typeof rootApp !== "undefined" && rootApp.backend_bridge) ? rootApp.backend_bridge : null)
+
     // Listen for sync timeout from GlobalTimerWidget
     Connections {
         target: typeof globalTimerWidget !== 'undefined' ? globalTimerWidget : null
@@ -68,22 +70,12 @@ Page {
 
     //LISTEN To backend
     Connections {
-        target: backend_bridge
+        target: backendBridge
 
         onMessageReceived: function (data) {
-            if (data.event === "sync_progress") {
-                //console.log("Progress is " + data.payload);
-                //Show Progress Bar
-            } else if (data.event === "sync_message") {
-                //console.log("Sync message is " + data.payload);
-                //Show the message in UI
-            } else if (data.event === "sync_completed")
-            //Close the Sync uI
-            {} else if (data.event === "sync_error")
-            //show error in UI
-            {} else
-            //not interested
-            {}
+            if (data && data.event === "sync_completed") {
+                fetch_accounts();
+            }
         }
     }
 
@@ -143,16 +135,15 @@ Page {
                         }
 
                         // Cleanup orphan attachment files and unregister push for deleted account
-                        if (typeof backend_bridge !== "undefined" && backend_bridge) {
-                            backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
-                                if (path) {
-                                    if (deletedAccountData) {
-                                        backend_bridge.call("backend.unregister_account_push", [path, deletedId, deletedAccountData], function (res) {});
-                                    }
-                                    backend_bridge.call("backend.cleanup_orphan_attachment_files", [path], function (res) {
-                                        // Cleanup completed
-                                    });
+                        if (backendBridge) {
+                            backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                var targetDb = path || "app_settings.db";
+                                if (deletedAccountData) {
+                                    backendBridge.call("backend.unregister_account_push", [targetDb, deletedId, deletedAccountData], function (res) {});
                                 }
+                                backendBridge.call("backend.cleanup_orphan_attachment_files", [targetDb], function (res) {
+                                    // Cleanup completed
+                                });
                             });
                         }
 
@@ -556,29 +547,32 @@ Page {
                                                     globalTimerWidget.startSync(model.id, model.name);
                                                 }
 
-                                                backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
-                                                    if (path === "") {
-                                                        syncingAccountId = -1;
-                                                        syncTimeoutTimer.stop();
-                                                        syncStatusChecker.stop();
-                                                        accountDisplayRefreshTimer.stop();
-                                                        if (typeof globalTimerWidget !== 'undefined') {
-                                                            globalTimerWidget.stopSync();
-                                                        }
-                                                    } else {
-                                                        backend_bridge.call("backend.start_sync_in_background", [path, model.id], function (result) {
-                                                            if (!result) {
-                                                                console.warn("Failed to start sync for account:", model.id);
-                                                                syncingAccountId = -1;
-                                                                syncTimeoutTimer.stop();
-                                                                syncStatusChecker.stop();
-                                                                accountDisplayRefreshTimer.stop();
-                                                                if (typeof globalTimerWidget !== 'undefined') {
-                                                                    globalTimerWidget.stopSync();
-                                                                }
-                                                            }
-                                                        });
+                                                if (!backendBridge) {
+                                                    console.warn("Backend bridge not available for sync");
+                                                    syncingAccountId = -1;
+                                                    syncTimeoutTimer.stop();
+                                                    syncStatusChecker.stop();
+                                                    accountDisplayRefreshTimer.stop();
+                                                    if (typeof globalTimerWidget !== 'undefined') {
+                                                        globalTimerWidget.stopSync();
                                                     }
+                                                    return;
+                                                }
+
+                                                backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+                                                    var targetDb = path || "app_settings.db";
+                                                    backendBridge.call("backend.start_sync_in_background", [targetDb, model.id], function (result) {
+                                                        if (!result) {
+                                                            console.warn("Failed to start sync for account:", model.id);
+                                                            syncingAccountId = -1;
+                                                            syncTimeoutTimer.stop();
+                                                            syncStatusChecker.stop();
+                                                            accountDisplayRefreshTimer.stop();
+                                                            if (typeof globalTimerWidget !== 'undefined') {
+                                                                globalTimerWidget.stopSync();
+                                                            }
+                                                        }
+                                                    });
                                                 });
                                             }
                                         }

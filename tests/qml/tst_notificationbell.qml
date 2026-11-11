@@ -93,13 +93,14 @@ MainView {
         }
 
         function test_navigateToRecordSignalEmission() {
-            testBell.navigateToRecord("Task", 105, 2);
+            testBell.navigateToRecord("Task", 105, 2, false);
 
             compare(navigateSpy.count, 1);
             var args = navigateSpy.signalArguments[0];
             compare(args[0], "Task");
             compare(args[1], 105);
             compare(args[2], 2);
+            compare(args[3], false);
         }
 
         function test_handleNotificationClickTriggersNavigation() {
