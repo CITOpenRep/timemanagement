@@ -471,32 +471,41 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
         logger.info("Deduplication: skipped already-dispatched %s #%s via relay to token %s...", record_data.get("model"), res_id, ubports_token[:8])
         return Response(status_code=status.HTTP_200_OK)
 
+    is_silenced, should_drop = check_relay_burst_flood(ubports_token)
+    if should_drop:
+        logger.info("Flood protection: dropped redundant historical burst relay for token %s", ubports_token[:8])
+        return Response(status_code=status.HTTP_200_OK)
+
     # Format payload for UBports Push Server
     expire_on = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    card_payload = {
+        "summary": notification_title,
+        "body": notification_body,
+        "icon": "assets/logo.png",
+        "popup": not is_silenced,
+        "persist": True,
+        "actions": actions
+    }
+    notif_data = {
+        "card": card_payload,
+        "emblem-counter": {
+            "count": 1,
+            "visible": True
+        }
+    }
+    if not is_silenced:
+        notif_data["sound"] = "sounds/lomiri/notifications/Positive.ogg"
+        notif_data["vibrate"] = {
+            "pattern": [200, 100, 200],
+            "repeat": 1
+        }
+
     ubports_payload = {
         "appid": DEFAULT_APP_ID,
         "token": ubports_token,
         "expire_on": expire_on,
         "data": {
-            "notification": {
-                "card": {
-                    "summary": notification_title,
-                    "body": notification_body,
-                    "icon": "assets/logo.png",
-                    "popup": True,
-                    "persist": True,
-                    "actions": actions
-                },
-                "sound": "sounds/lomiri/notifications/Positive.ogg",
-                "vibrate": {
-                    "pattern": [200, 100, 200],
-                    "repeat": 1
-                },
-                "emblem-counter": {
-                    "count": 1,
-                    "visible": True
-                }
-            },
+            "notification": notif_data,
             "record": record_data
         }
     }
@@ -553,6 +562,26 @@ class LegacyUnregisterRequest(BaseModel):
 
 
 _sent_cache: Dict[str, float] = {}
+_relay_burst_cache: Dict[str, List[float]] = {}
+
+
+def check_relay_burst_flood(token: str, max_burst: int = 5, window_sec: float = 8.0, drop_threshold: int = 12) -> Tuple[bool, bool]:
+    """
+    Check if incoming relay notifications are in a rapid burst (e.g. historical queue flush on registration).
+    Returns (is_silenced, should_drop).
+    - If > max_burst (5) in window (8s): is_silenced = True (drop popup, sound, vibrate)
+    - If > drop_threshold (12) in window (8s): should_drop = True (prevent flooding push server)
+    """
+    import time
+    now = time.time()
+    times = [t for t in _relay_burst_cache.get(token, []) if now - t < window_sec]
+    times.append(now)
+    _relay_burst_cache[token] = times
+    count = len(times)
+    is_silenced = count > max_burst
+    should_drop = count > drop_threshold
+    return is_silenced, should_drop
+
 
 def is_recent_duplicate(token: str, model: str, record_id: int, ttl_seconds: int = 3600) -> bool:
     """Check and record dispatch key in TTL cache to prevent duplicate dispatches."""
@@ -808,8 +837,8 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         # 2. Poll project.task for newly assigned tasks
         max_seen_task_id = last_task_id
         try:
-            task_domain_modern = [("user_ids", "in", [uid])]
-            task_domain_legacy = [("user_id", "=", uid)]
+            task_domain_modern = [("id", ">", last_task_id), ("user_ids", "in", [uid])] if last_task_id > 0 else [("user_ids", "in", [uid])]
+            task_domain_legacy = [("id", ">", last_task_id), ("user_id", "=", uid)] if last_task_id > 0 else [("user_id", "=", uid)]
             task_configs = [
                 # 1. Modern Odoo 17+ (user_ids, allocated_hours, personal_stage_type_id, planned dates)
                 (

@@ -92,8 +92,9 @@ def sync_background(settings_db, account_id):
 
     with sync_lock:
         if sync_in_progress:
-            log.debug("[SYNC] Already in progress. Ignoring new request.")
-            return False
+            # ponytail: active sync is already in flight; return True so UI tracks progress
+            log.debug(f"[SYNC] Already in progress. Attaching to existing sync for account {account_id}.")
+            return True
         sync_in_progress = True
 
     def do_sync():
@@ -104,8 +105,15 @@ def sync_background(settings_db, account_id):
             write_sync_report_to_db(
                 settings_db, account_id, "In Progress", "Sync job triggered"
             )
+            try:
+                target_acc_id = int(account_id)
+            except (ValueError, TypeError):
+                target_acc_id = account_id
             accounts = get_all_accounts(settings_db)
-            selected = next((acc for acc in accounts if acc["id"] == account_id), None)
+            selected = next(
+                (acc for acc in accounts if acc["id"] == target_acc_id or str(acc["id"]) == str(account_id)),
+                None
+            )
             send("sync_progress", 20)
 
             if not selected:

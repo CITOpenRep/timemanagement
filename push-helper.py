@@ -169,6 +169,37 @@ def store_notification(notif_type, message, payload, account_id=0):
     except Exception:
         pass  # Silent failure - notification display is more important
 
+def check_client_burst_flood(account_id, max_burst=5, window_sec=5.0, max_storage_burst=12):
+    """
+    Detect rapid notification flood on device (e.g. historical queue flush on account sync).
+    Returns (is_silenced, should_suppress_storage).
+    """
+    import tempfile
+    import time
+    flood_file = Path(tempfile.gettempdir()) / f"ubtms_push_flood_{account_id}.json"
+    now = time.time()
+    timestamps = []
+    try:
+        if flood_file.exists():
+            with open(flood_file, "r") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    timestamps = [t for t in data if isinstance(t, (int, float)) and now - t < window_sec]
+    except Exception:
+        timestamps = []
+
+    timestamps.append(now)
+    try:
+        with open(flood_file, "w") as f:
+            json.dump(timestamps[-50:], f)
+    except Exception:
+        pass
+
+    count = len(timestamps)
+    is_silenced = count > max_burst
+    should_suppress_storage = count > max_storage_burst
+    return is_silenced, should_suppress_storage
+
 def is_duplicate_notification(notif_type, record_id, summary, body):
     """
     Check if an identical notification was recently received or is currently unread.
@@ -1218,9 +1249,14 @@ def process_notification(input_data):
                 except Exception:
                     pass
 
+        is_flooded, should_suppress_storage = check_client_burst_flood(account_id)
         if is_self_action:
             card["popup"] = False
             card["persist"] = False
+        elif is_flooded:
+            # ponytail: historical queue flush or rapid burst, silence popups and alerts
+            card["popup"] = False
+            card["persist"] = True
         else:
             # Suppress audible popup banner if this is a duplicate delivery
             is_dup = is_duplicate_notification(notif_type, record_id, summary, body)
@@ -1291,7 +1327,7 @@ def process_notification(input_data):
                 if k in extra_record and extra_record[k] is not None:
                     store_payload[k] = extra_record[k]
 
-        if not is_self_action:
+        if not is_self_action and not should_suppress_storage:
             store_notification(notif_type, body, store_payload, account_id=account_id)
 
         # Pre-populate record in local SQLite database (Option 1)

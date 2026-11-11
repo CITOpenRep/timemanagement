@@ -12,7 +12,8 @@ class TestSyncLockAndConcurrency:
 
         result = sync_module.sync_background("test.sqlite", 1)
 
-        assert result is False
+        # ponytail: should return True so QML attaches to active sync rather than failing
+        assert result is True
 
     def test_start_sync_in_background_alias(self, monkeypatch):
         called = []

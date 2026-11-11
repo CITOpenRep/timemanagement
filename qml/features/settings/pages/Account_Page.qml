@@ -202,6 +202,9 @@ Page {
 
                         // Trigger immediate background sync for the newly created account
                         if (bridge && newAccountId > 0) {
+                            if (typeof globalTimerWidget !== 'undefined') {
+                                globalTimerWidget.startSync(newAccountId, accountNameInput.text);
+                            }
                             bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                                 var targetDb = path || "app_settings.db";
                                 bridge.call("backend.start_sync_in_background", [targetDb, newAccountId], function (syncStarted) {

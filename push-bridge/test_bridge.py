@@ -239,6 +239,44 @@ def test_security_headers_and_body_limits():
     assert res_large.status_code == 413
 
 
+@patch("requests.post")
+def test_relay_burst_flood_protection(mock_post):
+    mock_post.return_value = MagicMock(status_code=201, text="OK")
+    token = "burst_flood_token_xyz"
+
+    client.get(f"/v1/subscription/{token}")
+
+    # Dispatch 18 plain JSON relay notifications in rapid succession
+    dispatched_payloads = []
+    for i in range(1, 19):
+        body = json.dumps({
+            "title": f"Task {i}",
+            "body": f"You've been assigned to task '{i}'",
+            "data": {"model": "project.task", "res_id": i + 500}
+        })
+        res = client.post(
+            f"/v1/relay/{token}",
+            content=body,
+            headers={"Content-Type": "application/json"}
+        )
+        assert res.status_code in (200, 201)
+
+    # First 5 should have popup True and sound/vibrate
+    for call in mock_post.call_args_list[:5]:
+        card = call.kwargs["json"]["data"]["notification"]["card"]
+        assert card["popup"] is True
+        assert "sound" in call.kwargs["json"]["data"]["notification"]
+
+    # 6th through 12th should be silenced (popup False, no sound/vibrate)
+    for call in mock_post.call_args_list[5:12]:
+        card = call.kwargs["json"]["data"]["notification"]["card"]
+        assert card["popup"] is False
+        assert "sound" not in call.kwargs["json"]["data"]["notification"]
+
+    # 13th through 18th should be dropped by flood protection
+    assert mock_post.call_count == 12
+
+
 if __name__ == "__main__":
     test_health()
     test_subscription_creation()
