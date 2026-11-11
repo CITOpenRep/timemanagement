@@ -280,8 +280,9 @@ def test_relay_burst_flood_protection(mock_post):
 if __name__ == "__main__":
     test_health()
     test_subscription_creation()
-    with patch("requests.post") as mock_p:
-        mock_p.return_value = MagicMock(status_code=201, text="OK")
-        test_relay_encrypted_webpush()
+    test_relay_encrypted_webpush()
     test_legacy_lifecycle_and_polling()
+    test_token_validation()
+    test_security_headers_and_body_limits()
+    test_relay_burst_flood_protection()
     print("All push bridge tests (native + legacy) passed!")

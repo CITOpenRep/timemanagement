@@ -4,6 +4,8 @@ Lightweight Push Bridge for Ubuntu Touch (ubtms)
 Translates Odoo RFC 8188 WebPush notifications to UBports Push Server.
 """
 
+from __future__ import annotations
+
 import os
 import json
 import base64
@@ -12,7 +14,7 @@ import sqlite3
 import logging
 import re
 from contextlib import asynccontextmanager
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple, Union, Set
 from pathlib import Path
 
 from fastapi import FastAPI, Request, HTTPException, Response, status
