@@ -132,7 +132,7 @@ def test_legacy_lifecycle_and_polling():
             {"id": 301, "name": "Initial Project", "user_id": [42, "User 42"], "date_start": "2026-11-01", "date": "2026-12-01", "allocated_hours": 10.0, "description": ""}
         ]
         updates_data = [
-            {"id": 401, "name": "Initial Update", "status": "on_track", "progress": 10, "project_id": [1, "Alpha"], "user_id": [42, "User 42"], "date": "2026-11-01", "description": ""}
+            {"id": 401, "name": "Initial Update", "status": "on_track", "progress": 10, "project_id": [1, "Alpha"], "user_id": [99, "Teammate"], "create_uid": [99, "Teammate"], "date": "2026-11-01", "description": ""}
         ]
 
         def fake_execute_kw(db, uid, pwd, model, method, args, kwargs):
@@ -147,6 +147,8 @@ def test_legacy_lifecycle_and_polling():
                     return [t["id"] for t in tasks_data]
                 return tasks_data
             if model == "project.project":
+                if method == "search":
+                    return [1, 301, 302]
                 return projects_data
             if model == "project.update":
                 return updates_data
@@ -174,8 +176,8 @@ def test_legacy_lifecycle_and_polling():
             {"id": 301, "name": "Initial Project", "user_id": [42, "User 42"], "date_start": "2026-11-01", "date": "2026-12-01", "allocated_hours": 10.0, "description": ""}
         ]
         updates_data = [
-            {"id": 402, "name": "New Project Update", "status": "on_track", "progress": 25, "project_id": [1, "Alpha"], "user_id": [42, "User 42"], "date": "2026-11-04", "description": ""},
-            {"id": 401, "name": "Initial Update", "status": "on_track", "progress": 10, "project_id": [1, "Alpha"], "user_id": [42, "User 42"], "date": "2026-11-01", "description": ""}
+            {"id": 402, "name": "New Project Update", "status": "on_track", "progress": 25, "project_id": [1, "Alpha"], "user_id": [99, "Teammate"], "create_uid": [99, "Teammate"], "date": "2026-11-04", "description": ""},
+            {"id": 401, "name": "Initial Update", "status": "on_track", "progress": 10, "project_id": [1, "Alpha"], "user_id": [99, "Teammate"], "create_uid": [99, "Teammate"], "date": "2026-11-01", "description": ""}
         ]
 
         poll_res2 = client.post("/v1/legacy/poll")

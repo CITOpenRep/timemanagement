@@ -1152,13 +1152,52 @@ def process_notification(input_data):
         if record_id:
             card["tag"] = f"{notif_type}_{record_id}"
 
-        # Suppress audible popup banner if this is a duplicate delivery
-        is_dup = is_duplicate_notification(notif_type, record_id, summary, body)
-        if is_dup:
+        # Detect self-authored project updates to prevent self-notification
+        is_self_action = False
+        if notif_type == "ProjectUpdate" and isinstance(extra_record, dict):
+            def _extract_id(val):
+                if isinstance(val, (list, tuple)) and len(val) > 0:
+                    return val[0]
+                return val
+
+            author_val = _extract_id(extra_record.get("user_id"))
+            creator_val = _extract_id(extra_record.get("create_uid")) or author_val
+            subscriber_uid = _extract_id(extra_record.get("account_user_id"))
+
+            if subscriber_uid and creator_val:
+                try:
+                    if int(subscriber_uid) == int(creator_val):
+                        is_self_action = True
+                except (ValueError, TypeError):
+                    pass
+
+            if not is_self_action and account_id > 0:
+                try:
+                    conn = sqlite3.connect(db_path)
+                    cur = conn.cursor()
+                    cur.execute(
+                        "SELECT odoo_record_id FROM res_users_app WHERE account_id = ? AND active = 1 LIMIT 1",
+                        (account_id,)
+                    )
+                    user_row = cur.fetchone()
+                    conn.close()
+                    if user_row and user_row[0] and creator_val:
+                        if int(user_row[0]) == int(creator_val):
+                            is_self_action = True
+                except Exception:
+                    pass
+
+        if is_self_action:
             card["popup"] = False
+            card["persist"] = False
         else:
-            card["popup"] = card.get("popup", True) and should_popup_notification(summary, body, is_urgent)
-        card["persist"] = card.get("persist", True)
+            # Suppress audible popup banner if this is a duplicate delivery
+            is_dup = is_duplicate_notification(notif_type, record_id, summary, body)
+            if is_dup:
+                card["popup"] = False
+            else:
+                card["popup"] = card.get("popup", True) and should_popup_notification(summary, body, is_urgent)
+            card["persist"] = card.get("persist", True)
 
         # Build actions: exactly 1 action for standard interactive banner dispatch
         enhanced_actions = []
@@ -1221,7 +1260,8 @@ def process_notification(input_data):
                 if k in extra_record and extra_record[k] is not None:
                     store_payload[k] = extra_record[k]
 
-        store_notification(notif_type, body, store_payload, account_id=account_id)
+        if not is_self_action:
+            store_notification(notif_type, body, store_payload, account_id=account_id)
 
         # Pre-populate record in local SQLite database (Option 1)
         if record_id:

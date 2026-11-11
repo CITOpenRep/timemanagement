@@ -456,6 +456,14 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
             record_data.setdefault("db", sub_row[1])
             record_data.setdefault("username", sub_row[2])
             record_data.setdefault("account_user_id", sub_row[3])
+            subscriber_uid = sub_row[3]
+            if nav_type == "ProjectUpdate" and subscriber_uid:
+                raw_creator = extra_data.get("create_uid") or extra_data.get("user_id")
+                if isinstance(raw_creator, (list, tuple)) and len(raw_creator) > 0:
+                    raw_creator = raw_creator[0]
+                if raw_creator and int(raw_creator) == int(subscriber_uid):
+                    logger.info("Self-notification filter: skipped relay update for author UID %d", subscriber_uid)
+                    return Response(status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.debug("Could not enrich relay record with subscription: %s", e)
 
@@ -962,12 +970,13 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         try:
             user_project_ids = []
             try:
-                user_project_ids = models.execute_kw(
+                raw_projs = models.execute_kw(
                     db, uid, password,
                     "project.project", "search",
                     [[]],
                     {"limit": 100}
                 ) or []
+                user_project_ids = [p["id"] if isinstance(p, dict) and "id" in p else p for p in raw_projs if isinstance(p, (int, dict))]
             except Exception:
                 pass
 
@@ -977,8 +986,6 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             elif partner_id:
                 update_domain = [
                     "|",
-                    ("user_id", "=", uid),
-                    "|",
                     ("project_id.user_id", "=", uid),
                     ("project_id.message_partner_ids", "in", [partner_id])
                 ]
@@ -986,14 +993,12 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                     update_domain = [("id", ">", last_update_id)] + update_domain
             else:
                 update_domain = [
-                    "|",
-                    ("user_id", "=", uid),
                     ("project_id.user_id", "=", uid)
                 ]
                 if last_update_id > 0:
                     update_domain = [("id", ">", last_update_id)] + update_domain
 
-            fallback_update_domain = [("id", ">", last_update_id), ("user_id", "=", uid)] if last_update_id > 0 else [("user_id", "=", uid)]
+            fallback_update_domain = [("id", ">", last_update_id), ("project_id.user_id", "=", uid)] if last_update_id > 0 else [("project_id.user_id", "=", uid)]
 
             update_configs = [
                 (update_domain, ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
@@ -1020,6 +1025,9 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for up in updates:
                 update_id = up.get("id", 0)
                 if update_id > last_update_id:
+                    if update_id > max_seen_update_id:
+                        max_seen_update_id = update_id
+
                     update_name = up.get("name") or "Project Update"
                     project_tuple = up.get("project_id")
                     proj_id = project_tuple[0] if isinstance(project_tuple, (list, tuple)) and len(project_tuple) > 0 else (project_tuple or -1)
@@ -1027,7 +1035,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                     status_val = up.get("status") or "on_track"
 
                     user_tuple = up.get("user_id")
-                    author_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
+                    author_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or 0)
                     author_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
 
                     create_tuple = up.get("create_uid")
@@ -1035,13 +1043,16 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                     creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else author_name
 
                     is_author = (author_id == uid or creator_id == uid)
+                    if is_author:
+                        logger.info("Self-notification filter: skipped update %d created by subscriber UID %d", update_id, uid)
+                        continue
+
                     is_user_proj = (not user_project_ids or proj_id in user_project_ids)
-                    if not is_author and not is_user_proj:
+                    if not is_user_proj:
                         logger.info("Privacy filter: skipped update %d (project %s) for UID %d", update_id, proj_id, uid)
                         continue
 
                     if not is_first_poll:
-
                         summary = f"Update: {proj_name}" if proj_name else f"Update: {update_name}"
                         body = f"{update_name} ({status_val})"
                         deep_link = f"ubtms://notification?type=ProjectUpdate&id={update_id}&odoo_id=1"
@@ -1066,8 +1077,6 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         }
                         if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                             sent_count += 1
-                    if update_id > max_seen_update_id:
-                        max_seen_update_id = update_id
         except Exception as e:
             logger.warning("Error polling project updates for UID %d: %s", uid, e)
 

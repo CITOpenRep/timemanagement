@@ -1563,7 +1563,7 @@ def test_privacy_project_update_recipient_isolation():
         mock_models.execute_kw.return_value = []
         bridge_client.post("/v1/legacy/poll")
 
-        # Project update for Project 88 (manager is UID 100)
+        # Project update for Project 88 (authored by Lead UID 50, manager is UID 100)
         def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
             if model == "res.users" and method == "read":
                 return [{"partner_id": [uid + 10, f"User {uid}"], "name": f"User {uid}"}]
@@ -1578,9 +1578,9 @@ def test_privacy_project_update_recipient_isolation():
                         "status": "on_track",
                         "progress": 80,
                         "project_id": [88, "Secret Project"],
-                        "user_id": [100, "Manager"],
+                        "user_id": [50, "Lead Developer"],
                         "date": "2026-11-10",
-                        "create_uid": [100, "Manager"]
+                        "create_uid": [50, "Lead Developer"]
                     }]
             return []
 
@@ -1591,6 +1591,163 @@ def test_privacy_project_update_recipient_isolation():
         sent_tokens = [call.kwargs["json"]["token"] for call in mock_ubports_post.call_args_list]
         assert token_mgr in sent_tokens
         assert token_stranger not in sent_tokens
+
+
+def test_privacy_project_update_self_notification_suppressed():
+    """
+    Verify that an author/creator does not receive a push notification for their own project update.
+    """
+    token_author = "ubports_token_author_mgr"
+
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_author,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "author_user",
+        "password": "key",
+        "uid": 100,
+        "poll_interval": 300
+    })
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Baseline
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        # Project update authored by UID 100
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "res.users" and method == "read":
+                return [{"partner_id": [110, "Author"], "name": "Author"}]
+            if model == "project.update" and method == "search_read":
+                return [{
+                    "id": 95,
+                    "name": "Self update",
+                    "status": "on_track",
+                    "progress": 50,
+                    "project_id": [88, "My Project"],
+                    "user_id": [100, "Author"],
+                    "date": "2026-11-11",
+                    "create_uid": [100, "Author"]
+                }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+
+        # Verify no notification was sent to the author
+        sent_tokens = [call.kwargs["json"]["token"] for call in mock_ubports_post.call_args_list]
+        assert token_author not in sent_tokens
+
+
+def test_push_helper_silently_prepopulates_self_update():
+    """
+    Verify that push-helper silently pre-populates a self-authored project update
+    without displaying a banner or storing an unread notification.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'Default User')")
+        cur.execute("""
+            CREATE TABLE res_users_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                odoo_record_id INTEGER,
+                name TEXT,
+                active INTEGER DEFAULT 1
+            )
+        """)
+        cur.execute("INSERT INTO res_users_app (account_id, odoo_record_id, name, active) VALUES (1, 100, 'Author', 1)")
+        cur.execute("""
+            CREATE TABLE project_update_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                name TEXT,
+                project_status TEXT,
+                progress INTEGER,
+                user_id INTEGER,
+                description TEXT,
+                date TEXT,
+                project_id INTEGER,
+                odoo_record_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE notification (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                timestamp TEXT,
+                message TEXT,
+                type TEXT,
+                payload TEXT,
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+            raw_input = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Update: My Project",
+                        "body": "Self update (on_track)",
+                        "popup": True,
+                        "persist": True
+                    }
+                },
+                "data": {
+                    "record": {
+                        "model": "project.update",
+                        "record_id": 99,
+                        "name": "Self update",
+                        "project_id": 88,
+                        "project_status": "on_track",
+                        "progress": 70,
+                        "user_id": 100,
+                        "create_uid": 100,
+                        "account_user_id": 100,
+                        "account_id": 1
+                    }
+                }
+            })
+
+            out = json.loads(push_helper_mod.process_notification(raw_input))
+            card = out["notification"]["card"]
+            assert card["popup"] is False
+            assert card["persist"] is False
+            assert "sound" not in out["notification"]
+            assert "vibrate" not in out["notification"]
+
+            # Confirm no unread notification was stored
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM notification")
+            assert cur.fetchone()[0] == 0
+
+            # Confirm record was pre-populated into SQLite
+            cur.execute("SELECT name, progress, odoo_record_id FROM project_update_app WHERE odoo_record_id = 99")
+            row = cur.fetchone()
+            assert row is not None
+            assert row[0] == "Self update"
+            assert row[1] == 70
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
 
 
 def test_unregister_account_push_flow():
