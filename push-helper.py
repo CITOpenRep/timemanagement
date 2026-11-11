@@ -974,6 +974,37 @@ def pre_populate_record(notif_type, record_id, summary, body, extra_data=None):
                 task_id = task_id[0]
             sub_task_id = extra.get("sub_task_id")
             sub_proj_id = extra.get("sub_project_id")
+
+            if not sub_proj_id and proj_id:
+                try:
+                    cursor.execute(
+                        "SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(proj_id), account_id)
+                    )
+                    p_row = cursor.fetchone()
+                    if p_row and p_row[0] and int(p_row[0]) > 0:
+                        sub_proj_id = proj_id
+                        proj_id = p_row[0]
+                except Exception:
+                    pass
+
+            if not sub_task_id and task_id:
+                try:
+                    cursor.execute(
+                        "SELECT parent_id, project_id, sub_project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?",
+                        (int(task_id), account_id)
+                    )
+                    t_row = cursor.fetchone()
+                    if t_row and t_row[0] and int(t_row[0]) > 0:
+                        sub_task_id = task_id
+                        task_id = t_row[0]
+                    if not sub_proj_id and t_row and len(t_row) > 2 and t_row[2] and int(t_row[2]) > 0:
+                        sub_proj_id = t_row[2]
+                        if t_row[1] and int(t_row[1]) > 0:
+                            proj_id = t_row[1]
+                except Exception:
+                    pass
+
             record_date = extra.get("record_date") or extra.get("date") or now_str[:10]
             user_id = extra.get("user_id")
             if isinstance(user_id, (list, tuple)) and len(user_id) > 0:

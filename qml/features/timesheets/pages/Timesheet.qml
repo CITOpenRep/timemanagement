@@ -142,15 +142,11 @@ Page {
             return false;
         }
 
-        let correctTaskId = null;
-        let correctSubTaskId = null;
-
-        if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
-            correctTaskId = ids.subtask_id;
+        let correctTaskId = (ids.task_id !== null && ids.task_id !== undefined && ids.task_id !== -1 && ids.task_id > 0) ? ids.task_id : null;
+        let correctSubTaskId = (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) ? ids.subtask_id : null;
+        if (!correctTaskId && correctSubTaskId) {
+            correctTaskId = correctSubTaskId;
             correctSubTaskId = null;
-        } else if (ids.task_id !== null && ids.task_id !== undefined && ids.task_id !== -1 && ids.task_id > 0) {
-            correctTaskId = ids.task_id;
-            correctSubTaskId = ids.subtask_id;
         }
 
         var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
@@ -165,7 +161,7 @@ Page {
             determinedStatus = currentStatus;
         } else if (isLocal) {
             determinedStatus = "saved";
-        } else if (ids.task_id !== null) {
+        } else if (ids.task_id !== null || ids.subtask_id !== null) {
             determinedStatus = "updated";
         }
 
@@ -195,7 +191,7 @@ Page {
             if (!isTimerActive) {
                 if (isLocal) {
                     Model.markTimesheetAsSavedById(recordid);
-                } else if (ids.task_id !== null) {
+                } else if (ids.task_id !== null || ids.subtask_id !== null) {
                     Model.markTimesheetAsReadyById(recordid);
                 }
             }
@@ -230,7 +226,7 @@ Page {
         const ids = workItem.getIds();
         var isLocal = (ids.account_id === 0);
 
-        if (!isLocal && ids.task_id === null) {
+        if (!isLocal && ids.task_id === null && ids.subtask_id === null) {
             notifPopup.open("Error", "Both Project and Task must be selected before finalizing", "error");
             return false;
         }
@@ -245,18 +241,16 @@ Page {
             return false;
         }
 
-        if (ids.project_id === null) {
+        if (ids.project_id === null && ids.subproject_id === null) {
             notifPopup.open("Error", "You need to select a project to finalize timesheet", "error");
             return false;
         }
 
-        let correctTaskId = null;
-        let correctSubTaskId = null;
-        if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
-            correctTaskId = ids.subtask_id;
-        } else if (ids.task_id !== null && ids.task_id !== undefined && ids.task_id !== -1 && ids.task_id > 0) {
-            correctTaskId = ids.task_id;
-            correctSubTaskId = ids.subtask_id;
+        let correctTaskId = (ids.task_id !== null && ids.task_id !== undefined && ids.task_id !== -1 && ids.task_id > 0) ? ids.task_id : null;
+        let correctSubTaskId = (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) ? ids.subtask_id : null;
+        if (!correctTaskId && correctSubTaskId) {
+            correctTaskId = correctSubTaskId;
+            correctSubTaskId = null;
         }
 
         var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
@@ -319,18 +313,16 @@ Page {
             return false;
         }
 
-        if (ids.project_id === null) {
+        if (ids.project_id === null && ids.subproject_id === null) {
             notifPopup.open("Select Project", "Please select a project before starting the timer", "error");
             return false;
         }
 
-        let correctTaskId = null;
-        let correctSubTaskId = null;
-
-        if (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) {
-            correctTaskId = ids.subtask_id;
-        } else if (ids.task_id !== null) {
-            correctTaskId = ids.task_id;
+        let correctTaskId = (ids.task_id !== null && ids.task_id !== undefined && ids.task_id !== -1 && ids.task_id > 0) ? ids.task_id : null;
+        let correctSubTaskId = (ids.subtask_id !== null && ids.subtask_id !== undefined && ids.subtask_id !== -1 && ids.subtask_id > 0) ? ids.subtask_id : null;
+        if (!correctTaskId && correctSubTaskId) {
+            correctTaskId = correctSubTaskId;
+            correctSubTaskId = null;
         }
 
         var description = description_text.getFormattedText ? description_text.getFormattedText() : description_text.text;
@@ -534,14 +526,34 @@ Page {
             let subProjectId = (currentTimesheet.sub_project_id !== undefined && currentTimesheet.sub_project_id !== null) ? currentTimesheet.sub_project_id : -1;
             let subTaskId = (currentTimesheet.sub_task_id !== undefined && currentTimesheet.sub_task_id !== null) ? currentTimesheet.sub_task_id : -1;
 
-            // If a timesheet was saved with a subtask, the subtask ID was saved to the task_id column
-            // and the sub_task_id column was set to null. We need to check if the loaded taskId has a parent
-            // task to restore the visual distinction between task and subtask in the selector.
-            if (taskId !== -1) {
+            // Check project hierarchy: if loaded projectId has a parent, restore subproject/project hierarchy
+            if (projectId !== -1 && subProjectId === -1) {
+                var projectDetails = (instanceId === 0) ? Project.getProjectDetails(projectId) : Project.getProjectDetailsByOdooId(projectId, instanceId);
+                if (projectDetails && projectDetails.parent_id !== undefined && projectDetails.parent_id !== null && projectDetails.parent_id > 0) {
+                    subProjectId = projectId;
+                    projectId = projectDetails.parent_id;
+                }
+            }
+
+            // Check task hierarchy: if loaded taskId has a parent task, restore task/subtask hierarchy
+            if (taskId !== -1 && subTaskId === -1) {
                 var taskDetails = (instanceId === 0) ? Task.getTaskDetails(taskId) : Task.getTaskDetailsByOdooId(taskId, instanceId);
                 if (taskDetails && taskDetails.parent_id !== undefined && taskDetails.parent_id !== null && taskDetails.parent_id > 0) {
                     subTaskId = taskId;
                     taskId = taskDetails.parent_id;
+                }
+            }
+
+            // Fallback for project from task if project was not resolved
+            if ((projectId === -1 || subProjectId === -1) && taskId !== -1) {
+                var taskDetailsForProj = (instanceId === 0) ? Task.getTaskDetails(taskId) : Task.getTaskDetailsByOdooId(taskId, instanceId);
+                if (taskDetailsForProj) {
+                    if (subProjectId === -1 && taskDetailsForProj.sub_project_id !== undefined && taskDetailsForProj.sub_project_id !== null && taskDetailsForProj.sub_project_id > 0) {
+                        subProjectId = taskDetailsForProj.sub_project_id;
+                    }
+                    if (projectId === -1 && taskDetailsForProj.project_id !== undefined && taskDetailsForProj.project_id !== null && taskDetailsForProj.project_id > 0) {
+                        projectId = taskDetailsForProj.project_id;
+                    }
                 }
             }
 
@@ -623,7 +635,7 @@ Page {
             var taskId = normalizeIdForRestore(originalData.taskId);
             var subtaskId = normalizeIdForRestore(originalData.subtaskId);
             
-            if (accountId > 0 || projectId > 0) {
+            if (accountId >= 0 || projectId > 0) {
                 workItem.deferredLoadExistingRecordSet(accountId, projectId, subprojectId, taskId, subtaskId, -1);
             }
         }

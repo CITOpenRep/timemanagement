@@ -522,7 +522,7 @@ def parse_local_value(field_type, value):
         comma-separated strings, lists, and single integers.
     """
     if field_type == "many2one":
-        return int(value) if value else False
+        return int(value) if value and int(value) > 0 else False
     elif field_type == "many2many":
         if isinstance(value, str):
             try:
@@ -704,7 +704,7 @@ def sync_project_favorite(client, record, db_path):
         return False
 
 
-def construct_changes(field_map, field_info, record, existing_data):
+def construct_changes(field_map, field_info, record, existing_data, model_name=None):
     """
     Construct a dictionary of changes to be applied to an Odoo record.
     
@@ -748,6 +748,16 @@ def construct_changes(field_map, field_info, record, existing_data):
 
         try:
             local_val = record.get(sqlite_field)
+            if model_name == "account.analytic.line":
+                if odoo_field == "project_id":
+                    sub_proj = record.get("sub_project_id")
+                    if sub_proj and int(sub_proj) > 0:
+                        local_val = sub_proj
+                elif odoo_field == "task_id":
+                    sub_task = record.get("sub_task_id")
+                    if sub_task and int(sub_task) > 0:
+                        local_val = sub_task
+
             remote_val = existing_data.get(odoo_field)
             field_type = field_info[odoo_field]["type"]
 
@@ -756,9 +766,7 @@ def construct_changes(field_map, field_info, record, existing_data):
 
             parsed_val = parse_local_value(field_type, local_val)
 
-
             # Normalize selection comparisons: ensure both sides are strings for fair comparison
-
             try:
                 if field_type == "selection":
                     remote_norm = None if remote_val is None or remote_val is False else str(remote_val)
@@ -766,11 +774,15 @@ def construct_changes(field_map, field_info, record, existing_data):
                     log.debug(f"[COMPARE_SELECTION] Field {odoo_field} local='{parsed_norm}' remote='{remote_norm}'")
                     if should_push_field(parsed_norm, remote_norm, local_last_modified, remote_write_date):
                         changes[odoo_field] = parsed_val
+                elif field_type == "many2one":
+                    remote_id = remote_val[0] if isinstance(remote_val, (list, tuple)) and len(remote_val) > 0 else (remote_val if isinstance(remote_val, int) else False)
+                    if should_push_field(parsed_val, remote_id, local_last_modified, remote_write_date):
+                        changes[odoo_field] = parsed_val
                 else:
                     if should_push_field(parsed_val, remote_val, local_last_modified, remote_write_date):
                         changes[odoo_field] = parsed_val
             except Exception as e:
-                log.error(f"[ERROR] Selection normalization failed for {odoo_field}: {e}")
+                log.error(f"[ERROR] Normalization failed for {odoo_field}: {e}")
 
         except Exception as e:
             log.error(f"[ERROR] Failed to compare field '{odoo_field}': {e}")
@@ -869,7 +881,7 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                 return None
 
             existing_data = existing[0]
-            changes = construct_changes(field_map, field_info, record, existing_data)
+            changes = construct_changes(field_map, field_info, record, existing_data, model_name=model_name)
 
 
             # Sanitize date fields for project.task to avoid Odoo validation errors
@@ -947,6 +959,16 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
                 continue
 
             raw_val = record.get(sqlite_field)
+            if model_name == "account.analytic.line":
+                if odoo_field == "project_id":
+                    sub_proj = record.get("sub_project_id")
+                    if sub_proj and int(sub_proj) > 0:
+                        raw_val = sub_proj
+                elif odoo_field == "task_id":
+                    sub_task = record.get("sub_task_id")
+                    if sub_task and int(sub_task) > 0:
+                        raw_val = sub_task
+
             parsed_val = parse_local_value(field_info[odoo_field]["type"], raw_val)
             odoo_data[odoo_field] = parsed_val
 

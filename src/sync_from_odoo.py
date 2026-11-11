@@ -195,6 +195,8 @@ def insert_record(
         existing_status = None
         existing_favorites = None
         existing_state = None  # For mail_activity_app - preserve done state
+        existing_sub_project_id = None
+        existing_sub_task_id = None
         if odoo_record_id:
             try:
                 select_fields = []
@@ -204,6 +206,11 @@ def insert_record(
                     select_fields.append("favorites")
                 if table_name == "mail_activity_app" and "state" in table_columns:
                     select_fields.append("state")
+                if table_name == "account_analytic_line_app":
+                    if "sub_project_id" in table_columns:
+                        select_fields.append("sub_project_id")
+                    if "sub_task_id" in table_columns:
+                        select_fields.append("sub_task_id")
 
                 if select_fields:
                     check_sql = f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
@@ -224,12 +231,84 @@ def insert_record(
                             field_index += 1
                         if table_name == "mail_activity_app" and "state" in table_columns:
                             existing_state = result[0][field_index]
+                            field_index += 1
+                        if table_name == "account_analytic_line_app":
+                            if "sub_project_id" in table_columns:
+                                existing_sub_project_id = result[0][field_index]
+                                field_index += 1
+                            if "sub_task_id" in table_columns:
+                                existing_sub_task_id = result[0][field_index]
+                                field_index += 1
                         # DEBUG: Log activity sync decisions
                         if table_name == "mail_activity_app":
                             activity_name = record.get('summary') or '(no summary)'
                             log.info(f"[ACTIVITY_SYNC] Activity '{activity_name}' (odoo_id={odoo_record_id}): local_status={existing_status}, local_state={existing_state}, server_state={record.get('state')}")
             except Exception as e:
                 log.debug(f"[DEBUG] Could not check existing status: {e}")
+
+        sub_proj_to_set = None
+        sub_task_to_set = None
+        parent_proj_id = None
+        parent_task_id = None
+
+        if model_name == "account.analytic.line":
+            raw_proj = record.get("project_id")
+            odoo_proj_id = None
+            if isinstance(raw_proj, (list, tuple)) and len(raw_proj) > 0:
+                odoo_proj_id = raw_proj[0]
+            elif isinstance(raw_proj, int) and raw_proj > 0:
+                odoo_proj_id = raw_proj
+
+            raw_task = record.get("task_id")
+            odoo_task_id = None
+            if isinstance(raw_task, (list, tuple)) and len(raw_task) > 0:
+                odoo_task_id = raw_task[0]
+            elif isinstance(raw_task, int) and raw_task > 0:
+                odoo_task_id = raw_task
+
+            parent_proj_id = odoo_proj_id
+            if odoo_proj_id:
+                try:
+                    check_proj_sql = "SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?"
+                    if connection is not None:
+                        c = connection.cursor()
+                        c.execute(check_proj_sql, (odoo_proj_id, account_id))
+                        p_row = c.fetchone()
+                    else:
+                        p_res = safe_sql_execute(db_path, check_proj_sql, (odoo_proj_id, account_id), fetch=True, commit=False)
+                        p_row = p_res[0] if p_res else None
+                    if p_row and p_row[0] and int(p_row[0]) > 0:
+                        parent_proj_id = int(p_row[0])
+                        sub_proj_to_set = int(odoo_proj_id)
+                except Exception as e:
+                    log.debug(f"[DEBUG] Could not check project parent_id: {e}")
+
+            parent_task_id = odoo_task_id
+            if odoo_task_id:
+                try:
+                    check_task_sql = "SELECT parent_id, project_id, sub_project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?"
+                    if connection is not None:
+                        c = connection.cursor()
+                        c.execute(check_task_sql, (odoo_task_id, account_id))
+                        t_row = c.fetchone()
+                    else:
+                        t_res = safe_sql_execute(db_path, check_task_sql, (odoo_task_id, account_id), fetch=True, commit=False)
+                        t_row = t_res[0] if t_res else None
+                    if t_row and t_row[0] and int(t_row[0]) > 0:
+                        parent_task_id = int(t_row[0])
+                        sub_task_to_set = int(odoo_task_id)
+                    if sub_proj_to_set is None and t_row and len(t_row) > 2 and t_row[2] and int(t_row[2]) > 0:
+                        sub_proj_to_set = int(t_row[2])
+                        if t_row[1] and int(t_row[1]) > 0:
+                            parent_proj_id = int(t_row[1])
+                except Exception as e:
+                    log.debug(f"[DEBUG] Could not check task parent_id: {e}")
+
+            if existing_status in ("updated", "created"):
+                if existing_sub_project_id is not None:
+                    sub_proj_to_set = existing_sub_project_id
+                if existing_sub_task_id is not None:
+                    sub_task_to_set = existing_sub_task_id
         
         for odoo_field, sqlite_field in field_map.items():
             val = record.get(odoo_field)
@@ -275,10 +354,24 @@ def insert_record(
                     activity_name = record.get('summary') or '(no summary)'
                     log.info(f"[ACTIVITY_SYNC] Preserving local state='{val}' for activity '{activity_name}' (odoo_id={odoo_record_id}) - has pending changes (status={existing_status})")
             
+            if model_name == "account.analytic.line":
+                if sqlite_field == "project_id" and parent_proj_id is not None:
+                    val = parent_proj_id
+                elif sqlite_field == "task_id" and parent_task_id is not None:
+                    val = parent_task_id
+
             if sqlite_field == "account_id":
                 continue  # Already manually handled
             columns.append(sqlite_field)
             values.append(val)
+
+        if model_name == "account.analytic.line":
+            if "sub_project_id" in table_columns:
+                columns.append("sub_project_id")
+                values.append(sub_proj_to_set)
+            if "sub_task_id" in table_columns:
+                columns.append("sub_task_id")
+                values.append(sub_task_to_set)
 
         # Finally, append account_id at the end
         columns.append("account_id")

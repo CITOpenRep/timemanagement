@@ -1033,6 +1033,116 @@ def test_notification_payload_contains_all_required_fields_and_account_id():
             os.remove(tmp_db_path)
 
 
+def test_push_helper_timesheet_decomposes_child_project_and_subtask():
+    """
+    Verify that push-helper decomposes a timesheet entry whose project and task
+    point to child project and subtask into project_id, sub_project_id, task_id, sub_task_id.
+    """
+    import importlib.util
+    import json
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")
+        cur.execute("INSERT INTO users (id, name) VALUES (1, 'Main Account')")
+        cur.execute("CREATE TABLE notification_settings (id INTEGER PRIMARY KEY, account_id INTEGER, enable_notifications INTEGER)")
+        cur.execute("INSERT INTO notification_settings (account_id, enable_notifications) VALUES (1, 1)")
+        cur.execute("CREATE TABLE push_notifications (id INTEGER PRIMARY KEY, account_id INTEGER, type TEXT, message TEXT, payload TEXT, is_read INTEGER, timestamp TEXT, record_id INTEGER, model TEXT)")
+        cur.execute("""
+            CREATE TABLE project_project_app (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                account_id INTEGER,
+                parent_id INTEGER,
+                odoo_record_id INTEGER
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE project_task_app (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                account_id INTEGER,
+                project_id INTEGER,
+                sub_project_id INTEGER,
+                parent_id INTEGER,
+                odoo_record_id INTEGER
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE account_analytic_line_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                project_id INTEGER,
+                sub_project_id INTEGER,
+                task_id INTEGER,
+                sub_task_id INTEGER,
+                name TEXT,
+                unit_amount FLOAT,
+                last_modified datetime,
+                record_date datetime,
+                user_id INTEGER,
+                status TEXT DEFAULT '',
+                timer_type TEXT DEFAULT 'manual',
+                has_draft INTEGER DEFAULT 0,
+                odoo_record_id INTEGER,
+                UNIQUE (odoo_record_id, account_id)
+            )
+        """)
+        cur.execute("INSERT INTO project_project_app (id, name, account_id, parent_id, odoo_record_id) VALUES (1, 'Parent Proj', 1, NULL, 59)")
+        cur.execute("INSERT INTO project_project_app (id, name, account_id, parent_id, odoo_record_id) VALUES (2, 'Sub Proj', 1, 59, 60)")
+
+        cur.execute("INSERT INTO project_task_app (id, name, account_id, project_id, sub_project_id, parent_id, odoo_record_id) VALUES (1, 'Parent Task', 1, 60, NULL, NULL, 100)")
+        cur.execute("INSERT INTO project_task_app (id, name, account_id, project_id, sub_project_id, parent_id, odoo_record_id) VALUES (2, 'Subtask', 1, 60, NULL, 100, 101)")
+        conn.commit()
+        conn.close()
+
+        push_helper_path = os.path.join(os.path.dirname(__file__), "..", "..", "push-helper.py")
+        spec = importlib.util.spec_from_file_location("push_helper", push_helper_path)
+        push_helper_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(push_helper_mod)
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path), \
+             patch("subprocess.Popen"):
+            push_payload = json.dumps({
+                "notification": {
+                    "card": {"summary": "Timesheet Log", "body": "Logged 3.0h on Subtask", "actions": []},
+                    "data": {
+                        "model": "account.analytic.line",
+                        "record_id": 999,
+                        "name": "Design work",
+                        "unit_amount": 3.0,
+                        "project_id": 60,
+                        "task_id": 101,
+                        "user_id": 177,
+                        "account_id": 1
+                    }
+                }
+            })
+
+            push_helper_mod.process_notification(push_payload)
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT project_id, sub_project_id, task_id, sub_task_id, unit_amount, odoo_record_id FROM account_analytic_line_app WHERE odoo_record_id = 999")
+            row = cur.fetchone()
+            assert row is not None
+            assert row[0] == 59
+            assert row[1] == 60
+            assert row[2] == 100
+            assert row[3] == 101
+            assert row[4] == 3.0
+            assert row[5] == 999
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
 def test_new_user_with_zero_initial_items_receives_subsequent_notification():
     """
     Verify that a brand new user who initially has 0 tasks/activities receives

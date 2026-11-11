@@ -6,6 +6,70 @@
 .import "draft_manager.js" as DraftManager
 
 
+function _resolveTimesheetProject(tx, row, projectColorMap) {
+    var effProjId = (row.sub_project_id && row.sub_project_id > 0) ? row.sub_project_id : row.project_id;
+    var projectName = "Unknown Project";
+    var inheritedColor = 0;
+    if (effProjId) {
+        var acctId = (row.account_id !== undefined && row.account_id !== null) ? row.account_id : null;
+        var rs_project = (acctId !== null) ?
+            tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1", [effProjId, effProjId, acctId]) :
+            tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [effProjId, effProjId]);
+
+        if (rs_project.rows.length > 0) {
+            var project_row = rs_project.rows.item(0);
+            var parentId = project_row.parent_id || (row.sub_project_id && row.project_id && row.project_id !== effProjId ? row.project_id : null);
+            if (parentId && parentId > 0 && parentId !== effProjId) {
+                var rs_parent = (acctId !== null) ?
+                    tx.executeSql("SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1", [parentId, parentId, acctId]) :
+                    tx.executeSql("SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [parentId, parentId]);
+                if (rs_parent.rows.length > 0) {
+                    projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
+                } else {
+                    projectName = project_row.name;
+                }
+                var parentColorKey = (acctId !== null) ? acctId + ":" + parentId : parentId;
+                var effColorKey = (acctId !== null) ? acctId + ":" + effProjId : effProjId;
+                inheritedColor = (projectColorMap && (projectColorMap[effColorKey] || projectColorMap[effProjId] || projectColorMap[parentColorKey] || projectColorMap[parentId])) || 0;
+            } else {
+                projectName = project_row.name;
+                var directColorKey = (acctId !== null) ? acctId + ":" + effProjId : effProjId;
+                inheritedColor = (projectColorMap && (projectColorMap[directColorKey] || projectColorMap[effProjId])) || 0;
+            }
+        }
+    }
+    return { name: projectName, color: inheritedColor };
+}
+
+function _resolveTimesheetTask(tx, row, defaultTaskName) {
+    var effTaskId = (row.sub_task_id && row.sub_task_id > 0) ? row.sub_task_id : row.task_id;
+    var taskName = defaultTaskName !== undefined ? defaultTaskName : "Unknown Task";
+    if (effTaskId) {
+        var acctId = (row.account_id !== undefined && row.account_id !== null) ? row.account_id : null;
+        var rs_task = (acctId !== null) ?
+            tx.executeSql("SELECT name, parent_id FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1", [effTaskId, effTaskId, acctId]) :
+            tx.executeSql("SELECT name, parent_id FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [effTaskId, effTaskId]);
+
+        if (rs_task.rows.length > 0) {
+            var task_row = rs_task.rows.item(0);
+            var parentTaskId = task_row.parent_id || (row.sub_task_id && row.task_id && row.task_id !== effTaskId ? row.task_id : null);
+            if (parentTaskId && parentTaskId > 0 && parentTaskId !== effTaskId) {
+                var rs_parent_task = (acctId !== null) ?
+                    tx.executeSql("SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1", [parentTaskId, parentTaskId, acctId]) :
+                    tx.executeSql("SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [parentTaskId, parentTaskId]);
+                if (rs_parent_task.rows.length > 0) {
+                    taskName = rs_parent_task.rows.item(0).name + " / " + task_row.name;
+                } else {
+                    taskName = task_row.name;
+                }
+            } else {
+                taskName = task_row.name;
+            }
+        }
+    }
+    return taskName;
+}
+
 /**
  * Retrieves all non-deleted timesheet entries from the local SQLite database.
  *
@@ -63,50 +127,10 @@ function fetchTimesheetsByStatus(status, accountId) {
                     4: "Delete"
                 };
 
-                // Resolve project name and parent name
-                var projectName = "Unknown Project";
-                var inheritedColor = 0;
-
-                if (row.project_id) {
-                    var rs_project = tx.executeSql(
-                        "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                        [row.project_id, row.project_id]
-                    );
-
-                    if (rs_project.rows.length > 0) {
-                        var project_row = rs_project.rows.item(0);
-                        if (project_row.parent_id && project_row.parent_id > 0) {
-                            // Subproject case
-                            var rs_parent = tx.executeSql(
-                                "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                                [project_row.parent_id, project_row.parent_id]
-                            );
-                            if (rs_parent.rows.length > 0) {
-                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
-                            } else {
-                                projectName = project_row.name;
-                            }
-
-                            // Inherit color from subproject
-                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
-                        } else {
-                            projectName = project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || 0;
-                        }
-                    }
-                }
-
-                // Resolve task name
-                var taskName = "Unknown Task";
-                if (row.task_id) {
-                    var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                        [row.task_id, row.task_id]
-                    );
-                    if (rs_task.rows.length > 0) {
-                        taskName = rs_task.rows.item(0).name;
-                    }
-                }
+                var projInfo = _resolveTimesheetProject(tx, row, projectColorMap);
+                var projectName = projInfo.name;
+                var inheritedColor = projInfo.color;
+                var taskName = _resolveTimesheetTask(tx, row, "Unknown Task");
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
@@ -190,47 +214,10 @@ function fetchTimesheetsForAllAccounts(status) {
                     4: "Delete"
                 };
 
-                // Resolve project name and parent name
-                var projectName = "Unknown Project";
-                var inheritedColor = 0;
-
-                if (row.project_id) {
-                    var rs_project = tx.executeSql(
-                        "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                        [row.project_id, row.project_id]
-                    );
-
-                    if (rs_project.rows.length > 0) {
-                        var project_row = rs_project.rows.item(0);
-                        if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = tx.executeSql(
-                                "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                                [project_row.parent_id, project_row.parent_id]
-                            );
-                            if (rs_parent.rows.length > 0) {
-                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
-                            } else {
-                                projectName = project_row.name;
-                            }
-                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
-                        } else {
-                            projectName = project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || 0;
-                        }
-                    }
-                }
-
-                // Resolve task name
-                var taskName = "Unknown Task";
-                if (row.task_id) {
-                    var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                        [row.task_id, row.task_id]
-                    );
-                    if (rs_task.rows.length > 0) {
-                        taskName = rs_task.rows.item(0).name;
-                    }
-                }
+                var projInfo = _resolveTimesheetProject(tx, row, projectColorMap);
+                var projectName = projInfo.name;
+                var inheritedColor = projInfo.color;
+                var taskName = _resolveTimesheetTask(tx, row, "Unknown Task");
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
@@ -318,45 +305,10 @@ function fetchTimesheetsByStatusPaginated(status, accountId, limit, offset) {
                 var row = result.rows.item(i);
                 var quadrantMap = { 0: "Unknown", 1: "Do", 2: "Plan", 3: "Delegate", 4: "Delete" };
 
-                var projectName = "Unknown Project";
-                var inheritedColor = 0;
-                if (row.project_id) {
-                    var projectAccountId = (row.account_id !== undefined && row.account_id !== null) ? row.account_id : null;
-                    var rs_project = (projectAccountId !== null) ?
-                        tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
-                            [row.project_id, row.project_id, projectAccountId]
-                        ) :
-                        tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                            [row.project_id, row.project_id]
-                        );
-                    if (rs_project.rows.length > 0) {
-                        var project_row = rs_project.rows.item(0);
-                        if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = (projectAccountId !== null) ?
-                                tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
-                                    [project_row.parent_id, project_row.parent_id, projectAccountId]
-                                ) :
-                                tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                                    [project_row.parent_id, project_row.parent_id]
-                                );
-                            projectName = rs_parent.rows.length > 0 ? rs_parent.rows.item(0).name + " / " + project_row.name : project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
-                        } else {
-                            projectName = project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || 0;
-                        }
-                    }
-                }
-
-                var taskName = "";
-                if (row.task_id) {
-                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.task_id, row.task_id]);
-                    if (rs_task.rows.length > 0) taskName = rs_task.rows.item(0).name;
-                }
+                var projInfo = _resolveTimesheetProject(tx, row, projectColorMap);
+                var projectName = projInfo.name;
+                var inheritedColor = projInfo.color;
+                var taskName = _resolveTimesheetTask(tx, row, "");
 
                 var instanceName = "", userName = "";
                 if (row.account_id !== undefined && row.account_id !== null) {
@@ -442,28 +394,10 @@ function fetchTimesheetsForAllAccountsPaginated(status, limit, offset) {
                 var row = result.rows.item(i);
                 var quadrantMap = { 0: "Unknown", 1: "Do", 2: "Plan", 3: "Delegate", 4: "Delete" };
 
-                var projectName = "Unknown Project";
-                var inheritedColor = 0;
-                if (row.project_id) {
-                    var rs_project = tx.executeSql("SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.project_id, row.project_id]);
-                    if (rs_project.rows.length > 0) {
-                        var project_row = rs_project.rows.item(0);
-                        if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = tx.executeSql("SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [project_row.parent_id, project_row.parent_id]);
-                            projectName = rs_parent.rows.length > 0 ? rs_parent.rows.item(0).name + " / " + project_row.name : project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
-                        } else {
-                            projectName = project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || 0;
-                        }
-                    }
-                }
-
-                var taskName = "";
-                if (row.task_id) {
-                    var rs_task = tx.executeSql("SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1", [row.task_id, row.task_id]);
-                    if (rs_task.rows.length > 0) taskName = rs_task.rows.item(0).name;
-                }
+                var projInfo = _resolveTimesheetProject(tx, row, projectColorMap);
+                var projectName = projInfo.name;
+                var inheritedColor = projInfo.color;
+                var taskName = _resolveTimesheetTask(tx, row, "");
 
                 var instanceName = "", userName = "";
                 if (row.account_id !== undefined && row.account_id !== null) {
@@ -581,50 +515,10 @@ function getTimesheetsForTask(taskOdooRecordId, accountId, status, startDate, en
                     4: "Delete"
                 };
 
-                // Resolve project name and parent name
-                var projectName = "Unknown Project";
-                var inheritedColor = 0;
-
-                if (row.project_id) {
-                    var rs_project = tx.executeSql(
-                        "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                        [row.project_id, row.project_id]
-                    );
-
-                    if (rs_project.rows.length > 0) {
-                        var project_row = rs_project.rows.item(0);
-                        if (project_row.parent_id && project_row.parent_id > 0) {
-                            // Subproject case
-                            var rs_parent = tx.executeSql(
-                                "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                                [project_row.parent_id, project_row.parent_id]
-                            );
-                            if (rs_parent.rows.length > 0) {
-                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
-                            } else {
-                                projectName = project_row.name;
-                            }
-
-                            // Inherit color from subproject
-                            inheritedColor = projectColorMap[row.project_id] || projectColorMap[project_row.parent_id] || 0;
-                        } else {
-                            projectName = project_row.name;
-                            inheritedColor = projectColorMap[row.project_id] || 0;
-                        }
-                    }
-                }
-
-                // Resolve task name
-                var taskName = "Unknown Task";
-                if (row.task_id) {
-                    var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                        [row.task_id, row.task_id]
-                    );
-                    if (rs_task.rows.length > 0) {
-                        taskName = rs_task.rows.item(0).name;
-                    }
-                }
+                var projInfo = _resolveTimesheetProject(tx, row, projectColorMap);
+                var projectName = projInfo.name;
+                var inheritedColor = projInfo.color;
+                var taskName = _resolveTimesheetTask(tx, row, "Unknown Task");
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
@@ -729,61 +623,10 @@ function getTimesheetsForTaskPaginated(taskOdooRecordId, accountId, status, limi
                     4: "Delete"
                 };
 
-                // Resolve project name and parent name
-                var projectName = "Unknown Project";
-                var inheritedColor = 0;
-
-                if (row.project_id) {
-                    var accountId = (row.account_id !== undefined && row.account_id !== null) ? row.account_id : null;
-                    var rs_project = (accountId !== null) ?
-                        tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
-                            [row.project_id, row.project_id, accountId]
-                        ) :
-                        tx.executeSql(
-                            "SELECT name, parent_id FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                            [row.project_id, row.project_id]
-                        );
-
-                    if (rs_project.rows.length > 0) {
-                        var project_row = rs_project.rows.item(0);
-                        if (project_row.parent_id && project_row.parent_id > 0) {
-                            var rs_parent = (accountId !== null) ?
-                                tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) AND account_id = ? LIMIT 1",
-                                    [project_row.parent_id, project_row.parent_id, accountId]
-                                ) :
-                                tx.executeSql(
-                                    "SELECT name FROM project_project_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                                    [project_row.parent_id, project_row.parent_id]
-                                );
-                            if (rs_parent.rows.length > 0) {
-                                projectName = rs_parent.rows.item(0).name + " / " + project_row.name;
-                            } else {
-                                projectName = project_row.name;
-                            }
-                            var projectColorKey = accountId + ":" + row.project_id;
-                            var parentColorKey = accountId + ":" + project_row.parent_id;
-                            inheritedColor = projectColorMap[projectColorKey] || projectColorMap[parentColorKey] || 0;
-                        } else {
-                            projectName = project_row.name;
-                            var directColorKey = accountId + ":" + row.project_id;
-                            inheritedColor = projectColorMap[directColorKey] || 0;
-                        }
-                    }
-                }
-
-                // Resolve task name
-                var taskName = "Unknown Task";
-                if (row.task_id) {
-                    var rs_task = tx.executeSql(
-                        "SELECT name FROM project_task_app WHERE (odoo_record_id = ? OR id = ?) LIMIT 1",
-                        [row.task_id, row.task_id]
-                    );
-                    if (rs_task.rows.length > 0) {
-                        taskName = rs_task.rows.item(0).name;
-                    }
-                }
+                var projInfo = _resolveTimesheetProject(tx, row, projectColorMap);
+                var projectName = projInfo.name;
+                var inheritedColor = projInfo.color;
+                var taskName = _resolveTimesheetTask(tx, row, "Unknown Task");
 
                 // Resolve instance and user names
                 var instanceName = "", userName = "";
