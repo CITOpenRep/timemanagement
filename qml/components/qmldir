@@ -1,4 +1,3 @@
-AccountDrawer 1.0 navigation/AccountDrawer.qml
 AccountSelector 1.0 selectors/AccountSelector.qml
 AccountSelectorDialog 1.0 dialogs/AccountSelectorDialog.qml
 ActivityDetailsCard 1.0 cards/ActivityDetailsCard.qml
@@ -8,8 +7,6 @@ BackendBridge 1.0 system/BackendBridge.qml
 Bubblemap 1.0 visualization/Bubblemap.qml
 ColorPicker 1.0 dialogs/ColorPicker.qml
 ContentPickerDialog 1.0 dialogs/ContentPickerDialog.qml
-CreateUpdateDialog 1.0 dialogs/CreateUpdateDialog.qml
-CreateUpdatePage 1.0 workflow/CreateUpdatePage.qml
 CustomDatePicker 1.0 pickers/CustomDatePicker.qml
 DateRangeHeaderFilter 1.0 pickers/DateRangeHeaderFilter.qml
 DateRangeSelector 1.0 pickers/DateRangeSelector.qml
