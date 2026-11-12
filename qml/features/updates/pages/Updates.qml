@@ -347,8 +347,11 @@ Page {
                     
                     if (newState === "AccountSelected") {
                         currentUpdate.account_id = data.id;
-                        // Reset project when account changes
+                        // Reset project and author when account changes so stale IDs aren't reused
                         currentUpdate.project_id = -1;
+                        if (!isRestoringFromDraft) {
+                            currentUpdate.user_id = -1;
+                        }
                         
                         if (!isInitializing) {
                             draftHandler.markFieldChanged("account_id", data.id);
@@ -700,6 +703,11 @@ Page {
             return;
         }
         
+        // Resolve valid author ID (-1 is truthy in JS, so check > 0 explicitly)
+        var resolvedUserId = (currentUpdate.user_id && currentUpdate.user_id > 0)
+            ? currentUpdate.user_id
+            : Accounts.getCurrentUserOdooId(accountId);
+
         const updateData = {
             account_id: accountId,
             project_id: projectId,
@@ -707,12 +715,15 @@ Page {
             project_status: updateDetailsPage.projectUpdateStatus[statusSelector.selectedId],
             progress: progressSlider.value,
             description: Utils.cleanText(description_text.getFormattedText()),
-            user_id: currentUpdate.user_id || Accounts.getCurrentUserOdooId(accountId)
+            user_id: resolvedUserId
         };
         
         // Update currentUpdate with the values used for saving
         currentUpdate.account_id = accountId;
         currentUpdate.project_id = projectId;
+        if (resolvedUserId && resolvedUserId > 0) {
+            currentUpdate.user_id = resolvedUserId;
+        }
         
         Logger.debug("Updates", "Saving update data:", JSON.stringify(updateData))
         

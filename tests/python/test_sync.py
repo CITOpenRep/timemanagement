@@ -438,4 +438,164 @@ class TestTimesheetNestedMappingSyncFromOdoo:
         conn.close()
 
 
+class TestProjectUpdateSyncToOdoo:
+    def test_push_record_to_odoo_project_update_defaults_invalid_user_id_to_client_uid(self, monkeypatch):
+        import sync_to_odoo
+        from unittest.mock import MagicMock
+
+        mock_client = MagicMock()
+        mock_client.uid = 42
+        mock_client.call.return_value = 701
+
+        field_map = {
+            "name": "name",
+            "status": "project_status",
+            "progress": "progress",
+            "user_id": "user_id",
+            "description": "description",
+            "date": "date",
+            "project_id": "project_id",
+            "create_uid": "create_uid",
+            "id": "odoo_record_id",
+        }
+        field_info = {
+            "name": {"type": "char"},
+            "status": {"type": "selection"},
+            "progress": {"type": "integer"},
+            "user_id": {"type": "many2one"},
+            "description": {"type": "html"},
+            "date": {"type": "date"},
+            "project_id": {"type": "many2one"},
+            "create_uid": {"type": "many2one"},
+            "id": {"type": "integer"},
+        }
+        sql_calls = []
+        monkeypatch.setattr(sync_to_odoo, "load_field_mapping", lambda model, path: field_map)
+        monkeypatch.setattr(sync_to_odoo, "fetch_odoo_field_info", lambda client, model: field_info)
+        monkeypatch.setattr(sync_to_odoo, "safe_sql_execute", lambda db, sql, params=(): sql_calls.append((sql, params)))
+
+        record = {
+            "id": 398,
+            "account_id": 10,
+            "name": "project notify 17 test from phone",
+            "project_status": "on_track",
+            "progress": 50,
+            "user_id": -1,
+            "description": "<p>Update</p>",
+            "date": "2026-11-12",
+            "project_id": 59,
+            "create_uid": None,
+            "odoo_record_id": None,
+            "table_name": "project_update_app",
+            "db_path": ":memory:",
+        }
+
+        created_id = sync_to_odoo.push_record_to_odoo(mock_client, "project.update", record)
+        assert created_id == 701
+
+        call_model, call_method, call_args = mock_client.call.call_args[0]
+        assert call_model == "project.update"
+        assert call_method == "create"
+        payload = call_args[0]
+        assert payload["user_id"] == 42
+        assert payload["project_id"] == 59
+        assert "create_uid" not in payload
+        assert len(sql_calls) == 1
+        assert sql_calls[0][1] == (701, 42, 398, 10)
+
+    def test_push_record_to_odoo_project_update_omits_user_id_when_no_valid_uid(self, monkeypatch):
+        import sync_to_odoo
+        from unittest.mock import MagicMock
+
+        mock_client = MagicMock()
+        mock_client.uid = None
+        mock_client.call.return_value = 702
+
+        field_map = {
+            "name": "name",
+            "user_id": "user_id",
+            "project_id": "project_id",
+        }
+        field_info = {
+            "name": {"type": "char"},
+            "user_id": {"type": "many2one"},
+            "project_id": {"type": "many2one"},
+        }
+        monkeypatch.setattr(sync_to_odoo, "load_field_mapping", lambda model, path: field_map)
+        monkeypatch.setattr(sync_to_odoo, "fetch_odoo_field_info", lambda client, model: field_info)
+        monkeypatch.setattr(sync_to_odoo, "safe_sql_execute", lambda *args, **kwargs: None)
+
+        record = {
+            "id": 399,
+            "account_id": 10,
+            "name": "Update without local user",
+            "user_id": None,
+            "project_id": 59,
+            "odoo_record_id": None,
+            "table_name": "project_update_app",
+            "db_path": ":memory:",
+        }
+
+        created_id = sync_to_odoo.push_record_to_odoo(mock_client, "project.update", record)
+        assert created_id == 702
+
+        payload = mock_client.call.call_args[0][2][0]
+        assert "user_id" not in payload
+
+    def test_sync_to_odoo_does_not_clear_notifications_when_push_returns_none(self, monkeypatch):
+        import sync_to_odoo
+        from unittest.mock import MagicMock
+
+        mock_client = MagicMock()
+        mock_client.call.return_value = []
+
+        monkeypatch.setattr(
+            sync_to_odoo,
+            "get_local_records",
+            lambda *args, **kwargs: [
+                {"id": 398, "name": "Broken update", "status": "updated", "odoo_record_id": None}
+            ],
+        )
+        monkeypatch.setattr(sync_to_odoo, "push_record_to_odoo", lambda *args, **kwargs: None)
+
+        notifications = []
+        cleared = []
+        monkeypatch.setattr(sync_to_odoo, "add_notification", lambda **kwargs: notifications.append(kwargs))
+        monkeypatch.setattr(sync_to_odoo, "clear_sync_notifications", lambda *args: cleared.append(args))
+
+        sync_to_odoo.sync_to_odoo(mock_client, "project.update", "project_update_app", account_id=10, db_path=":memory:")
+
+        assert len(notifications) == 1
+        assert notifications[0]["notif_type"] == "Sync"
+        assert "project.update" in notifications[0]["message"]
+        assert cleared == []
+
+    def test_sync_to_odoo_clears_notifications_when_all_pushes_succeed(self, monkeypatch):
+        import sync_to_odoo
+        from unittest.mock import MagicMock
+
+        mock_client = MagicMock()
+        mock_client.call.return_value = []
+
+        monkeypatch.setattr(
+            sync_to_odoo,
+            "get_local_records",
+            lambda *args, **kwargs: [
+                {"id": 398, "name": "Good update", "status": "updated", "odoo_record_id": None}
+            ],
+        )
+        monkeypatch.setattr(sync_to_odoo, "push_record_to_odoo", lambda *args, **kwargs: 705)
+
+        notifications = []
+        cleared = []
+        monkeypatch.setattr(sync_to_odoo, "add_notification", lambda **kwargs: notifications.append(kwargs))
+        monkeypatch.setattr(sync_to_odoo, "clear_sync_notifications", lambda *args: cleared.append(args))
+
+        sync_to_odoo.sync_to_odoo(mock_client, "project.update", "project_update_app", account_id=10, db_path=":memory:")
+
+        assert notifications == []
+        assert cleared == [(":memory:", 10, "project.update")]
+
+
+
 
