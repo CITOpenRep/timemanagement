@@ -365,6 +365,55 @@ class TestTimesheetNestedMappingSyncToOdoo:
         assert record["status"] == "to_create"
         assert record["odoo_record_id"] is None
 
+    def test_automated_timesheet_retains_nested_hierarchy_on_sync(self, tmp_path):
+        import sqlite3
+        import sync_to_odoo
+
+        db_path = str(tmp_path / "test_automated.db")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE account_analytic_line_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                project_id INTEGER,
+                sub_project_id INTEGER,
+                task_id INTEGER,
+                sub_task_id INTEGER,
+                name TEXT,
+                unit_amount FLOAT,
+                last_modified datetime,
+                record_date datetime,
+                user_id INTEGER,
+                status TEXT DEFAULT '',
+                timer_type TEXT DEFAULT 'manual',
+                odoo_record_id INTEGER
+            )
+        """)
+        cur.execute("""
+            INSERT INTO account_analytic_line_app
+            (id, account_id, project_id, sub_project_id, task_id, sub_task_id, name, unit_amount, timer_type, status, odoo_record_id)
+            VALUES (1, 1, 59, 60, 100, 101, 'Automated timer session', 1.25, 'automatic', 'to_create', NULL)
+        """)
+        conn.commit()
+        conn.close()
+
+        records = sync_to_odoo.get_local_records(
+            table_name="account_analytic_line_app",
+            model_name="account.analytic.line",
+            account_id=1,
+            db_path=db_path,
+            config_path="field_config.json"
+        )
+
+        assert len(records) == 1
+        record = records[0]
+        assert record["project_id"] == 59
+        assert record["sub_project_id"] == 60
+        assert record["task_id"] == 100
+        assert record["sub_task_id"] == 101
+        assert record["unit_amount"] == 1.25
+
 
 class TestTimesheetNestedMappingSyncFromOdoo:
     def test_insert_record_timesheet_decomposes_child_project_and_subtask(self, tmp_path):
