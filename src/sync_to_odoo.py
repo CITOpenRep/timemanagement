@@ -456,7 +456,10 @@ def get_local_records(
     sqlite_fields = list(field_map.values())
 
     try:
-        fields = ["id"] + sqlite_fields + ["status", "odoo_record_id"]
+        extra_fields = []
+        if table_name == "account_analytic_line_app":
+            extra_fields = ["sub_project_id", "sub_task_id"]
+        fields = ["id"] + sqlite_fields + extra_fields + ["status", "odoo_record_id"]
         query = f"SELECT {', '.join(fields)} FROM {table_name} WHERE account_id = ?"
         rows = safe_sql_execute(db_path, query, (account_id,), fetch=True, commit=False)
         records = (
