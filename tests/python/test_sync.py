@@ -29,6 +29,53 @@ class TestSyncLockAndConcurrency:
         assert result is True
         assert called == [("test.sqlite", 42)]
 
+    def test_save_push_token_skips_local_and_invalid_accounts(self, monkeypatch, tmp_path):
+        import sqlite3
+
+        db_path = str(tmp_path / "test_push_accounts.sqlite")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                link TEXT,
+                database TEXT,
+                username TEXT,
+                api_key TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        # Account 0: Local Account
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (0, 'Local Account', 'local://', '', '', '')")
+        # Account 1: Remote account without api_key
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (1, 'Remote No Key', 'https://odoo.example.com', 'db', 'user', '')")
+        # Account 2: Valid remote account
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (2, 'Remote Valid', 'https://odoo.example.com', 'db', 'user', 'valid_key')")
+        conn.commit()
+        conn.close()
+
+        registered_clients = []
+
+        class MockClient:
+            def __init__(self, link, db, username, api_key):
+                registered_clients.append((link, db, username, api_key))
+
+            def register_push_device(self, token, bridge_url=None):
+                return {"mode": "native"}
+
+        monkeypatch.setattr(sync_module, "OdooClient", MockClient)
+
+        result = sync_module.save_push_token(db_path, "test_token_123")
+        assert result is True
+        assert len(registered_clients) == 1
+        assert registered_clients[0] == ("https://odoo.example.com", "db", "user", "valid_key")
+
 
 class TestOdooSyncActiveUsersContext:
     def test_fetch_odoo_records_res_users_includes_inactive_context(self, monkeypatch):

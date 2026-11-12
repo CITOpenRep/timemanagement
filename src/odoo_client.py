@@ -173,13 +173,10 @@ class OdooClient:
                 except Exception:
                     pass
 
-            send("sync_error", "Login to server failed")
             raise ConnectionError(f"Login failed: {e}")
         except socket.timeout:
-            send("sync_error", "Connection timed out - server not responding")
             raise ConnectionError("Login timed out - check network connection")
         except Exception as e:
-            send("sync_error",f"Login to server failed")
             raise ConnectionError(f"Login failed: {e}")
 
     def _create_transport(self):
