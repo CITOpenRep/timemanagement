@@ -66,10 +66,6 @@ const DISPLAY_NAME = "My Database";
 const SIZE = 1000000;
 
 // Helpers
-function getTimestamp() {
-    return new Date().toISOString();
-}
-
 function logException(tag, error) {
     var errMsg = (error && error.message ? error.message : error);
     Logger.error("Database", "[" + tag + "] " + errMsg);

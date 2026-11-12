@@ -3,14 +3,6 @@
 .import "accounts.js" as Account
 .import "../models/dbinit.js" as DbInit
 
-/* Name: get_quadrant_current_week
- * This function will return total of spent time for current week based on quadrants from timesheet entries
- * 4 quadrants are as following
- * 0 -> Urgent and Important
- * 1 -> Import but not Urgent
- * 2 -> Not Important but Urgent
- * 3 -> Not Important and Not Urgent
- */
 DbInit.initializeDatabase();
 
 function get_quadrant_difference() {
@@ -22,31 +14,6 @@ function get_quadrant_difference() {
             quadrant_data[fetch_quadrant.rows.item(quad).quadrant_id] = fetch_quadrant.rows.item(quad).total
         }
     });
-    return quadrant_data;
-}
-
-/**
- * Retrieves the total spent hours for each time management quadrant (0–3)
- * for the current week, starting from Monday.
- *
- * @function get_quadrant_current_week
- * @returns {Object} - An object mapping quadrant IDs (0 to 3) to their respective total spent hours.
- *                     Example: { 0: 5, 1: 8, 2: 2, 3: 0 }
- *
- * @description
- * Initializes a data structure to hold totals for each quadrant.
- * Calculates the date of the Monday of the current week using `getMondayOfCurrentWeek()`.
- * Calls `get_spent_hours()` with a filter to group results by `quadrant_id` and limit data to the current week.
- * Populates the `quadrant_data` object with the total hours spent per quadrant based on the returned data.
- */
-
-function get_quadrant_current_week() {
-    var quadrant_data = { 0: 0, 1: 0, 2: 0, 3: 0 };
-    var first_day_of_week = getMondayOfCurrentWeek();
-    var spent_hours = get_spent_hours({ 'group_by': 'quadrant_id', 'dateFilter': first_day_of_week });
-    for (var fetch = 0; fetch < spent_hours.length; fetch++) {
-        quadrant_data[spent_hours[fetch].quadrant_id] = spent_hours[fetch].total;
-    }
     return quadrant_data;
 }
 

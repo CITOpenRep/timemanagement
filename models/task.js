@@ -26,11 +26,6 @@
             .import "draft_manager.js" as DraftManager
                 .import "accounts.js" as Accounts
 
-// Helper to handle -1/null
-function validId(value) {
-    return (value !== undefined && value > 0) ? value : null;
-}
-
 // Helper to parse comma-separated user IDs from user_id field
 function parseAssigneeIds(userIdField) {
     if (!userIdField) {
@@ -607,62 +602,6 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
 }
 
 /**
- * Deletes multiple tasks safely, checking each for children
- * @param {Array<number>} taskIds - Array of local task IDs to delete
- * @param {boolean} forceDelete - Optional flag to override child protection
- * @returns {Object} Result object with detailed deletion results
- */
-function markMultipleTasksAsDeleted(taskIds, forceDelete = false) {
-    var results = {
-        success: true,
-        totalRequested: taskIds.length,
-        successfulDeletions: [],
-        blockedDeletions: [],
-        failedDeletions: [],
-        message: ""
-    };
-
-    for (var i = 0; i < taskIds.length; i++) {
-        var result = markTaskAsDeleted(taskIds[i], forceDelete);
-
-        if (result.success) {
-            results.successfulDeletions.push({
-                taskId: taskIds[i],
-                message: result.message
-            });
-        } else if (result.hasChildren) {
-            results.blockedDeletions.push({
-                taskId: taskIds[i],
-                message: result.message,
-                childTasks: result.childTasks
-            });
-        } else {
-            results.failedDeletions.push({
-                taskId: taskIds[i],
-                message: result.message
-            });
-        }
-    }
-
-    // Generate summary message
-    var messages = [];
-    if (results.successfulDeletions.length > 0) {
-        messages.push(results.successfulDeletions.length + " task(s) deleted successfully");
-    }
-    if (results.blockedDeletions.length > 0) {
-        messages.push(results.blockedDeletions.length + " task(s) blocked (have children)");
-    }
-    if (results.failedDeletions.length > 0) {
-        messages.push(results.failedDeletions.length + " task(s) failed to delete");
-        results.success = false;
-    }
-
-    results.message = messages.join(", ");
-
-    return results;
-}
-
-/**
  * Gets all direct child tasks for a given parent task
  * @param {Object} tx - Database transaction object
  * @param {number} parentLocalId - The local 'id' of the parent task
@@ -797,20 +736,6 @@ function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
     }
 
     return deletedTimesheetIds;
-}
-
-function edittaskData(data) {
-    var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-
-    db.transaction(function (tx) {
-        tx.executeSql('UPDATE project_task_app SET \
-            account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority =? , description = ?, user_id = ?, sub_project_id = ?, \
-            start_date = ?, end_date = ?, deadline = ?, last_modified = ? WHERE id = ?',
-            [data.selectedAccountUserId, data.nameInput, data.selectedProjectId, data.selectedparentId, data.initialInput, data.priority, data.editdescription, data.selectedassigneesUserId, data.editselectedSubProjectId,
-            data.startdateInput, data.enddateInput, data.deadlineInput, new Date().toISOString(), data.rowId]
-        );
-        fetch_tasks_lists()
-    });
 }
 
 /**
@@ -2025,100 +1950,6 @@ function getFilteredTasksPaginated(filterType, searchQuery, accountId, limit, of
         hasMore: hasMore || filteredTasks.length >= limit,
         dbOffset: dbOffset
     };
-}
-
-/**
- * Gets filtered tasks by assignees
- * @param {Array} assigneeIds - Array of assignee IDs to filter by
- * @param {number} accountId - Account ID to filter tasks
- * @param {string} filterType - Date filter type (optional)
- * @param {string} searchQuery - Search query (optional)
- * @returns {Array<Object>} Filtered list of tasks
- */
-function getTasksByAssignees(assigneeIds, accountId, filterType, searchQuery) {
-
-    var allTasks;
-
-    // If accountId is provided, filter by account first
-    if (accountId !== undefined && accountId >= 0) {
-        allTasks = getTasksForAccount(accountId);
-
-    } else {
-        allTasks = getAllTasks();
-
-    }
-
-    var filteredTasks = [];
-    var currentDate = new Date();
-
-    if (!assigneeIds || assigneeIds.length === 0) {
-
-        return filteredTasks;
-    }
-
-    // Filter tasks by assignees
-    for (var i = 0; i < allTasks.length; i++) {
-        var task = allTasks[i];
-
-        // Check if task has any of the selected assignees
-        var hasMatchingAssignee = false;
-
-        if (task.user_id) {
-            var taskAssigneeIds = parseAssigneeIds(task.user_id);
-
-            for (var j = 0; j < assigneeIds.length; j++) {
-                var selectedAssignee = assigneeIds[j];
-
-                // Handle both legacy format (simple IDs) and new format (composite objects)
-                if (typeof selectedAssignee === 'object' && selectedAssignee.user_id !== undefined) {
-                    // New composite ID format: check both user_id and account_id
-                    var userIdMatches = taskAssigneeIds.indexOf(selectedAssignee.user_id) !== -1;
-                    var accountMatches = (task.account_id === selectedAssignee.account_id);
-
-                    if (userIdMatches && accountMatches) {
-                        hasMatchingAssignee = true;
-                        break;
-                    }
-                } else {
-                    // Legacy format: simple ID matching with account verification
-                    if (taskAssigneeIds.indexOf(selectedAssignee) !== -1) {
-                        // Additional check: When filtering across multiple accounts,
-                        // ensure the assignee belongs to the same account as the task
-                        if (accountId === -1) {
-                            // For "All Accounts" view, verify assignee-task account match
-                            var assigneeAccountId = getAssigneeAccountId(selectedAssignee);
-                            if (assigneeAccountId !== -1 && task.account_id !== assigneeAccountId) {
-                                continue;
-                            }
-                        }
-                        hasMatchingAssignee = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (hasMatchingAssignee) {
-            var passesFilter = true;
-
-            // Apply date filter if specified
-            if (filterType && !passesDateFilter(task, filterType, currentDate)) {
-                passesFilter = false;
-            }
-
-            // Apply search filter if specified
-            if (passesFilter && searchQuery && !passesSearchFilter(task, searchQuery)) {
-                passesFilter = false;
-            }
-
-            if (passesFilter) {
-                filteredTasks.push(task);
-            }
-        }
-    }
-
-
-    return filteredTasks;
 }
 
 /**

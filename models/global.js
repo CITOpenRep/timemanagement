@@ -9,9 +9,6 @@ var description_context = ""
 
 var current_account_id = Account.getDefaultAccountId()
 
-// Global callback storage for CreateUpdatePage
-var createUpdateCallback = null
-
 // Global callback storage for ReadMorePage rich-text saves
 var richTextSaveCallback = null
 
@@ -141,9 +138,5 @@ function getDateRangeFilter() {
         presetLabel: dateRangePresetLabel,
         isFiltered: dateRangePresetId !== -1
     };
-}
-
-function clearDateRangeFilter() {
-    setDateRangeFilter(-1, "", "", "No Filter");
 }
 

@@ -1709,16 +1709,6 @@ function getOdooModelId(accountId, technicalName) {
         return null;
     }
 }
-function clearDefaultAccount() {
-    try {
-        var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
-        db.transaction(function (tx) {
-            tx.executeSql("UPDATE users SET is_default = 0");
-        });
-    } catch (e) {
-        DBCommon.logException(e);
-    }
-}
 
 /**
  * Updates the per-account sync settings for a given account.
