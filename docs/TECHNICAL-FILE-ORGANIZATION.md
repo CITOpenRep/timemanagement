@@ -90,8 +90,8 @@ Rule:
 Examples:
 
 - `qml/components/richtext/ReadMorePage.qml`
-- `qml/components/base/UbuntuShape.qml`
-- `qml/components/dialogs/CreateUpdateDialog.qml`
+- `qml/components/base/OutlinedTextField.qml`
+- `qml/components/dialogs/AccountSelectorDialog.qml`
 - `qml/components/system/ModelDownloadTimerWidget.qml`
 
 #### `qml/features/`
@@ -282,7 +282,6 @@ The repository is already mostly organized around a good long-term structure:
 Recent cleanup also moved previously loose QML files into more relevant locations:
 
 - `ReadMorePage.qml` into `qml/components/richtext/`
-- `UbuntuShape.qml` into `qml/components/base/`
 - `release_notes.txt` into `qml/app/pages/`
 - runtime `logo.png` into `qml/images/`
 

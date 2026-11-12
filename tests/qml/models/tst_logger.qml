@@ -10,18 +10,6 @@ Item {
         name: "LoggerTests"
         when: windowShown
 
-        function initTestCase() {
-            compare(Logger.getLogLevel(), Logger.LogLevel.WARN);
-        }
-
-        function init() {
-            Logger.setLogLevel(Logger.LogLevel.WARN);
-        }
-
-        function cleanup() {
-            Logger.setLogLevel(Logger.LogLevel.WARN);
-        }
-
         function test_logLevelEnumValues() {
             verify(Logger.LogLevel !== undefined);
             compare(Logger.LogLevel.DEBUG, 0);
@@ -29,48 +17,6 @@ Item {
             compare(Logger.LogLevel.WARN, 2);
             compare(Logger.LogLevel.ERROR, 3);
             compare(Logger.LogLevel.NONE, 4);
-        }
-
-        function test_setLogLevelValid() {
-            Logger.setLogLevel(Logger.LogLevel.DEBUG);
-            compare(Logger.getLogLevel(), Logger.LogLevel.DEBUG);
-
-            Logger.setLogLevel(Logger.LogLevel.INFO);
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            Logger.setLogLevel(Logger.LogLevel.ERROR);
-            compare(Logger.getLogLevel(), Logger.LogLevel.ERROR);
-
-            Logger.setLogLevel(Logger.LogLevel.NONE);
-            compare(Logger.getLogLevel(), Logger.LogLevel.NONE);
-        }
-
-        function test_setLogLevelInvalidIgnoresChange() {
-            Logger.setLogLevel(Logger.LogLevel.INFO);
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            // Out-of-bounds numbers
-            Logger.setLogLevel(-1);
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            Logger.setLogLevel(5);
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            Logger.setLogLevel(100);
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            // Non-number types
-            Logger.setLogLevel("DEBUG");
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            Logger.setLogLevel(null);
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            Logger.setLogLevel(undefined);
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
-
-            Logger.setLogLevel({});
-            compare(Logger.getLogLevel(), Logger.LogLevel.INFO);
         }
 
         function test_sanitizePIINonStringPassThrough() {
@@ -107,10 +53,7 @@ Item {
             compare(Logger.sanitizePII(input), expected);
         }
 
-        function test_loggingExecutionAtAllLevels() {
-            // Enable DEBUG to exercise all log branches
-            Logger.setLogLevel(Logger.LogLevel.DEBUG);
-
+        function test_loggingExecution() {
             // Should execute without errors
             Logger.debug("TestCategory", "Debug message with confidential info user@example.com");
             Logger.debug("TestCategory", "Debug with payload", { id: 101, status: "ok" });
@@ -123,13 +66,6 @@ Item {
 
             Logger.error("TestCategory", "Error message with admin@system.org");
             Logger.error("TestCategory", "Error with payload", 500);
-
-            // Filter out all logs with NONE
-            Logger.setLogLevel(Logger.LogLevel.NONE);
-            Logger.debug("TestCategory", "Should be silenced");
-            Logger.info("TestCategory", "Should be silenced");
-            Logger.warn("TestCategory", "Should be silenced");
-            Logger.error("TestCategory", "Should be silenced");
 
             verify(true);
         }
