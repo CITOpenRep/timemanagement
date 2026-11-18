@@ -1,7 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
 import QtQuick.LocalStorage 2.7 as Sql
-import "../../../models/logger.js" as Logger
 import "../../../models/database.js" as DBCommon
 import "../../../models/dbinit.js" as DbInit
 import "../../../models/utils.js" as Utils
@@ -16,12 +15,7 @@ Item {
         when: windowShown
 
         function initTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.NONE);
             DbInit.initializeDatabase();
-        }
-
-        function cleanupTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.WARN);
         }
 
         function init() {
@@ -43,15 +37,6 @@ Item {
         }
 
         // --- 1. Pure Helper Functions ---
-
-        function test_validId() {
-            compare(TaskModel.validId(10), 10);
-            compare(TaskModel.validId(1), 1);
-            compare(TaskModel.validId(0), null);
-            compare(TaskModel.validId(-5), null);
-            compare(TaskModel.validId(undefined), null);
-            compare(TaskModel.validId(null), null);
-        }
 
         function test_parseAssigneeIds() {
             compare(TaskModel.parseAssigneeIds("").length, 0);

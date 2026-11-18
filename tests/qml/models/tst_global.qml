@@ -1,7 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
 import QtQuick.LocalStorage 2.7 as Sql
-import "../../../models/logger.js" as Logger
 import "../../../models/database.js" as DBCommon
 import "../../../models/dbinit.js" as DbInit
 import "../../../models/global.js" as Global
@@ -15,14 +14,11 @@ Item {
         when: windowShown
 
         function initTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.NONE);
             DbInit.initializeDatabase();
         }
 
         function cleanupTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.WARN);
             Global.clearAssigneeFilter();
-            Global.clearDateRangeFilter();
         }
 
         function test_assigneeFilterLifecycle() {
@@ -96,7 +92,7 @@ Item {
             });
 
             // Clear filter
-            Global.clearDateRangeFilter();
+            Global.setDateRangeFilter(-1, "", "", "No Filter");
             var cleared = Global.getDateRangeFilter();
             compare(cleared.presetId, -1);
             compare(cleared.startDate, "");

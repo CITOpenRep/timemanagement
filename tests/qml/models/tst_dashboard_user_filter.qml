@@ -1,7 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
 import QtQuick.LocalStorage 2.7 as Sql
-import "../../../models/logger.js" as Logger
 import "../../../models/database.js" as DBCommon
 import "../../../models/dbinit.js" as DBInit
 import "../../../models/global.js" as Global
@@ -27,12 +26,7 @@ Item {
         when: windowShown
 
         function initTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.NONE);
             DBInit.initializeDatabase();
-        }
-
-        function cleanupTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.WARN);
         }
 
         function init() {

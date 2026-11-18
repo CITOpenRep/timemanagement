@@ -2,7 +2,6 @@ import QtQuick 2.7
 import QtTest 1.0
 import QtQuick.LocalStorage 2.7 as Sql
 import "../../../models/constants.js" as Constants
-import "../../../models/logger.js" as Logger
 import "../../../models/database.js" as DBCommon
 import "../../../models/timesheet.js" as Model
 import "../../../models/timer_service.js" as TimerService
@@ -16,7 +15,6 @@ Item {
         when: windowShown
 
         function initTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.NONE);
             var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
             db.transaction(function(tx) {
                 tx.executeSql("CREATE TABLE IF NOT EXISTS project_project_app (" +
@@ -45,7 +43,6 @@ Item {
 
         function cleanupTestCase() {
             TimerService.reset();
-            Logger.setLogLevel(Logger.LogLevel.WARN);
         }
 
         function init() {
@@ -85,7 +82,6 @@ Item {
             compare(TimerService.isRunning(), false);
             compare(TimerService.isPaused(), false);
             compare(TimerService.getActiveTimesheetId(), null);
-            compare(TimerService.getStartTime(), 0);
             compare(TimerService.getActiveTimesheetName(), "");
             compare(TimerService.getElapsedTime("hhmmss"), "00:00:00");
             compare(TimerService.getElapsedTime("hhmm"), "0.00");
@@ -123,7 +119,6 @@ Item {
             compare(TimerService.isPaused(), false);
             compare(TimerService.getActiveTimesheetId(), 1);
             compare(TimerService.getActiveTimesheetName(), "Feature Implementation");
-            verify(TimerService.getStartTime() > 0);
 
             // Verify status marked active in DB
             var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -135,12 +130,10 @@ Item {
 
         function test_redundantStartSameTimesheetIgnored() {
             TimerService.start(1);
-            var initialStartTime = TimerService.getStartTime();
 
             // Calling start on the same active timesheet does not restart
             TimerService.start(1);
             compare(TimerService.isRunning(), true);
-            compare(TimerService.getStartTime(), initialStartTime);
         }
 
         function test_pauseAndResume() {
@@ -182,7 +175,6 @@ Item {
             compare(TimerService.isRunning(), false);
             compare(TimerService.isPaused(), false);
             compare(TimerService.getActiveTimesheetId(), null);
-            compare(TimerService.getStartTime(), 0);
 
             // Verify DB status reverted to draft
             var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
@@ -253,7 +245,6 @@ Item {
             compare(TimerService.isRunning(), false);
             compare(TimerService.isPaused(), false);
             compare(TimerService.getActiveTimesheetId(), null);
-            compare(TimerService.getStartTime(), 0);
             compare(TimerService.getActiveTimesheetName(), "");
         }
     }

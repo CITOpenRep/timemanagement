@@ -17,24 +17,6 @@ var LogLevel = {
 var currentLogLevel = LogLevel.WARN;
 
 /**
- * Sets global log level.
- * @param {number} level - LogLevel enum value
- */
-function setLogLevel(level) {
-    if (typeof level === "number" && level >= LogLevel.DEBUG && level <= LogLevel.NONE) {
-        currentLogLevel = level;
-    }
-}
-
-/**
- * Gets current log level.
- * @returns {number}
- */
-function getLogLevel() {
-    return currentLogLevel;
-}
-
-/**
  * Mask potential PII (like email addresses) in log messages.
  * @param {string} text
  * @returns {string}

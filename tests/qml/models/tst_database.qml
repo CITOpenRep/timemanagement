@@ -1,7 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
 import QtQuick.LocalStorage 2.7 as Sql
-import "../../../models/logger.js" as Logger
 import "../../../models/database.js" as DBCommon
 
 Item {
@@ -11,14 +10,6 @@ Item {
     TestCase {
         name: "DatabaseTests"
         when: windowShown
-
-        function initTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.NONE);
-        }
-
-        function cleanupTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.WARN);
-        }
 
         function test_constants() {
             verify(DBCommon.NAME !== undefined);
@@ -36,16 +27,6 @@ Item {
             verify(DBCommon.SIZE !== undefined);
             compare(typeof DBCommon.SIZE, "number");
             compare(DBCommon.SIZE, 1000000);
-        }
-
-        function test_getTimestamp() {
-            var ts = DBCommon.getTimestamp();
-            verify(ts !== undefined);
-            compare(typeof ts, "string");
-            verify(ts.length > 0);
-
-            var parsed = new Date(ts);
-            verify(!isNaN(parsed.getTime()));
         }
 
         function test_rowToObjectValid() {

@@ -1,7 +1,6 @@
 import QtQuick 2.7
 import QtTest 1.0
 import QtQuick.LocalStorage 2.7 as Sql
-import "../../../models/logger.js" as Logger
 import "../../../models/database.js" as DBCommon
 import "../../../models/dbinit.js" as DbInit
 import "../../../models/utils.js" as Utils
@@ -16,12 +15,7 @@ Item {
         when: windowShown
 
         function initTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.NONE);
             DbInit.initializeDatabase();
-        }
-
-        function cleanupTestCase() {
-            Logger.setLogLevel(Logger.LogLevel.WARN);
         }
 
         function clearTestData() {
@@ -64,7 +58,9 @@ Item {
             AccountsModel.setDefaultAccount(90002);
             compare(AccountsModel.getDefaultAccountId(), 90002);
 
-            AccountsModel.clearDefaultAccount();
+            db.transaction(function (tx) {
+                tx.executeSql("UPDATE users SET is_default = 0");
+            });
             // When none marked default, getDefaultAccountId falls back to first account (usually id 0)
             compare(AccountsModel.getDefaultAccountId(), 0);
         }

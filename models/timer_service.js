@@ -268,13 +268,6 @@ function getActiveTimesheetId() {
 }
 
 /**
- * Return the raw epoch start time.
- */
-function getStartTime() {
-    return startTime;
-}
-
-/**
  * Return the active timesheet name.
  */
 function getActiveTimesheetName() {

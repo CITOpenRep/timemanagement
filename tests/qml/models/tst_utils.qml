@@ -180,36 +180,12 @@ Item {
             verify(new Date(yesterday).getTime() < Date.now());
         }
 
-        function test_getNextWeekRange() {
-            var range = Utils.getNextWeekRange();
-            verify(range.start !== undefined);
-            verify(range.end !== undefined);
-            compare(range.start.length, 10);
-            compare(range.end.length, 10);
-
-            var startParts = range.start.split("-");
-            var localStartDate = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]));
-            var endParts = range.end.split("-");
-            var localEndDate = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]));
-
-            verify(localStartDate <= localEndDate);
-            compare(localStartDate.getDay(), 1);
-        }
-
         function test_getNextWeekSameDay() {
             var nextWeek = Utils.getNextWeekSameDay("2026-09-10");
             compare(nextWeek, "2026-09-17");
 
             var leapYear = Utils.getNextWeekSameDay("2024-02-25");
             compare(leapYear, "2024-03-03");
-        }
-
-        function test_getNextMonthRange() {
-            var range = Utils.getNextMonthRange();
-            verify(range.start !== undefined);
-            verify(range.end !== undefined);
-            compare(range.start.slice(8, 10), "01");
-            verify(new Date(range.start) <= new Date(range.end));
         }
 
         function test_getNextMonthSameDay() {

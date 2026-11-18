@@ -1964,56 +1964,6 @@ function getAllActivityAssignees(accountId) {
 }
 
 /**
- * Gets filtered activities with optional assignee filtering
- * @param {string} filterType - The date filter type
- * @param {string} searchQuery - The search query string
- * @param {number} accountId - Optional account ID to filter by
- * @param {Array} assigneeIds - Optional array of assignee IDs to filter by
- * @returns {Array<Object>} Filtered list of activities
- */
-function getFilteredActivitiesWithAssignees(filterType, searchQuery, accountId, assigneeIds) {
-    var allActivities;
-
-    if (accountId !== undefined && accountId >= 0) {
-        allActivities = getActivitiesForAccount(accountId);
-    } else {
-        allActivities = getAllActivities();
-    }
-
-    var filteredActivities = [];
-    var currentDate = new Date();
-
-    for (var i = 0; i < allActivities.length; i++) {
-        var activity = allActivities[i];
-        var passesFilter = true;
-
-        // Apply date filter
-        if (!passesActivityDateFilter(activity, filterType, currentDate)) {
-            passesFilter = false;
-        }
-
-        // Apply search filter
-        if (passesFilter && searchQuery && !passesActivitySearchFilter(activity, searchQuery)) {
-            passesFilter = false;
-        }
-
-        // Apply assignee filter
-        if (passesFilter && assigneeIds && assigneeIds.length > 0) {
-            var activityUserId = parseInt(activity.user_id);
-            if (!activityUserId || assigneeIds.indexOf(activityUserId) === -1) {
-                passesFilter = false;
-            }
-        }
-
-        if (passesFilter) {
-            filteredActivities.push(activity);
-        }
-    }
-
-    return filteredActivities;
-}
-
-/**
  * Paginated version of getDoneActivities (all accounts) for infinite scroll.
  * 
  * @param {number} limit - Maximum number of items to return
