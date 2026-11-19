@@ -63,6 +63,7 @@ from .storage import (
 from .sync import (
     get_push_mode,
     save_push_token,
+    save_push_token_background,
     start_sync_in_background,
     sync,
     sync_background,
@@ -80,6 +81,7 @@ from .voice import (
     get_model_download_status,
     get_paused_voice_models,
     get_voice_models_dir,
+    get_voice_models_overview,
     is_valid_vosk_model,
     list_available_models,
     list_installed_models,
@@ -115,6 +117,7 @@ __all__ = [
     # Sync
     "get_push_mode",
     "save_push_token",
+    "save_push_token_background",
     "unregister_account_push",
     "sync",
     "sync_background",
@@ -124,6 +127,7 @@ __all__ = [
     # Voice
     "stop_voice_recognition",
     "get_voice_models_dir",
+    "get_voice_models_overview",
     "is_valid_vosk_model",
     "list_installed_models",
     "get_installed_voice_models",
