@@ -156,7 +156,7 @@ Page {
                         if (typeof mainView !== "undefined" && mainView.startupManager && bridge) {
                             mainView.startupManager.initializePushNotifications(bridge);
                         } else if (bridge) {
-                            bridge.call("backend.save_push_token", [""], function(res) {});
+                            bridge.call("backend.save_push_token_background", [""], function(res) {});
                         }
                         // Signal to refresh accounts list in Settings_Page
                         if (typeof settings !== 'undefined' && typeof settings.fetch_accounts === 'function') {
@@ -188,7 +188,7 @@ Page {
                         if (typeof mainView !== "undefined" && mainView.startupManager && bridge) {
                             mainView.startupManager.initializePushNotifications(bridge);
                         } else if (bridge) {
-                            bridge.call("backend.save_push_token", [""], function(res) {});
+                            bridge.call("backend.save_push_token_background", [""], function(res) {});
                         }
 
                         // Signal to refresh accounts list in Settings_Page

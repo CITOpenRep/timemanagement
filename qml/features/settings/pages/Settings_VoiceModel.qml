@@ -59,7 +59,7 @@ Page {
     }
 
     property string activeModelPath: ""
-    property bool isLoading: false
+    property bool isLoading: true
     property bool isDownloading: false
     property string downloadingModelId: ""
     property string downloadingModelName: ""
@@ -205,18 +205,45 @@ Page {
         
         isLoading = true;
         
-        mainView.backend_bridge.call("backend.list_installed_models", [], function(models) {
+        mainView.backend_bridge.call("backend.get_voice_models_overview", [], function(overview) {
             isLoading = false;
-            var arr = [];
-            if (models) {
-                for (var i = 0; i < models.length; i++) {
-                    arr.push(models[i]);
+            if (!overview) {
+                allInstalledModels = [];
+                allAvailableModels = [];
+                filterModels();
+                return;
+            }
+
+            var installedArr = [];
+            if (overview.installed) {
+                for (var i = 0; i < overview.installed.length; i++) {
+                    installedArr.push(overview.installed[i]);
                 }
             }
-            allInstalledModels = arr;
+            allInstalledModels = installedArr;
+
+            var availArr = [];
+            if (overview.available) {
+                for (var j = 0; j < overview.available.length; j++) {
+                    availArr.push(overview.available[j]);
+                }
+            }
+            allAvailableModels = availArr;
+
+            if (overview.device_ram_mb) {
+                deviceRamMB = overview.device_ram_mb;
+            }
+            if (overview.paused && overview.paused.length > 0) {
+                failedModelId = overview.paused[0];
+            }
+            if (overview.download_status && overview.download_status.in_progress) {
+                isDownloading = true;
+                downloadingModelId = overview.download_status.model_id || "";
+                downloadStatus = overview.download_status;
+                downloadStatusTimer.start();
+            }
+
             filterModels();
-            // After refreshing installed models, refresh available ones
-            refreshAvailableModels();
         });
     }
 
@@ -267,21 +294,6 @@ Page {
                 }
             }
         }
-    }
-
-    function refreshAvailableModels() {
-        if (!mainView.backend_bridge.ready) return;
-        
-        mainView.backend_bridge.call("backend.list_available_models", [], function(models) {
-            var arr = [];
-            if (models) {
-                for (var i = 0; i < models.length; i++) {
-                    arr.push(models[i]);
-                }
-            }
-            allAvailableModels = arr;
-            filterModels();
-        });
     }
 
     function downloadModel(modelId, url, modelName) {
@@ -339,39 +351,7 @@ Page {
         isVoiceLowMemoryMode = getVoiceLowMemoryModeSetting();
         if (mainView.backend_bridge.ready) {
             refreshModels();
-            checkInProgressDownload();
-            checkPausedDownloads();
-            fetchDeviceRam();
         }
-    }
-
-    function fetchDeviceRam() {
-        mainView.backend_bridge.call("backend.get_device_total_ram_mb", [], function(ram) {
-            if (ram) {
-                deviceRamMB = ram;
-                console.log("Device RAM detected:", deviceRamMB, "MB");
-            }
-        });
-    }
-
-    function checkPausedDownloads() {
-        mainView.backend_bridge.call("backend.get_paused_voice_models", [], function(paused) {
-            if (paused && paused.length > 0) {
-                // If there are partial downloads, mark the first one as paused (failedModelId handles UI for paused state)
-                failedModelId = paused[0];
-            }
-        });
-    }
-
-    function checkInProgressDownload() {
-        mainView.backend_bridge.call("backend.get_model_download_status", [], function(status) {
-            if (status.in_progress) {
-                isDownloading = true;
-                downloadingModelId = status.model_id || "";
-                downloadStatus = status;
-                downloadStatusTimer.start();
-            }
-        });
     }
 
     function deleteModel(path, name) {
@@ -626,9 +606,6 @@ Page {
         onReadyChanged: {
             if (mainView.backend_bridge.ready) {
                 refreshModels();
-                checkInProgressDownload();
-                checkPausedDownloads();
-                fetchDeviceRam();
             }
         }
     }
