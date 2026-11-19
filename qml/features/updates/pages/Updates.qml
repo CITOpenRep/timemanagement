@@ -640,7 +640,7 @@ Page {
             progress: progressSlider.value || 0,
             account_id: currentUpdate.account_id || 0,
             project_id: currentUpdate.project_id || -1,
-            user_id: currentUpdate.user_id || -1
+            user_id: (currentUpdate.user_id && currentUpdate.user_id > 0) ? currentUpdate.user_id : -1
         };
         
         return formData;
@@ -818,7 +818,7 @@ Page {
                 progress: currentUpdate.progress || 0,
                 account_id: currentUpdate.account_id || 0,
                 project_id: currentUpdate.project_id || -1,
-                user_id: currentUpdate.user_id || -1
+                user_id: (currentUpdate.user_id && currentUpdate.user_id > 0) ? currentUpdate.user_id : -1
             });
         } else {
             // New update - check if project is pre-selected or needs selection
@@ -852,7 +852,7 @@ Page {
                 progress: currentUpdate.progress || 0,
                 account_id: currentUpdate.account_id || 0,
                 project_id: currentUpdate.project_id || -1,
-                user_id: currentUpdate.user_id || -1
+                user_id: (currentUpdate.user_id && currentUpdate.user_id > 0) ? currentUpdate.user_id : -1
             });
         }
         
