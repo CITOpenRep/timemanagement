@@ -724,7 +724,7 @@ def construct_changes(field_map, field_info, record, existing_data, model_name=N
         Skips fields not found in field_info or with missing sqlite_field mapping.
     """
     # Fields that should not be pushed to Odoo (computed/readonly fields)
-    SKIP_FIELDS = {"last_update_status", "is_favorite"}
+    SKIP_FIELDS = {"last_update_status", "is_favorite", "create_uid"}
     
     changes = {}
     remote_write_date = existing_data.get("write_date")
@@ -951,7 +951,7 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
             return None
 
     else:
-        SKIP_FIELDS = {"last_update_status", "is_favorite"}  # is_favorite is computed field in Odoo
+        SKIP_FIELDS = {"last_update_status", "is_favorite", "create_uid"}  # is_favorite is computed; create_uid is server-managed
 
         odoo_data = {}
         for odoo_field, sqlite_field in field_map.items():
@@ -971,6 +971,19 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
 
             parsed_val = parse_local_value(field_info[odoo_field]["type"], raw_val)
             odoo_data[odoo_field] = parsed_val
+
+        # Models where user_id is mandatory in Odoo and defaults to the authenticated user.
+        # Sending user_id=False overrides Odoo's default and triggers a required-field Fault.
+        resolved_author_id = None
+        if model_name in ("project.update", "mail.activity") and not odoo_data.get("user_id"):
+            client_uid = getattr(client, "uid", None)
+            if isinstance(client_uid, int) and not isinstance(client_uid, bool) and client_uid > 0:
+                odoo_data["user_id"] = client_uid
+                resolved_author_id = client_uid
+                log.debug(f"[{model_name.upper()}] Defaulted missing/invalid user_id to authenticated client.uid={client_uid}")
+            else:
+                odoo_data.pop("user_id", None)
+                log.debug(f"[{model_name.upper()}] Omitted unset user_id so Odoo uses server default")
 
         try:
             # Sanitize dates for create as well (project.task)
@@ -1029,11 +1042,18 @@ def push_record_to_odoo(client, model_name, record, config_path="field_config.js
 
             # Atomic status reset: only clear if status is still 'updated' to prevent race conditions
             # where user makes changes during sync and those changes would be lost
-            safe_sql_execute(
-                record["db_path"],
-                f"UPDATE {record['table_name']} SET odoo_record_id = ?, status = '' WHERE id = ? AND account_id = ? AND status = 'updated'",
-                (new_id, record["id"], record["account_id"])
-            )
+            if resolved_author_id is not None:
+                safe_sql_execute(
+                    record["db_path"],
+                    f"UPDATE {record['table_name']} SET odoo_record_id = ?, user_id = ?, status = '' WHERE id = ? AND account_id = ? AND status = 'updated'",
+                    (new_id, resolved_author_id, record["id"], record["account_id"])
+                )
+            else:
+                safe_sql_execute(
+                    record["db_path"],
+                    f"UPDATE {record['table_name']} SET odoo_record_id = ?, status = '' WHERE id = ? AND account_id = ? AND status = 'updated'",
+                    (new_id, record["id"], record["account_id"])
+                )
             log.debug(f"[SYNC] Reset status for {model_name} id={record['id']} after creation.")
 
 
@@ -1137,13 +1157,25 @@ def sync_to_odoo(
         )
         log.debug(f"[CLEANUP] Local record removed: {display_name}")
 
+    has_errors = False
     for record in local_records:
         record["db_path"] = db_path
         record["table_name"] = table_name
         record["account_id"] = account_id
         try:
-            push_record_to_odoo(client, model_name, record, config_path)
+            pushed_id = push_record_to_odoo(client, model_name, record, config_path)
+            if pushed_id is None:
+                has_errors = True
+                record_name = record.get('name') or record.get('summary') or f"Record #{record.get('id')}"
+                add_notification(
+                    db_path=db_path,
+                    account_id=account_id,
+                    notif_type="Sync",
+                    message=f"Failed to sync {model_name}: {record_name}",
+                    payload={"record_id": record.get("id"), "record_name": record_name}
+                )
         except Exception as e:
+            has_errors = True
             display_name = get_record_display_name(record, model_name)
             log.error(f"[ERROR] Failed to sync {model_name}: {display_name} - {e}")
             # Create user-friendly notification message
@@ -1162,7 +1194,8 @@ def sync_to_odoo(
 
     # SUCCESS: Clear any previous sync error notifications for this model
     # Only clear if we had no errors during this sync cycle
-    clear_sync_notifications(db_path, account_id, model_name)
+    if not has_errors:
+        clear_sync_notifications(db_path, account_id, model_name)
 
 
 def sync_all_to_odoo(
