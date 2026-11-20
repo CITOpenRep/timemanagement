@@ -89,6 +89,7 @@ tests/
 │   ├── tst_settingslistitem.qml   # Test suite for SettingsListItem settings list item and click handling
 │   ├── tst_settingspagelayout.qml # Test suite for SettingsPageLayout layout wrapper and header anchoring
 │   ├── tst_stagefiltermenu.qml    # Test suite for StageFilterMenu stage filter menu toggling
+│   ├── tst_startupstatusindicator.qml # Test suite for StartupStatusIndicator Telegram-style header loading feedback
 │   ├── tst_statusselector.qml     # Test suite for StatusSelector status changes and badge color
 │   ├── tst_taskchartcanvas.qml    # Test suite for TaskChartCanvas horizontal bar chart rendering and task selection
 │   ├── tst_taskdetailscard.qml    # Test suite for TaskDetailsCard task details card info and action signals

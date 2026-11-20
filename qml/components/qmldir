@@ -44,3 +44,4 @@ TimePickerPopup 1.0 dialogs/TimePickerPopup.qml
 UpdatesDetailsCard 1.0 cards/UpdatesDetailsCard.qml
 WorkItemSelector 1.0 selectors/WorkItemSelector.qml
 FilterableHeaderContents 1.0 pickers/FilterableHeaderContents.qml
+StartupStatusIndicator 1.0 feedback/StartupStatusIndicator.qml
