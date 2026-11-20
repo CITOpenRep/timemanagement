@@ -12,6 +12,100 @@ Item {
     property var notifPopup
     property var notificationSystem
     property var handleDeepLinkCallback
+    property var backendBridge: null
+
+    property bool isStartingUp: false
+    property bool isStartupComplete: false
+    property string statusMessage: ""
+    property real syncProgress: 0.0
+    property bool syncFailed: false
+    property bool _connectedToBridge: false
+
+    signal startupStarted()
+    signal startupFinished()
+
+    Timer {
+        id: startupDismissTimer
+        repeat: false
+        onTriggered: {
+            startupManager.isStartingUp = false;
+            startupManager.isStartupComplete = false;
+            startupSafetyTimer.stop();
+            startupManager.startupFinished();
+        }
+    }
+
+    Timer {
+        id: startupSafetyTimer
+        interval: 12000
+        repeat: false
+        onTriggered: {
+            Logger.debug("StartupManager", "Startup safety timeout reached, fading out status indicator");
+            scheduleStartupFinish(false, 300);
+        }
+    }
+
+    function startStartup(bridge) {
+        isStartingUp = true;
+        isStartupComplete = false;
+        syncFailed = false;
+        syncProgress = 0.0;
+        statusMessage = i18n.dtr("ubtms", "Connecting...");
+        startupSafetyTimer.restart();
+        startupStarted();
+
+        if (bridge) {
+            connectToBridge(bridge);
+        }
+    }
+
+    function scheduleStartupFinish(success, delayMs) {
+        startupDismissTimer.interval = delayMs || 600;
+        startupDismissTimer.restart();
+    }
+
+    function connectToBridge(bridge) {
+        if (!bridge || _connectedToBridge)
+            return;
+
+        backendBridge = bridge;
+        try {
+            if (typeof bridge.messageReceived !== "undefined") {
+                bridge.messageReceived.connect(handleSyncMessage);
+                _connectedToBridge = true;
+            }
+        } catch (e) {
+            Logger.warn("StartupManager", "Could not connect to bridge messages:", e);
+        }
+    }
+
+    function handleSyncMessage(data) {
+        if (!isStartingUp || !data || !data.event)
+            return;
+
+        switch (data.event) {
+        case "sync_progress":
+            var progress = (data.payload || 0) / 100.0;
+            syncProgress = Math.max(0.0, Math.min(1.0, progress));
+            statusMessage = i18n.dtr("ubtms", "Syncing...");
+            break;
+        case "sync_completed":
+            if (data.payload === true) {
+                isStartupComplete = true;
+                syncProgress = 1.0;
+                statusMessage = i18n.dtr("ubtms", "Updated");
+                scheduleStartupFinish(true, 1200);
+            } else {
+                syncFailed = true;
+                scheduleStartupFinish(false, 600);
+            }
+            break;
+        case "sync_error":
+            syncFailed = true;
+            scheduleStartupFinish(false, 600);
+            break;
+        }
+    }
 
     function checkStartupArguments(args) {
         Logger.debug("StartupManager", "Startup arguments:", JSON.stringify(args))
@@ -58,6 +152,8 @@ Item {
         if (!backendBridge)
             return;
 
+        connectToBridge(backendBridge);
+
         try {
             var token = (notificationSystem && typeof notificationSystem.get_push_token === "function") ? notificationSystem.get_push_token() : "";
             if (token && token.length > 0) {
@@ -82,6 +178,8 @@ Item {
     function triggerAutoSync(backendBridge, onSyncConfiguredCallback) {
         if (!backendBridge)
             return;
+
+        connectToBridge(backendBridge);
 
         try {
             var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
@@ -116,12 +214,19 @@ Item {
                 if (typeof onSyncConfiguredCallback === "function") {
                     onSyncConfiguredCallback(false, 0, targetAccountId);
                 }
+                if (isStartingUp) {
+                    scheduleStartupFinish(true, 800);
+                }
                 return;
             }
 
             Logger.info("StartupManager", "Configuring AutoSync: interval=" + syncIntervalMinutes + "m, account=" + targetAccountId);
             if (typeof onSyncConfiguredCallback === "function") {
                 onSyncConfiguredCallback(true, syncIntervalMinutes, targetAccountId);
+            }
+
+            if (isStartingUp) {
+                statusMessage = i18n.dtr("ubtms", "Syncing...");
             }
 
             backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
@@ -132,6 +237,9 @@ Item {
             });
         } catch (e) {
             Logger.warn("StartupManager", "Failed to trigger auto-sync on startup:", e);
+            if (isStartingUp) {
+                scheduleStartupFinish(false, 600);
+            }
         }
     }
 

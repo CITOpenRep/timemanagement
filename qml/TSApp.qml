@@ -41,6 +41,7 @@ MainView {
     property alias accountPicker: globalWidgets.accountPicker
     property alias notifPopup: globalWidgets.notifPopup
     property alias infobar: globalWidgets.infobar
+    property alias startupStatusIndicator: globalWidgets.startupStatusIndicator
     property alias startupManager: startupManager
 
     property int currentAccountId: -1
@@ -119,6 +120,7 @@ MainView {
         target: backend_bridge
         onReadyChanged: {
             if (backend_bridge && backend_bridge.ready) {
+                startupManager.connectToBridge(backend_bridge);
                 startupManager.initializePushNotifications(backend_bridge);
                 triggerAutoSync();
             }
@@ -126,6 +128,7 @@ MainView {
     }
 
     Component.onCompleted: {
+        startupManager.startStartup(backend_bridge);
         DbInit.initializeDatabase();
 
         loadAndApplyTheme();
