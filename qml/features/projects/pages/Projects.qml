@@ -400,6 +400,10 @@ Page {
                     mainView.projectDataChanged();
                 }
 
+                if (project_data.account_id > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                    mainView.triggerDebouncedSync(project_data.account_id);
+                }
+
                 draftHandler.clearDraft();
                 isReadOnly = true;
                 return true;
@@ -1014,6 +1018,10 @@ Page {
             
             if (typeof mainView !== "undefined" && mainView && mainView.projectDataChanged) {
                 mainView.projectDataChanged();
+            }
+
+            if (project.account_id > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                mainView.triggerDebouncedSync(project.account_id);
             }
 
             notifPopup.open("Success", "Project stage changed to: " + stageName, "success");

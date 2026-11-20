@@ -1339,6 +1339,9 @@ Page {
             draftHandler.updateOriginalData(newBaseline);
             
             notifPopup.open("Saved", "Activity has been saved successfully", "success");
+            if (data.account_id > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                mainView.triggerDebouncedSync(data.account_id);
+            }
             // No navigation - stay on the same page like Timesheet.qml
             // User can use back button to return to list page
         }

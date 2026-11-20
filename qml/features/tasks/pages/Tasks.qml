@@ -525,6 +525,10 @@ Page {
                     mainView.taskDataChanged();
                 }
 
+                if (saveData.account_id > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                    mainView.triggerDebouncedSync(saveData.account_id);
+                }
+
                 // Navigate back to list view after successful save (unless skipNavigation is true)
                 if (!skipNavigation) {
                     navigateBack();
@@ -596,6 +600,10 @@ Page {
                 mainView.taskDataChanged();
             }
 
+            if (currentTask.account_id > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                mainView.triggerDebouncedSync(currentTask.account_id);
+            }
+
             notifPopup.open("Success", "Task stage changed to: " + stageName, "success");
         } else {
             notifPopup.open("Error", "Failed to change stage: " + (result.error || "Unknown error"), "error");
@@ -622,6 +630,10 @@ Page {
 
             if (typeof mainView !== "undefined" && mainView && mainView.taskDataChanged) {
                 mainView.taskDataChanged();
+            }
+
+            if (currentTask.account_id > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                mainView.triggerDebouncedSync(currentTask.account_id);
             }
 
             var message = personalStageOdooRecordId === null ? "Personal stage cleared" : "Personal stage changed to: " + personalStageName;

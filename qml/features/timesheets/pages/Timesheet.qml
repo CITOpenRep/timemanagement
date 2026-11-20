@@ -197,6 +197,10 @@ Page {
             }
             notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
             
+            if (!isLocal && !isTimerActive && timesheet_data.instance_id > 0 && (ids.task_id !== null || ids.subtask_id !== null || determinedStatus === "updated") && typeof rootApp !== "undefined" && rootApp && typeof rootApp.triggerDebouncedSync === "function") {
+                rootApp.triggerDebouncedSync(timesheet_data.instance_id);
+            }
+
             // If timer is running, update the active timer title in TimerService
             if (isTimerActive) {
                 TimerService.updateActiveTimesheetName(description);
@@ -296,6 +300,9 @@ Page {
         draftHandler.initialize(newBaseline);
 
         notifPopup.open("Finalized", isLocal ? "Timesheet has been saved successfully" : "Timesheet is now ready to sync", "success");
+        if (!isLocal && timesheet_data.instance_id > 0 && typeof rootApp !== "undefined" && rootApp && typeof rootApp.triggerDebouncedSync === "function") {
+            rootApp.triggerDebouncedSync(timesheet_data.instance_id);
+        }
         return true;
     }
 
