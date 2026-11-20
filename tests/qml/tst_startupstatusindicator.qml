@@ -62,6 +62,18 @@ MainView {
             return null;
         }
 
+        function findFailedIcon(rootItem) {
+            for (var i = 0; i < rootItem.children.length; i++) {
+                var child = rootItem.children[i];
+                if (child.name !== undefined && child.name === "warning") {
+                    return child;
+                }
+                var sub = findFailedIcon(child);
+                if (sub) return sub;
+            }
+            return null;
+        }
+
         function init() {
             mockStartupManager.isStartingUp = false;
             mockStartupManager.isStartupComplete = false;
@@ -73,6 +85,7 @@ MainView {
         function test_initialProperties() {
             compare(testIndicator.active, false);
             compare(testIndicator.isComplete, false);
+            compare(testIndicator.isFailed, false);
             compare(testIndicator.statusText, "");
             compare(testIndicator.enabled, false);
             compare(testIndicator.z, 99999);
@@ -117,6 +130,25 @@ MainView {
             var icon = findCompleteIcon(testIndicator);
             verify(icon !== null, "Checkmark icon should exist");
             compare(icon.visible, true);
+        }
+
+        function test_failedStateShowsWarningIcon() {
+            mockStartupManager.isStartingUp = true;
+            mockStartupManager.syncFailed = true;
+            mockStartupManager.statusMessage = "Sync failed";
+
+            compare(testIndicator.isFailed, true);
+            var icon = findFailedIcon(testIndicator);
+            verify(icon !== null, "Warning icon should exist");
+            compare(icon.visible, true);
+        }
+
+        function test_prominentPositioning() {
+            mockStartupManager.isStartingUp = true;
+            compare(testIndicator.anchors.topMargin, units.gu(6.8));
+
+            mockStartupManager.isStartingUp = false;
+            compare(testIndicator.anchors.topMargin, units.gu(4.5));
         }
 
         function test_dismissalHidesIndicator() {
