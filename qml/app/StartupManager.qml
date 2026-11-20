@@ -19,7 +19,10 @@ Item {
     property string statusMessage: ""
     property real syncProgress: 0.0
     property bool syncFailed: false
+    property bool splashCompleted: false
     property bool _connectedToBridge: false
+    property bool _pendingDismissal: false
+    property int _pendingDismissalDelay: 2000
 
     signal startupStarted()
     signal startupFinished()
@@ -31,17 +34,38 @@ Item {
             startupManager.isStartingUp = false;
             startupManager.isStartupComplete = false;
             startupSafetyTimer.stop();
+            splashWatchdogTimer.stop();
             startupManager.startupFinished();
         }
     }
 
     Timer {
+        id: splashWatchdogTimer
+        interval: 3500
+        repeat: false
+        onTriggered: {
+            if (!startupManager.splashCompleted) {
+                startupManager.notifySplashDismissed();
+            }
+        }
+    }
+
+    Timer {
         id: startupSafetyTimer
-        interval: 12000
+        interval: 15000
         repeat: false
         onTriggered: {
             Logger.debug("StartupManager", "Startup safety timeout reached, fading out status indicator");
             scheduleStartupFinish(false, 300);
+        }
+    }
+
+    function notifySplashDismissed() {
+        splashCompleted = true;
+        if (_pendingDismissal) {
+            _pendingDismissal = false;
+            startupDismissTimer.interval = _pendingDismissalDelay;
+            startupDismissTimer.restart();
         }
     }
 
@@ -50,8 +74,12 @@ Item {
         isStartupComplete = false;
         syncFailed = false;
         syncProgress = 0.0;
+        splashCompleted = false;
+        _pendingDismissal = false;
+        _pendingDismissalDelay = 2000;
         statusMessage = i18n.dtr("ubtms", "Connecting...");
         startupSafetyTimer.restart();
+        splashWatchdogTimer.restart();
         startupStarted();
 
         if (bridge) {
@@ -60,7 +88,13 @@ Item {
     }
 
     function scheduleStartupFinish(success, delayMs) {
-        startupDismissTimer.interval = delayMs || 600;
+        var delay = delayMs || 2000;
+        if (!splashCompleted) {
+            _pendingDismissal = true;
+            _pendingDismissalDelay = delay;
+            return;
+        }
+        startupDismissTimer.interval = delay;
         startupDismissTimer.restart();
     }
 
@@ -92,17 +126,20 @@ Item {
         case "sync_completed":
             if (data.payload === true) {
                 isStartupComplete = true;
+                syncFailed = false;
                 syncProgress = 1.0;
                 statusMessage = i18n.dtr("ubtms", "Updated");
-                scheduleStartupFinish(true, 1200);
+                scheduleStartupFinish(true, 2000);
             } else {
                 syncFailed = true;
-                scheduleStartupFinish(false, 600);
+                statusMessage = i18n.dtr("ubtms", "Sync failed");
+                scheduleStartupFinish(false, 2500);
             }
             break;
         case "sync_error":
             syncFailed = true;
-            scheduleStartupFinish(false, 600);
+            statusMessage = i18n.dtr("ubtms", "Sync failed");
+            scheduleStartupFinish(false, 2500);
             break;
         }
     }
@@ -215,7 +252,10 @@ Item {
                     onSyncConfiguredCallback(false, 0, targetAccountId);
                 }
                 if (isStartingUp) {
-                    scheduleStartupFinish(true, 800);
+                    isStartupComplete = true;
+                    syncFailed = false;
+                    statusMessage = i18n.dtr("ubtms", "Ready");
+                    scheduleStartupFinish(true, 2000);
                 }
                 return;
             }
@@ -238,7 +278,9 @@ Item {
         } catch (e) {
             Logger.warn("StartupManager", "Failed to trigger auto-sync on startup:", e);
             if (isStartingUp) {
-                scheduleStartupFinish(false, 600);
+                syncFailed = true;
+                statusMessage = i18n.dtr("ubtms", "Sync failed");
+                scheduleStartupFinish(false, 2500);
             }
         }
     }
