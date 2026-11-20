@@ -118,6 +118,7 @@ def sync_background(settings_db, account_id):
 
             if not selected:
                 write_sync_report_to_db(settings_db, account_id, "Failed", "Account not found")
+                send("sync_completed", False)
                 return
 
             log.debug(f"[SYNC] Found account: {selected['name']} (ID: {selected['id']})")

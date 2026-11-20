@@ -132,6 +132,21 @@ MainView {
             compare(icon.visible, true);
         }
 
+        function test_partialFailureUpdatedState() {
+            mockStartupManager.isStartingUp = true;
+            mockStartupManager.isStartupComplete = true;
+            mockStartupManager.syncFailed = false;
+            mockStartupManager.statusMessage = "Updated (1 failed)";
+
+            compare(testIndicator.isComplete, true);
+            compare(testIndicator.isFailed, false);
+            compare(testIndicator.statusText, "Updated (1 failed)");
+
+            var icon = findCompleteIcon(testIndicator);
+            verify(icon !== null, "Checkmark icon should exist for partial failure");
+            compare(icon.visible, true);
+        }
+
         function test_failedStateShowsWarningIcon() {
             mockStartupManager.isStartingUp = true;
             mockStartupManager.syncFailed = true;
