@@ -465,6 +465,7 @@ Item {
                 stage: row.stage || 0,
                 isFavorite: row.favorites === 1,
                 hasDraft: row.has_draft === 1,
+                status: row.status || "",
                 hasChildren: false,
                 taskCount: taskCount
             };
@@ -1056,6 +1057,7 @@ Item {
                 colorPallet: model.colorPallet
                 isFavorite: model.isFavorite
                 hasDraft: model.hasDraft
+                status: model.status || ""
                 // Hide children navigation in flat view mode
                 hasChildren: flatViewMode ? false : (model.hasChildren || false)
                 stage: model.stage

@@ -29,6 +29,7 @@ ListItem {
     property int account_id: 0
     property int colorPallet: 0
     property bool hasDraft: false // Indicates if this task has unsaved draft changes
+    property string syncStatus: ""
     signal showDescription(string description)
     signal editRequested(int accountId, int recordId)
     signal viewRequested(int accountId, int recordId)
@@ -171,6 +172,40 @@ ListItem {
         anchors.centerIn: parent
     }
 }
+
+            Rectangle {
+                id: pendingSyncIndicator
+                visible: !hasDraft && (syncStatus === "updated" || syncStatus === "new") && (account_id > 0)
+                width: pendingSyncRow.width + units.gu(1.2)
+                height: visible ? units.gu(2) : 0
+                radius: height / 2
+                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2210" : "#FFF8E1"
+                border.color: "#FFA000"
+                border.width: units.gu(0.12)
+                Layout.alignment: Qt.AlignRight
+
+                Row {
+                    id: pendingSyncRow
+                    spacing: units.gu(0.3)
+                    anchors.centerIn: parent
+
+                    Icon {
+                        name: "sync"
+                        width: units.gu(1.2)
+                        height: units.gu(1.2)
+                        color: "#E65100"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        text: i18n.dtr("ubtms", "Pending")
+                        font.pixelSize: units.gu(1.0)
+                        font.bold: true
+                        color: "#E65100"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
 
             }
   

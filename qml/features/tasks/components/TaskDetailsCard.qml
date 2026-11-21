@@ -61,6 +61,7 @@ ListItem {
     property bool isMyTasksContext: false // Set to true when used in MyTasks page
     property int accountId: -1 // Account ID for the task
     property bool hasDraft: false // Indicates if this task has unsaved draft changes
+    property string status: ""
     property int idVal: -1
     property int effectiveTaskId: idVal > 0 ? idVal : ((taskCard.accountId === 0 || recordId <= 0) ? localId : recordId)
 
@@ -168,7 +169,11 @@ ListItem {
                 endDate = newEndDate;
 
                 // Emit signal to notify parent components that task was updated
+                taskCard.status = "updated";
                 taskUpdated(localId);
+                if (accountId > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                    mainView.triggerDebouncedSync(accountId);
+                }
 
                 // Show success notification
                 var startFormatted = Utils.formatDate(new Date(newStartDate));
@@ -719,6 +724,40 @@ anchors.right: parent.right
         anchors.centerIn: parent
     }
 }
+
+                    Rectangle {
+                        id: pendingSyncIndicator
+                        visible: !hasDraft && (status === "updated" || status === "new") && (accountId > 0)
+                        width: pendingSyncRow.width + units.gu(1.2)
+                        height: visible ? units.gu(2) : 0
+                        radius: height / 2
+                        color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2210" : "#FFF8E1"
+                        border.color: "#FFA000"
+                        border.width: units.gu(0.12)
+                        anchors.right: parent.right
+
+                        Row {
+                            id: pendingSyncRow
+                            spacing: units.gu(0.3)
+                            anchors.centerIn: parent
+
+                            Icon {
+                                name: "sync"
+                                width: units.gu(1.2)
+                                height: units.gu(1.2)
+                                color: "#E65100"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: i18n.dtr("ubtms", "Pending")
+                                font.pixelSize: units.gu(1.0)
+                                font.bold: true
+                                color: "#E65100"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                    }
                     Text {
                         text: i18n.dtr("ubtms", "Planned (H): ") + (allocatedHours !== 0 ? allocatedHours : i18n.dtr("ubtms", "N/A"))
                         font.pixelSize: units.gu(1.5)
