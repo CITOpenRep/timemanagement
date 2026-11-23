@@ -320,7 +320,7 @@ function createAccount(name, link, database, username, selectedConnectWithId, ap
             }
 
 
-            const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
+            const apiKeyToStore = apikey || '';
             const insertResult = tx.executeSql(
                 'INSERT INTO users (name, link, database, username, connectwith_id, api_key) VALUES (?, ?, ?, ?, ?, ?)',
                 [name, link, database, username, selectedConnectWithId, apiKeyToStore]
@@ -401,7 +401,7 @@ function updateAccount(accountId, name, link, database, username, selectedConnec
             }
 
             // Update the account
-            const apiKeyToStore = (selectedConnectWithId === 1) ? apikey : '';
+            const apiKeyToStore = apikey || '';
             tx.executeSql(
                 'UPDATE users SET name = ?, link = ?, database = ?, username = ?, connectwith_id = ?, api_key = ? WHERE id = ?',
                 [name, link, database, username, selectedConnectWithId, apiKeyToStore, accountId]

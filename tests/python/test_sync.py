@@ -29,6 +29,53 @@ class TestSyncLockAndConcurrency:
         assert result is True
         assert called == [("test.sqlite", 42)]
 
+    def test_save_push_token_skips_local_and_invalid_accounts(self, monkeypatch, tmp_path):
+        import sqlite3
+
+        db_path = str(tmp_path / "test_push_accounts.sqlite")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                link TEXT,
+                database TEXT,
+                username TEXT,
+                api_key TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        # Account 0: Local Account
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (0, 'Local Account', 'local://', '', '', '')")
+        # Account 1: Remote account without api_key
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (1, 'Remote No Key', 'https://odoo.example.com', 'db', 'user', '')")
+        # Account 2: Valid remote account
+        cur.execute("INSERT INTO users (id, name, link, database, username, api_key) VALUES (2, 'Remote Valid', 'https://odoo.example.com', 'db', 'user', 'valid_key')")
+        conn.commit()
+        conn.close()
+
+        registered_clients = []
+
+        class MockClient:
+            def __init__(self, link, db, username, api_key):
+                registered_clients.append((link, db, username, api_key))
+
+            def register_push_device(self, token, bridge_url=None):
+                return {"mode": "native"}
+
+        monkeypatch.setattr(sync_module, "OdooClient", MockClient)
+
+        result = sync_module.save_push_token(db_path, "test_token_123")
+        assert result is True
+        assert len(registered_clients) == 1
+        assert registered_clients[0] == ("https://odoo.example.com", "db", "user", "valid_key")
+
 
 class TestOdooSyncActiveUsersContext:
     def test_fetch_odoo_records_res_users_includes_inactive_context(self, monkeypatch):
@@ -265,6 +312,107 @@ class TestTimesheetNestedMappingSyncToOdoo:
 
         changes = sync_to_odoo.construct_changes(field_map, field_info, record, existing_data, model_name="account.analytic.line")
         assert changes == {}
+
+    def test_get_local_records_timesheet_includes_subproject_and_subtask(self, tmp_path):
+        import sqlite3
+        import sync_to_odoo
+
+        db_path = str(tmp_path / "test_get_local.db")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE account_analytic_line_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                project_id INTEGER,
+                sub_project_id INTEGER,
+                task_id INTEGER,
+                sub_task_id INTEGER,
+                name TEXT,
+                unit_amount FLOAT,
+                last_modified datetime,
+                record_date datetime,
+                user_id INTEGER,
+                status TEXT DEFAULT '',
+                odoo_record_id INTEGER
+            )
+        """)
+        cur.execute("""
+            INSERT INTO account_analytic_line_app
+            (id, account_id, project_id, sub_project_id, task_id, sub_task_id, name, unit_amount, status, odoo_record_id)
+            VALUES (1, 1, 59, 60, 100, 101, 'Nested timesheet entry', 2.5, 'to_create', NULL)
+        """)
+        conn.commit()
+        conn.close()
+
+        records = sync_to_odoo.get_local_records(
+            table_name="account_analytic_line_app",
+            model_name="account.analytic.line",
+            account_id=1,
+            db_path=db_path,
+            config_path="field_config.json"
+        )
+
+        assert len(records) == 1
+        record = records[0]
+        assert record["id"] == 1
+        assert record["project_id"] == 59
+        assert record["sub_project_id"] == 60
+        assert record["task_id"] == 100
+        assert record["sub_task_id"] == 101
+        assert record["name"] == "Nested timesheet entry"
+        assert record["unit_amount"] == 2.5
+        assert record["status"] == "to_create"
+        assert record["odoo_record_id"] is None
+
+    def test_automated_timesheet_retains_nested_hierarchy_on_sync(self, tmp_path):
+        import sqlite3
+        import sync_to_odoo
+
+        db_path = str(tmp_path / "test_automated.db")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE account_analytic_line_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                project_id INTEGER,
+                sub_project_id INTEGER,
+                task_id INTEGER,
+                sub_task_id INTEGER,
+                name TEXT,
+                unit_amount FLOAT,
+                last_modified datetime,
+                record_date datetime,
+                user_id INTEGER,
+                status TEXT DEFAULT '',
+                timer_type TEXT DEFAULT 'manual',
+                odoo_record_id INTEGER
+            )
+        """)
+        cur.execute("""
+            INSERT INTO account_analytic_line_app
+            (id, account_id, project_id, sub_project_id, task_id, sub_task_id, name, unit_amount, timer_type, status, odoo_record_id)
+            VALUES (1, 1, 59, 60, 100, 101, 'Automated timer session', 1.25, 'automatic', 'to_create', NULL)
+        """)
+        conn.commit()
+        conn.close()
+
+        records = sync_to_odoo.get_local_records(
+            table_name="account_analytic_line_app",
+            model_name="account.analytic.line",
+            account_id=1,
+            db_path=db_path,
+            config_path="field_config.json"
+        )
+
+        assert len(records) == 1
+        record = records[0]
+        assert record["project_id"] == 59
+        assert record["sub_project_id"] == 60
+        assert record["task_id"] == 100
+        assert record["sub_task_id"] == 101
+        assert record["unit_amount"] == 1.25
 
 
 class TestTimesheetNestedMappingSyncFromOdoo:

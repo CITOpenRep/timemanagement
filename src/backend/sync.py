@@ -243,7 +243,7 @@ def save_push_token(settings_db=None, token=""):
     try:
         accounts = get_all_accounts(settings_db)
         for acc in accounts:
-            if not acc.get("is_local") and acc.get("link"):
+            if acc.get("id") and acc.get("id") != 0 and acc.get("link") and not str(acc.get("link", "")).startswith("local") and acc.get("api_key"):
                 try:
                     c = OdooClient(
                         acc["link"],
