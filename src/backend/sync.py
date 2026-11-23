@@ -37,6 +37,10 @@ log = setup_logger()
 
 sync_lock = threading.Lock()
 sync_in_progress = False
+_push_reg_lock = threading.Lock()
+_push_reg_in_progress = False
+_current_push_token = None
+_pending_push_request = None
 
 
 def sync(settings_db, account_id):
@@ -264,6 +268,68 @@ def save_push_token(settings_db=None, token=""):
                     set_setting(settings_db, f"push_mode_{acc['id']}", "none")
     except Exception as e:
         log.warning(f"[PUSH] Error broadcasting push token to accounts: {e}")
+    return True
+
+
+def save_push_token_background(settings_db=None, token=""):
+    """
+    Non-blocking wrapper around save_push_token so startup/account saves never
+    block PyOtherSide's single worker thread on subprocess or network I/O.
+    """
+    global _push_reg_in_progress, _current_push_token, _pending_push_request
+
+    # Normalize arguments (mirrors save_push_token)
+    if not token and settings_db and isinstance(settings_db, str) and "/" not in settings_db and not settings_db.endswith(".sqlite") and not settings_db.endswith(".db"):
+        token = settings_db
+        settings_db = None
+
+    if not settings_db:
+        from .storage import resolve_qml_db_path
+        settings_db = resolve_qml_db_path("ubtms") or "app_settings.db"
+
+    # Persist non-empty token immediately so it is never lost even if network registration is delayed or in-progress
+    if token:
+        try:
+            set_setting(settings_db, "push_token", token)
+            log.info(f"[PUSH] Persisted push token to settings: {token[:8]}...")
+        except Exception as e:
+            log.warning(f"[PUSH] Failed to persist push token to settings immediately: {e}")
+
+    with _push_reg_lock:
+        if _push_reg_in_progress:
+            # If a new non-empty token was provided and it differs from what is currently being registered,
+            # schedule it as pending so the running worker registers it before completing.
+            if token and token != _current_push_token:
+                log.debug(f"[PUSH] Push registration in progress with different token, scheduling pending update for: {token[:8]}...")
+                _pending_push_request = (settings_db, token)
+            else:
+                log.debug("[PUSH] Push registration already in progress, skipping duplicate request.")
+            return True
+        _push_reg_in_progress = True
+        _current_push_token = token
+        _pending_push_request = None
+
+    def do_register():
+        global _push_reg_in_progress, _current_push_token, _pending_push_request
+        target_db = settings_db
+        target_tok = token
+        while True:
+            try:
+                save_push_token(target_db, target_tok)
+            except Exception as e:
+                log.warning(f"[PUSH] Background push registration failed: {e}")
+
+            with _push_reg_lock:
+                if _pending_push_request is not None:
+                    target_db, target_tok = _pending_push_request
+                    _pending_push_request = None
+                    _current_push_token = target_tok
+                else:
+                    _push_reg_in_progress = False
+                    _current_push_token = None
+                    break
+
+    threading.Thread(target=do_register, daemon=True).start()
     return True
 
 

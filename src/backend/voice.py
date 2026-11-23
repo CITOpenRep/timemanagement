@@ -62,6 +62,38 @@ download_status = {
 _voice_stop_event = threading.Event()
 _voice_download_cancel_event = threading.Event()
 _voice_download_action = None
+_model_size_cache = {}
+
+
+def _get_dir_size_bytes(dir_path):
+    """Fast recursive directory size calculation using os.scandir."""
+    total = 0
+    stack = [str(dir_path)]
+    while stack:
+        current = stack.pop()
+        with os.scandir(current) as entries:
+            for entry in entries:
+                if entry.is_dir(follow_symlinks=False):
+                    stack.append(entry.path)
+                elif entry.is_file(follow_symlinks=False):
+                    total += entry.stat(follow_symlinks=False).st_size
+    return total
+
+
+def _get_cached_model_size_str(model_dir):
+    """Return formatted model size string, caching by directory path and mtime."""
+    try:
+        key = str(model_dir)
+        mtime_ns = model_dir.stat().st_mtime_ns
+        cached = _model_size_cache.get(key)
+        if cached and cached[0] == mtime_ns:
+            return cached[1]
+        total_size = _get_dir_size_bytes(model_dir)
+        size_str = f"{total_size / (1024 * 1024):.1f} MB"
+        _model_size_cache[key] = (mtime_ns, size_str)
+        return size_str
+    except Exception:
+        return "Unknown"
 
 
 def stop_voice_recognition():
@@ -182,7 +214,7 @@ def list_available_models():
     return models
 
 
-def list_installed_models():
+def list_installed_models(available_models=None):
     app_models_dir = root_dir / "voice_to_text"
     user_models_dir = get_voice_models_dir()
 
@@ -194,7 +226,8 @@ def list_installed_models():
 
     models = []
     seen_names = set()
-    available_models = list_available_models()
+    if available_models is None:
+        available_models = list_available_models()
     known_names = {m["id"]: m["name"] for m in available_models if "id" in m}
     known_names["model"] = "Indian English"
 
@@ -234,14 +267,7 @@ def list_installed_models():
 
                 display_name = f"{model_name} (Default)" if source_label == "App" else model_name
 
-                total_size = 0
-                try:
-                    for f in item.rglob("*"):
-                        if f.is_file():
-                            total_size += f.stat().st_size
-                    model_size = f"{total_size / (1024 * 1024):.1f} MB"
-                except Exception:
-                    model_size = "Unknown"
+                model_size = _get_cached_model_size_str(item)
 
                 try:
                     rel_path = item.relative_to(root_dir) if source_label == "App" else item
@@ -264,6 +290,22 @@ def list_installed_models():
     models.sort(key=lambda x: x["m_name"].lower())
     log.info(f"[VOICE] Found {len(models)} installed models")
     return models
+
+
+def get_voice_models_overview():
+    """
+    Fetch installed models, available models, device RAM, paused downloads, and
+    active download status in a single backend call to minimize bridge round-trips.
+    """
+    available = list_available_models()
+    installed = list_installed_models(available_models=available)
+    return {
+        "installed": installed,
+        "available": available,
+        "device_ram_mb": get_device_total_ram_mb(),
+        "paused": get_paused_voice_models(),
+        "download_status": get_model_download_status(),
+    }
 
 
 def get_installed_voice_models():
@@ -446,6 +488,7 @@ def download_voice_model(model_id, url):
             if target_path.exists():
                 shutil.rmtree(target_path)
             shutil.move(str(model_folder), str(target_path))
+            _model_size_cache.pop(str(target_path), None)
 
             download_status["progress"] = 100
             download_status["message"] = "Installation complete"
@@ -524,6 +567,8 @@ def delete_voice_model(model_path):
                 shutil.rmtree(resolved_path)
             else:
                 resolved_path.unlink()
+            _model_size_cache.pop(str(resolved_path), None)
+            _model_size_cache.pop(str(path), None)
             log.info(f"[VOICE] Deleted user model: {model_path}")
             return {"status": "success"}
 

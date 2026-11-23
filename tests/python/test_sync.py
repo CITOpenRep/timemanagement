@@ -76,6 +76,100 @@ class TestSyncLockAndConcurrency:
         assert len(registered_clients) == 1
         assert registered_clients[0] == ("https://odoo.example.com", "db", "user", "valid_key")
 
+    def test_save_push_token_background_returns_immediately_without_blocking(self, monkeypatch):
+        import threading
+        import time
+
+        started = threading.Event()
+        release = threading.Event()
+        calls = []
+
+        def slow_save_push_token(settings_db=None, token=""):
+            calls.append((settings_db, token))
+            started.set()
+            release.wait(timeout=2)
+            return True
+
+        monkeypatch.setattr(sync_module, "_push_reg_in_progress", False)
+        monkeypatch.setattr(sync_module, "_current_push_token", None)
+        monkeypatch.setattr(sync_module, "_pending_push_request", None)
+        monkeypatch.setattr(sync_module, "save_push_token", slow_save_push_token)
+        monkeypatch.setattr(sync_module, "set_setting", lambda db, k, v: True)
+
+        t0 = time.monotonic()
+        res1 = sync_module.save_push_token_background("test.sqlite", "tok123")
+        elapsed = time.monotonic() - t0
+
+        assert res1 is True
+        assert elapsed < 0.2
+        assert started.wait(timeout=1.0)
+
+        # Duplicate call while in progress is skipped safely
+        res2 = sync_module.save_push_token_background("test.sqlite", "tok123")
+        assert res2 is True
+        assert len(calls) == 1
+
+        release.set()
+        # Wait briefly for worker thread to reset flag
+        for _ in range(20):
+            if not sync_module._push_reg_in_progress:
+                break
+            time.sleep(0.02)
+        assert sync_module._push_reg_in_progress is False
+
+    def test_save_push_token_background_queues_and_persists_different_token_while_busy(self, monkeypatch):
+        import threading
+        import time
+
+        started = threading.Event()
+        release = threading.Event()
+        calls = []
+        saved_settings = {}
+
+        def slow_save_push_token(settings_db=None, token=""):
+            calls.append((settings_db, token))
+            started.set()
+            release.wait(timeout=2)
+            return True
+
+        def mock_set_setting(db_path, key, value):
+            saved_settings[key] = value
+            return True
+
+        monkeypatch.setattr(sync_module, "_push_reg_in_progress", False)
+        monkeypatch.setattr(sync_module, "_current_push_token", None)
+        monkeypatch.setattr(sync_module, "_pending_push_request", None)
+        monkeypatch.setattr(sync_module, "save_push_token", slow_save_push_token)
+        monkeypatch.setattr(sync_module, "set_setting", mock_set_setting)
+
+        # 1. Fresh start: called with empty token (fallback registration initiated)
+        res1 = sync_module.save_push_token_background("test.sqlite", "")
+        assert res1 is True
+        assert started.wait(timeout=1.0)
+        assert len(calls) == 1
+        assert calls[0] == ("test.sqlite", "")
+
+        # 2. Token arrives while first registration is still in progress
+        res2 = sync_module.save_push_token_background("test.sqlite", "xyz_real_token")
+        assert res2 is True
+        # Immediately persisted to SQLite settings
+        assert saved_settings.get("push_token") == "xyz_real_token"
+        # Not yet executed as second call because thread 1 is still busy
+        assert len(calls) == 1
+
+        # 3. Allow thread 1 to finish first iteration
+        release.set()
+
+        # Wait for worker thread to process pending request and finish
+        for _ in range(30):
+            if not sync_module._push_reg_in_progress and len(calls) == 2:
+                break
+            time.sleep(0.02)
+
+        assert len(calls) == 2
+        assert calls[1] == ("test.sqlite", "xyz_real_token")
+        assert sync_module._push_reg_in_progress is False
+
 
 class TestOdooSyncActiveUsersContext:
     def test_fetch_odoo_records_res_users_includes_inactive_context(self, monkeypatch):
