@@ -61,7 +61,7 @@
 
 /*Database Constants*/
 const NAME = "myDatabase";
-const VERSION = "1.0";
+const VERSION = "";
 const DISPLAY_NAME = "My Database";
 const SIZE = 1000000;
 

@@ -86,7 +86,7 @@ Page {
 
     function getVoiceInputEnabledSetting() {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             var result = true;
             db.transaction(function (tx) {
                 tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
@@ -104,7 +104,7 @@ Page {
 
     function saveVoiceInputEnabledSetting(value) {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             db.transaction(function (tx) {
                 tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES ("voice_input_enabled", ?)', [value ? "true" : "false"]);
@@ -117,7 +117,7 @@ Page {
 
     function getVoiceLowMemoryModeSetting() {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             var result = true;
             db.transaction(function (tx) {
                 tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
@@ -135,7 +135,7 @@ Page {
 
     function saveVoiceLowMemoryModeSetting(value) {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             db.transaction(function (tx) {
                 tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES ("voice_low_memory_mode", ?)', [value ? "true" : "false"]);
@@ -169,7 +169,7 @@ Page {
 
     function getActiveModelSetting() {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             var result = "voice_to_text/model"; // Default
 
             db.transaction(function (tx) {
@@ -188,7 +188,7 @@ Page {
 
     function saveActiveModelSetting(value) {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             db.transaction(function (tx) {
                 tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');
                 tx.executeSql('INSERT OR REPLACE INTO app_settings (key, value) VALUES ("active_voice_model", ?)', [value]);

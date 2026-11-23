@@ -4,7 +4,7 @@
 
 function initializeDatabase() {
     Logger.debug("Dbinit", "Initializing database...")
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
 
     DBCommon.createOrUpdateTable("sync_report",
                                  'CREATE TABLE IF NOT EXISTS sync_report (' +
@@ -511,7 +511,7 @@ function initializeDatabase() {
     var needsLegacyDraftMigration = false;
     var hasLegacyDraftTable = false;
     try {
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
         db.transaction(function(tx) {
             var legacyTableInfo = tx.executeSql(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='form_drafts_legacy'"
@@ -588,7 +588,7 @@ function initializeDatabase() {
 
     if (needsLegacyDraftMigration || hasLegacyDraftTable) {
         try {
-            var migrationDb = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var migrationDb = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             migrationDb.transaction(function(tx) {
                 tx.executeSql(
                     "INSERT OR IGNORE INTO form_drafts " +
@@ -621,7 +621,7 @@ function initializeDatabase() {
     
     // Create indexes for form_drafts table for better query performance
     try {
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
         db.transaction(function(tx) {
             // Index for querying drafts by type and account
             tx.executeSql(

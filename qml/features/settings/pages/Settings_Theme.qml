@@ -56,7 +56,7 @@ Page {
 
     function saveThemeToDatabase(themeName) {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
 
             db.transaction(function (tx) {
                 // Create settings table if it doesn't exist

@@ -471,7 +471,7 @@ Page {
                                         } else {
                                             var gi = "15";
                                             try {
-                                                var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+                                                var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
                                                 db.readTransaction(function (tx) {
                                                     var rs = tx.executeSql('SELECT value FROM app_settings WHERE key = ?', ["sync_interval_minutes"]);
                                                     if (rs.rows.length > 0) gi = rs.rows.item(0).value;

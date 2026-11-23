@@ -54,7 +54,7 @@ Rectangle {
 
     function checkVoiceInputEnabled() {
         try {
-            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+            var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
             var result = true;
             db.transaction(function (tx) {
                 tx.executeSql('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)');

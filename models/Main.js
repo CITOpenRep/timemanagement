@@ -14,7 +14,7 @@
 DbInit.initializeDatabase();
 
 function get_quadrant_difference() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var quadrant_data = { 0: 0, 1: 0, 2: 0, 3: 0 };
     db.transaction(function (tx) {
         var fetch_quadrant = tx.executeSql('select quadrant_id, sum(unit_amount) as total from account_analytic_line_app group by quadrant_id');
@@ -225,7 +225,7 @@ function get_tasks_spent_hours(account, startDate, endDate, userId) {
 */
 
 function get_project_name(project_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var project_name = '';
     db.transaction(function (tx) {
         var project = tx.executeSql('select name from project_project_app where id = ?', [project_id]);
@@ -243,7 +243,7 @@ function get_project_name(project_id) {
 */
 
 function get_task_name(task_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var task_name = '';
     db.transaction(function (tx) {
         var task = tx.executeSql('select name from project_task_app where id = ?', [task_id]);

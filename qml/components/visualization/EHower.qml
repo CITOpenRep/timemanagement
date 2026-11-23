@@ -76,7 +76,7 @@ Item {
 
     // TODO: Move it to Utils
     function getQuadrantHoursFromAllInstances(accountId, startDate, endDate, userId) {
-        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+        var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
         var quadrantHours = {
             1: 0.0,
             2: 0.0,

@@ -3,7 +3,7 @@
 .import "database.js" as DBCommon
 
 function getLastSyncStatus(accountId) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var result = "";
 
     db.transaction(function (tx) {
@@ -48,7 +48,7 @@ function show_dict_data(data) {
 
 
 function insertData(name, link, database, username, selectedconnectwithId, apikey) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
 
     db.transaction(function (tx) {
         var result = tx.executeSql('SELECT id, COUNT(*) AS count FROM users WHERE link = ? AND database = ? AND username = ?', [link, database, username]);
@@ -67,7 +67,7 @@ function insertData(name, link, database, username, selectedconnectwithId, apike
 }
 
 function queryData() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
 
     db.transaction(function (tx) {
         var result = tx.executeSql('SELECT * FROM users');
@@ -81,7 +81,7 @@ function queryData() {
 }
 
 function accountlistDataGet() {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var accountlist = [];
 
     db.transaction(function (tx) {
@@ -95,7 +95,7 @@ function accountlistDataGet() {
 }
 
 function timesheetData(data) {
-    var db = LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     db.transaction(function (tx) {
         var unitAmount = 0
         if (data.isManualTimeRecord) {
@@ -114,7 +114,7 @@ function timesheetData(data) {
 }
 
 function getAccountIdByName(accountName) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var accountId = -1;  // default if not found
 
     db.transaction(function (tx) {
@@ -128,7 +128,7 @@ function getAccountIdByName(accountName) {
 }
 
 function updateOdooUsers(model) {
-    const db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    const db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     model.clear();
 
     db.transaction(function (tx) {
@@ -156,7 +156,7 @@ function getUserInfoByOdooId(accountId, odooUserId) {
         return null;
     }
     
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var userInfo = null;
 
     db.transaction(function (tx) {
@@ -191,7 +191,7 @@ function getTaskAssignerName(accountId, taskId) {
         return null;
     }
     
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var assignerName = null;
 
     db.transaction(function (tx) {
@@ -228,7 +228,7 @@ function getActivityAssignerInfo(accountId, activityId) {
         return null;
     }
     
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var assignerInfo = null;
 
     db.transaction(function (tx) {
@@ -258,7 +258,7 @@ function getActivityAssignerInfo(accountId, activityId) {
 }
 
 function fetch_subtasks(instance_id, parent_task_id) {
-    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
+    var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "", "My Database", 1000000);
     var subtaskList = [];
 
     db.transaction(function (tx) {
