@@ -381,7 +381,8 @@ Page {
                     resModel: item.resModel,
                     last_modified: item.last_modified,
                     color_pallet: (typeof item.color_pallet !== "undefined" && item.color_pallet !== null && item.color_pallet !== "") ? Number(item.color_pallet) : 0,
-                    hasDraft: item.has_draft === 1
+                    hasDraft: item.has_draft === 1,
+                    status: item.status || ""
                 });
             }
 
@@ -723,6 +724,7 @@ Page {
                 state: model.state
                 colorPallet: model.color_pallet || 0
                 hasDraft: model.hasDraft || false
+                status: model.status || ""
 
 
                 onCardClicked: function (accountid, recordid) {
@@ -751,11 +753,17 @@ Page {
                 onMarkAsDone: function (accountid, recordid) {
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list();
+                    if (accountid > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                        mainView.triggerDebouncedSync(accountid);
+                    }
                 }
                 onDateChanged: function (accountid, recordid, newDate) {
                     //console.log("Activity_Page: Changing activity date for record ID:", recordid, "to:", newDate);
                     Activity.updateActivityDate(accountid, recordid, newDate);
                     get_activity_list();
+                    if (accountid > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                        mainView.triggerDebouncedSync(accountid);
+                    }
                 }
 
                 onCreateFollowup: function (accountid, recordid) {
@@ -764,6 +772,9 @@ Page {
                     var result = Activity.createFollowupActivity(accountid, recordid);
                     if (result.success === true) {
                         //console.log("Followup activity has been created");
+                        if (accountid > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                            mainView.triggerDebouncedSync(accountid);
+                        }
                         apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
                             "accountid": accountid,

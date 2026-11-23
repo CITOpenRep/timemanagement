@@ -506,7 +506,8 @@ Item {
                 stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
                 last_modified: row.last_modified || "",
-                has_draft: row.has_draft === 1
+                has_draft: row.has_draft === 1,
+                status: row.status || ""
             });
         });
 
@@ -613,7 +614,8 @@ Item {
                 stage: row.state || -1,
                 color_pallet: row.color_pallet ? parseInt(row.color_pallet) : 0,
                 last_modified: row.last_modified || "",
-                has_draft: row.has_draft === 1
+                has_draft: row.has_draft === 1,
+                status: row.status || ""
             };
 
             if (!tempMap[parentEffectiveId])
@@ -1030,6 +1032,7 @@ Item {
                     accountId: model.account_id
                     isMyTasksContext: taskNavigator.isMyTasksContext
                     hasDraft: model.has_draft || false
+                    status: model.status || ""
 
                     onEditRequested: id => {
                         taskEditRequested(local_id);

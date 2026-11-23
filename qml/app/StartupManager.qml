@@ -12,6 +12,221 @@ Item {
     property var notifPopup
     property var notificationSystem
     property var handleDeepLinkCallback
+    property var backendBridge: null
+
+    property bool isStartingUp: false
+    property bool isStartupComplete: false
+    property string statusMessage: ""
+    property real syncProgress: 0.0
+    property bool syncFailed: false
+    property bool splashCompleted: false
+    property bool _connectedToBridge: false
+    property bool _pendingDismissal: false
+    property int _pendingDismissalDelay: 2000
+
+    property var startupSyncQueue: []
+    property int startupSyncQueueIndex: 0
+    property int startupSyncSuccessCount: 0
+    property int startupSyncFailCount: 0
+
+    signal startupStarted()
+    signal startupFinished()
+
+    Timer {
+        id: startupDismissTimer
+        repeat: false
+        onTriggered: {
+            startupManager.isStartingUp = false;
+            startupManager.isStartupComplete = false;
+            startupSafetyTimer.stop();
+            splashWatchdogTimer.stop();
+            startupManager.startupFinished();
+        }
+    }
+
+    Timer {
+        id: splashWatchdogTimer
+        interval: 3500
+        repeat: false
+        onTriggered: {
+            if (!startupManager.splashCompleted) {
+                startupManager.notifySplashDismissed();
+            }
+        }
+    }
+
+    Timer {
+        id: startupSafetyTimer
+        interval: 15000
+        repeat: false
+        onTriggered: {
+            Logger.debug("StartupManager", "Startup safety timeout reached, fading out status indicator");
+            scheduleStartupFinish(false, 300);
+        }
+    }
+
+    function notifySplashDismissed() {
+        splashCompleted = true;
+        if (_pendingDismissal) {
+            _pendingDismissal = false;
+            startupDismissTimer.interval = _pendingDismissalDelay;
+            startupDismissTimer.restart();
+        }
+    }
+
+    function startStartup(bridge) {
+        isStartingUp = true;
+        isStartupComplete = false;
+        syncFailed = false;
+        syncProgress = 0.0;
+        splashCompleted = false;
+        _pendingDismissal = false;
+        _pendingDismissalDelay = 2000;
+        startupSyncQueue = [];
+        startupSyncQueueIndex = 0;
+        startupSyncSuccessCount = 0;
+        startupSyncFailCount = 0;
+        statusMessage = i18n.dtr("ubtms", "Connecting...");
+        startupSafetyTimer.restart();
+        splashWatchdogTimer.restart();
+        startupStarted();
+
+        if (bridge) {
+            connectToBridge(bridge);
+        }
+    }
+
+    function scheduleStartupFinish(success, delayMs) {
+        var delay = delayMs || 2000;
+        if (!splashCompleted) {
+            _pendingDismissal = true;
+            _pendingDismissalDelay = delay;
+            return;
+        }
+        startupDismissTimer.interval = delay;
+        startupDismissTimer.restart();
+    }
+
+    function connectToBridge(bridge) {
+        if (!bridge || _connectedToBridge)
+            return;
+
+        backendBridge = bridge;
+        try {
+            if (typeof bridge.messageReceived !== "undefined") {
+                bridge.messageReceived.connect(handleSyncMessage);
+                _connectedToBridge = true;
+            }
+        } catch (e) {
+            Logger.warn("StartupManager", "Could not connect to bridge messages:", e);
+        }
+    }
+
+    function syncNextAccountInQueue() {
+        if (!backendBridge || startupSyncQueueIndex >= startupSyncQueue.length) {
+            finishStartupSyncQueue();
+            return;
+        }
+
+        var currentAcc = startupSyncQueue[startupSyncQueueIndex];
+        var total = startupSyncQueue.length;
+        var currentNum = startupSyncQueueIndex + 1;
+
+        if (total > 1) {
+            statusMessage = i18n.dtr("ubtms", "Syncing") + " " + currentAcc.name + " (" + currentNum + "/" + total + ")...";
+        } else {
+            statusMessage = i18n.dtr("ubtms", "Syncing...");
+        }
+
+        syncProgress = total > 1 ? (startupSyncQueueIndex / total) : 0.0;
+
+        backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+            var targetDb = dbPath || "app_settings.db";
+            backendBridge.call("backend.start_sync_in_background", [targetDb, currentAcc.id], function (res) {
+                Logger.info("StartupManager", "Startup sync initiated for account " + currentAcc.id + " (" + currentAcc.name + "): " + res);
+                if (res === false) {
+                    onCurrentAccountSyncCompleted(false);
+                }
+            });
+        });
+    }
+
+    function onCurrentAccountSyncCompleted(success) {
+        if (!isStartingUp)
+            return;
+
+        if (success) {
+            startupSyncSuccessCount++;
+        } else {
+            startupSyncFailCount++;
+        }
+
+        startupSyncQueueIndex++;
+
+        if (startupSyncQueueIndex < startupSyncQueue.length) {
+            syncNextAccountInQueue();
+        } else {
+            finishStartupSyncQueue();
+        }
+    }
+
+    function finishStartupSyncQueue() {
+        var total = startupSyncQueue.length;
+        if (total === 0) {
+            isStartupComplete = true;
+            syncFailed = false;
+            statusMessage = i18n.dtr("ubtms", "Ready");
+            scheduleStartupFinish(true, 2000);
+            return;
+        }
+
+        if (startupSyncFailCount === 0) {
+            isStartupComplete = true;
+            syncFailed = false;
+            syncProgress = 1.0;
+            statusMessage = i18n.dtr("ubtms", "Updated");
+            scheduleStartupFinish(true, 2000);
+        } else if (startupSyncSuccessCount > 0) {
+            isStartupComplete = true;
+            syncFailed = false;
+            syncProgress = 1.0;
+            if (startupSyncFailCount === 1) {
+                statusMessage = i18n.dtr("ubtms", "Updated (1 failed)");
+            } else {
+                statusMessage = i18n.dtr("ubtms", "Updated (" + startupSyncFailCount + " failed)");
+            }
+            scheduleStartupFinish(true, 2500);
+        } else {
+            syncFailed = true;
+            syncProgress = 0.0;
+            statusMessage = i18n.dtr("ubtms", "Sync failed");
+            scheduleStartupFinish(false, 2500);
+        }
+    }
+
+    function handleSyncMessage(data) {
+        if (!isStartingUp || !data || !data.event)
+            return;
+
+        switch (data.event) {
+        case "sync_progress":
+            var progress = (data.payload || 0) / 100.0;
+            if (startupSyncQueue.length > 1) {
+                var overallProgress = (startupSyncQueueIndex + Math.max(0.0, Math.min(1.0, progress))) / startupSyncQueue.length;
+                syncProgress = Math.max(0.0, Math.min(1.0, overallProgress));
+            } else {
+                syncProgress = Math.max(0.0, Math.min(1.0, progress));
+            }
+            break;
+        case "sync_completed":
+            var isSuccess = (data.payload === true);
+            onCurrentAccountSyncCompleted(isSuccess);
+            break;
+        case "sync_error":
+            onCurrentAccountSyncCompleted(false);
+            break;
+        }
+    }
 
     function checkStartupArguments(args) {
         Logger.debug("StartupManager", "Startup arguments:", JSON.stringify(args))
@@ -58,6 +273,8 @@ Item {
         if (!backendBridge || !backendBridge.ready)
             return;
 
+        connectToBridge(backendBridge);
+
         try {
             var token = (notificationSystem && typeof notificationSystem.get_push_token === "function") ? notificationSystem.get_push_token() : "";
             if (token && token.length > 0) {
@@ -83,11 +300,13 @@ Item {
         if (!backendBridge)
             return;
 
+        connectToBridge(backendBridge);
+
         try {
             var db = Sql.LocalStorage.openDatabaseSync("myDatabase", "1.0", "My Database", 1000000);
             var autoSyncEnabled = "true";
             var syncIntervalMinutes = 15;
-            var targetAccountId = -1;
+            var accountsToSync = [];
 
             db.transaction(function (tx) {
                 tx.executeSql("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)");
@@ -100,38 +319,57 @@ Item {
                     syncIntervalMinutes = parseInt(intRes.rows.item(0).value);
                 }
 
-                var accRes = tx.executeSql("SELECT id FROM users WHERE is_default = 1 AND id > 0 LIMIT 1");
-                if (accRes.rows.length > 0) {
-                    targetAccountId = accRes.rows.item(0).id;
-                } else {
-                    var fallbackAcc = tx.executeSql("SELECT id FROM users WHERE id > 0 LIMIT 1");
-                    if (fallbackAcc.rows.length > 0) {
-                        targetAccountId = fallbackAcc.rows.item(0).id;
+                if (autoSyncEnabled !== "false") {
+                    var accListRes = tx.executeSql("SELECT id, name, is_default, autosync_enabled FROM users WHERE id > 0 ORDER BY is_default DESC, id ASC");
+                    for (var i = 0; i < accListRes.rows.length; i++) {
+                        var item = accListRes.rows.item(i);
+                        var isExplicitlyDisabled = (item.autosync_enabled === 0 || item.autosync_enabled === "0" || item.autosync_enabled === "false" || item.autosync_enabled === false);
+                        if (!isExplicitlyDisabled) {
+                            accountsToSync.push({
+                                id: item.id,
+                                name: item.name || ("Account " + item.id),
+                                isDefault: item.is_default === 1
+                            });
+                        }
                     }
                 }
             });
 
-            if (autoSyncEnabled === "false" || targetAccountId <= 0) {
-                Logger.debug("StartupManager", "AutoSync disabled or no remote account found (id: " + targetAccountId + ")");
+            if (autoSyncEnabled === "false" || accountsToSync.length === 0) {
+                Logger.debug("StartupManager", "AutoSync disabled or no eligible accounts found");
                 if (typeof onSyncConfiguredCallback === "function") {
-                    onSyncConfiguredCallback(false, 0, targetAccountId);
+                    onSyncConfiguredCallback(false, 0, -1);
+                }
+                if (isStartingUp) {
+                    isStartupComplete = true;
+                    syncFailed = false;
+                    statusMessage = i18n.dtr("ubtms", "Ready");
+                    scheduleStartupFinish(true, 2000);
                 }
                 return;
             }
 
-            Logger.info("StartupManager", "Configuring AutoSync: interval=" + syncIntervalMinutes + "m, account=" + targetAccountId);
+            var primaryAccountId = accountsToSync[0].id;
+            Logger.info("StartupManager", "Configuring AutoSync for " + accountsToSync.length + " accounts (primary ID=" + primaryAccountId + ", interval=" + syncIntervalMinutes + "m)");
             if (typeof onSyncConfiguredCallback === "function") {
-                onSyncConfiguredCallback(true, syncIntervalMinutes, targetAccountId);
+                onSyncConfiguredCallback(true, syncIntervalMinutes, primaryAccountId);
             }
 
-            backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
-                var targetDb = dbPath || "app_settings.db";
-                backendBridge.call("backend.start_sync_in_background", [targetDb, targetAccountId], function (res) {
-                    Logger.info("StartupManager", "Startup AutoSync initiated: " + res);
-                });
-            });
+            startupSyncQueue = accountsToSync;
+            startupSyncQueueIndex = 0;
+            startupSyncSuccessCount = 0;
+            startupSyncFailCount = 0;
+
+            if (isStartingUp) {
+                syncNextAccountInQueue();
+            }
         } catch (e) {
-            Logger.warn("StartupManager", "Failed to trigger auto-sync on startup:", e);
+            Logger.warn("StartupManager", "Failed to initialize startup sync queue:", e);
+            if (isStartingUp) {
+                syncFailed = true;
+                statusMessage = i18n.dtr("ubtms", "Sync failed");
+                scheduleStartupFinish(false, 2500);
+            }
         }
     }
 

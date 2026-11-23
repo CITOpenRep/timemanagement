@@ -298,7 +298,7 @@ def test_push_helper_schedule_and_priority_enforcement():
         set_setting(tmp_db_path, "notification_schedule_enabled", "true")
         set_setting(tmp_db_path, "notification_active_start", "09:00")
         set_setting(tmp_db_path, "notification_active_end", "18:00")
-        set_setting(tmp_db_path, "notification_working_days", "1,2,3,4,5")
+        set_setting(tmp_db_path, "notification_working_days", "0,1,2,3,4,5,6")
 
         with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
             # Case 1: Outside working hours -> popup should be False

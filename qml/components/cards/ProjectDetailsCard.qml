@@ -68,6 +68,7 @@ ListItem {
     property bool timer_on: false
     property bool timer_paused: false
     property bool hasDraft: false
+    property string status: ""
     signal editRequested(int recordId)
     signal viewRequested(int recordId)
     signal timesheetRequested(int localId)
@@ -346,6 +347,10 @@ ListItem {
                     if (result.success) {
                         isFavorite = newFavoriteState;
                         starIcon.source = isFavorite ? "../../images/star.png" : "../../images/star-inactive.png";
+                        projectCard.status = "updated";
+                        if (projectCard.accountId > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                            mainView.triggerDebouncedSync(projectCard.accountId);
+                        }
                     } else {
                         console.warn("Failed to toggle project favorite:", result.message);
                     }
@@ -407,6 +412,41 @@ ListItem {
                             font.bold: true
                             color: "#ea580c"
                             anchors.centerIn: parent
+                        }
+                    }
+
+                    // Pending sync indicator badge
+                    Rectangle {
+                        id: pendingSyncIndicator
+                        visible: !hasDraft && (status === "updated" || status === "new") && (projectCard.accountId > 0)
+                        height: visible ? units.gu(2.2) : 0
+                        width: pendingSyncRow.width + units.gu(1.2)
+                        radius: height / 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: projectCard.isDark ? "#2C2210" : "#FFF8E1"
+                        border.color: "#FFA000"
+                        border.width: units.gu(0.12)
+
+                        Row {
+                            id: pendingSyncRow
+                            spacing: units.gu(0.3)
+                            anchors.centerIn: parent
+
+                            Icon {
+                                name: "sync"
+                                width: units.gu(1.2)
+                                height: units.gu(1.2)
+                                color: "#E65100"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: i18n.dtr("ubtms", "Pending")
+                                font.pixelSize: units.gu(1.0)
+                                font.bold: true
+                                color: "#E65100"
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                         }
                     }
 

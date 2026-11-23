@@ -218,6 +218,10 @@ AdaptivePageLayout {
     }
 
     function setFirstScreen() {
+        if (rootApp && rootApp.startupManager && typeof rootApp.startupManager.notifySplashDismissed === "function") {
+            rootApp.startupManager.notifySplashDismissed();
+        }
+
         switch (columns) {
         case 1:
             primaryPage = dashboard_page;

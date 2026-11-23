@@ -753,6 +753,9 @@ Page {
             
             isReadOnly = true;
             notifPopup.open("Saved", "Project Update has been saved successfully", "success");
+            if (accountid > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                mainView.triggerDebouncedSync(accountid);
+            }
         }
     }
     

@@ -14,6 +14,7 @@ Item {
     property alias imagePreviewer: imagePreviewer
     property alias accountPicker: accountPicker
     property alias infobar: infobar
+    property alias startupStatusIndicator: startupStatusIndicator
 
     anchors.fill: parent
 
@@ -86,6 +87,11 @@ Item {
 
     NotificationPopup {
         id: notifPopup
+    }
+
+    StartupStatusIndicator {
+        id: startupStatusIndicator
+        startupManager: rootApp ? rootApp.startupManager : null
     }
 
     InfoBar {

@@ -97,6 +97,9 @@ ListItem {
                 notifPopup.open("Saved", "Timesheet has been saved successfully", "success");
             } else {
                 notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
+                if (accountId > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
+                    mainView.triggerDebouncedSync(accountId);
+                }
             }
             timesheetItem.refresh();
         } else {
@@ -311,6 +314,40 @@ anchors.right: parent.right
         anchors.centerIn: parent
     }
 }
+
+                Rectangle {
+                    id: pendingSyncIndicator
+                    visible: !hasDraft && status === "updated" && accountId > 0
+                    width: pendingSyncRow.width + units.gu(1.2)
+                    height: visible ? units.gu(2) : 0
+                    radius: height / 2
+                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2210" : "#FFF8E1"
+                    border.color: "#FFA000"
+                    border.width: units.gu(0.12)
+                    anchors.right: parent.right
+
+                    Row {
+                        id: pendingSyncRow
+                        spacing: units.gu(0.3)
+                        anchors.centerIn: parent
+
+                        Icon {
+                            name: "sync"
+                            width: units.gu(1.2)
+                            height: units.gu(1.2)
+                            color: "#E65100"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: i18n.dtr("ubtms", "Pending")
+                            font.pixelSize: units.gu(1.0)
+                            font.bold: true
+                            color: "#E65100"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
 
                 Text {
                     text: spentHours + " H"

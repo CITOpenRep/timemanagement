@@ -21,6 +21,7 @@ ListItem {
     property var account_id
     property int colorPallet: 0
     property bool hasDraft: false // Indicates if this task has unsaved draft changes
+    property string status: ""
 
     signal cardClicked(int accountid, int recordid)
     signal editRequested(int accountid, int recordid)
@@ -329,6 +330,39 @@ ListItem {
         anchors.centerIn: parent
     }
 }
+
+                        Rectangle {
+                            id: pendingSyncIndicator
+                            visible: !hasDraft && (status === "updated" || status === "new") && (account_id !== undefined && account_id !== null && account_id > 0)
+                            width: pendingSyncRow.width + units.gu(1.2)
+                            height: visible ? units.gu(2) : 0
+                            radius: height / 2
+                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2210" : "#FFF8E1"
+                            border.color: "#FFA000"
+                            border.width: units.gu(0.12)
+
+                            Row {
+                                id: pendingSyncRow
+                                spacing: units.gu(0.3)
+                                anchors.centerIn: parent
+
+                                Icon {
+                                    name: "sync"
+                                    width: units.gu(1.2)
+                                    height: units.gu(1.2)
+                                    color: "#E65100"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: i18n.dtr("ubtms", "Pending")
+                                    font.pixelSize: units.gu(1.0)
+                                    font.bold: true
+                                    color: "#E65100"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                        }
                     }
                 }
             }
