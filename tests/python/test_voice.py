@@ -74,7 +74,7 @@ class TestVoiceSignals:
         assert result is True
 
 
-class TestVoiceModelsOverviewAndCache:
+class TestVoiceModelsOverview:
     def test_get_voice_models_overview_returns_expected_keys(self, tmp_path, monkeypatch):
         monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
         model_dir = voice.get_voice_models_dir() / "vosk-model-small-en-us-0.15"
@@ -88,13 +88,14 @@ class TestVoiceModelsOverviewAndCache:
         assert isinstance(overview["installed"], list)
         assert len(overview["installed"]) == 1
         assert overview["installed"][0]["m_name"] == "English (US, Small)"
+        assert overview["installed"][0]["m_size"] == "40M"
         assert isinstance(overview["available"], list)
         assert len(overview["available"]) > 0
         assert isinstance(overview["device_ram_mb"], int) and overview["device_ram_mb"] > 0
         assert isinstance(overview["paused"], list)
         assert isinstance(overview["download_status"], dict)
 
-    def test_delete_voice_model_invalidates_size_cache(self, tmp_path, monkeypatch):
+    def test_list_installed_models_and_delete_voice_model(self, tmp_path, monkeypatch):
         monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
         model_dir = voice.get_voice_models_dir() / "test-custom-model"
         (model_dir / "am").mkdir(parents=True)
@@ -102,9 +103,10 @@ class TestVoiceModelsOverviewAndCache:
         (model_dir / "am" / "weights.bin").write_bytes(b"1" * 2048)
 
         models = voice.list_installed_models()
-        assert any(m["m_path"] == str(model_dir) for m in models)
-        assert str(model_dir) in voice._model_size_cache
+        matching = [m for m in models if m["m_path"] == str(model_dir)]
+        assert len(matching) == 1
+        assert "MB" in matching[0]["m_size"]
 
         res = voice.delete_voice_model(str(model_dir))
         assert res["status"] == "success"
-        assert str(model_dir) not in voice._model_size_cache
+        assert not model_dir.exists()
