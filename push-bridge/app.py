@@ -701,28 +701,77 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         max_seen_act_id = last_act_id
         try:
             act_domain = [("id", ">", last_act_id), ("user_id", "=", uid)] if last_act_id > 0 else [("user_id", "=", uid)]
-            act_fields = [
-                "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "res_model_id", "note",
-                "user_id", "create_uid", "activity_type_id"
+            act_domain_fallback = [("user_id", "=", uid)]
+
+            activity_configs = [
+                # 1. Comprehensive modern fields
+                (
+                    act_domain,
+                    [
+                        "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "res_model_id", "note",
+                        "user_id", "create_uid", "activity_type_id"
+                    ]
+                ),
+                # 2. Without res_model_id (which is missing or restricted in some Odoo setups)
+                (
+                    act_domain,
+                    [
+                        "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "note",
+                        "user_id", "create_uid", "activity_type_id"
+                    ]
+                ),
+                # 3. Without note and res_model_id
+                (
+                    act_domain,
+                    [
+                        "id", "summary", "date_deadline", "res_name", "res_model", "res_id",
+                        "user_id", "create_uid", "activity_type_id"
+                    ]
+                ),
+                # 4. Standard fields without create_uid or activity_type_id
+                (
+                    act_domain,
+                    [
+                        "id", "summary", "date_deadline", "res_name", "res_model", "res_id",
+                        "user_id"
+                    ]
+                ),
+                # 5. Minimal core fields
+                (
+                    act_domain,
+                    ["id", "summary", "date_deadline", "res_model", "res_id", "user_id"]
+                ),
+                # 6. Ultra-minimal fallback
+                (
+                    act_domain,
+                    ["id", "summary", "res_model", "res_id", "user_id"]
+                ),
+                # 7. Fallback domains without last_act_id in case id operator in domain fails
+                (
+                    act_domain_fallback,
+                    [
+                        "id", "summary", "date_deadline", "res_name", "res_model", "res_id", "note",
+                        "user_id", "create_uid", "activity_type_id"
+                    ]
+                ),
+                (
+                    act_domain_fallback,
+                    ["id", "summary", "date_deadline", "res_model", "res_id", "user_id"]
+                ),
             ]
+
             activities = []
-            try:
-                activities = models.execute_kw(
-                    db, uid, password,
-                    "mail.activity", "search_read",
-                    [act_domain],
-                    {"fields": act_fields, "order": "id desc", "limit": 10}
-                )
-            except Exception:
+            for a_dom, a_fields in activity_configs:
                 try:
                     activities = models.execute_kw(
                         db, uid, password,
                         "mail.activity", "search_read",
-                        [[("user_id", "=", uid)]],
-                        {"fields": act_fields, "order": "id desc", "limit": 10}
+                        [a_dom],
+                        {"fields": a_fields, "order": "id desc", "limit": 10}
                     )
+                    break
                 except Exception:
-                    pass
+                    continue
             for act in activities:
                 act_id = act.get("id", 0)
                 if act_id > last_act_id:
@@ -1001,45 +1050,93 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
         try:
             user_project_ids = []
             try:
-                raw_projs = models.execute_kw(
-                    db, uid, password,
-                    "project.project", "search",
-                    [[]],
-                    {"limit": 100}
-                ) or []
+                proj_domain = ["|", ("user_id", "=", uid), ("message_partner_ids", "in", [partner_id])] if partner_id else [("user_id", "=", uid)]
+                try:
+                    raw_projs = models.execute_kw(
+                        db, uid, password,
+                        "project.project", "search",
+                        [proj_domain],
+                        {"limit": 100}
+                    ) or []
+                except Exception:
+                    raw_projs = models.execute_kw(
+                        db, uid, password,
+                        "project.project", "search",
+                        [[("user_id", "=", uid)]],
+                        {"limit": 100}
+                    ) or []
                 user_project_ids = [p["id"] if isinstance(p, dict) and "id" in p else p for p in raw_projs if isinstance(p, (int, dict))]
             except Exception:
                 pass
 
             update_domain = []
-            if user_project_ids:
-                update_domain = [("id", ">", last_update_id), ("project_id", "in", user_project_ids)] if last_update_id > 0 else [("project_id", "in", user_project_ids)]
-            elif partner_id:
+            if partner_id:
                 update_domain = [
                     "|",
                     ("project_id.user_id", "=", uid),
                     ("project_id.message_partner_ids", "in", [partner_id])
                 ]
-                if last_update_id > 0:
-                    update_domain = [("id", ">", last_update_id)] + update_domain
             else:
                 update_domain = [
                     ("project_id.user_id", "=", uid)
                 ]
-                if last_update_id > 0:
-                    update_domain = [("id", ">", last_update_id)] + update_domain
+            if last_update_id > 0:
+                update_domain = [("id", ">", last_update_id)] + update_domain
 
-            fallback_update_domain = [("id", ">", last_update_id), ("project_id.user_id", "=", uid)] if last_update_id > 0 else [("project_id.user_id", "=", uid)]
+            direct_follower_domain = []
+            if partner_id:
+                direct_follower_domain = [
+                    "|",
+                    ("project_id.user_id", "=", uid),
+                    ("message_partner_ids", "in", [partner_id])
+                ]
+                if last_update_id > 0:
+                    direct_follower_domain = [("id", ">", last_update_id)] + direct_follower_domain
+
+            proj_list_domain = []
+            if user_project_ids:
+                proj_list_domain = [("id", ">", last_update_id), ("project_id", "in", user_project_ids)] if last_update_id > 0 else [("project_id", "in", user_project_ids)]
+
+            fallback_update_domain = update_domain if partner_id else ([("id", ">", last_update_id), ("project_id.user_id", "=", uid)] if last_update_id > 0 else [("project_id.user_id", "=", uid)])
+            manager_only_domain = [("id", ">", last_update_id), ("project_id.user_id", "=", uid)] if last_update_id > 0 else [("project_id.user_id", "=", uid)]
+
+            base_fields = ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid", "message_partner_ids"]
+            safe_fields_1 = ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]
+            safe_fields_2 = ["id", "name", "project_id", "user_id", "date", "description", "create_uid"]
+            safe_fields_3 = ["id", "name", "project_id", "user_id", "description"]
+            safe_fields_min = ["id", "name", "project_id", "description"]
+            safe_fields_bare = ["id", "name"]
 
             update_configs = [
-                (update_domain, ["id", "name", "status", "progress", "project_id", "user_id", "date", "description", "create_uid"]),
-                (update_domain, ["id", "name", "project_id", "user_id", "date", "description", "create_uid"]),
-                (update_domain, ["id", "name", "project_id", "user_id", "description"]),
-                (update_domain, ["id", "name", "project_id", "description"]),
-                (update_domain, ["id", "name"]),
-                (fallback_update_domain, ["id", "name", "project_id", "user_id", "description"]),
-                (fallback_update_domain, ["id", "name"]),
+                (update_domain, base_fields),
+                (update_domain, safe_fields_1),
+                (update_domain, safe_fields_2),
+                (update_domain, safe_fields_3),
+                (update_domain, safe_fields_min),
+                (update_domain, safe_fields_bare),
             ]
+            if direct_follower_domain:
+                update_configs.extend([
+                    (direct_follower_domain, base_fields),
+                    (direct_follower_domain, safe_fields_1),
+                    (direct_follower_domain, safe_fields_2),
+                    (direct_follower_domain, safe_fields_3),
+                    (direct_follower_domain, safe_fields_bare),
+                ])
+            if proj_list_domain:
+                update_configs.extend([
+                    (proj_list_domain, safe_fields_1),
+                    (proj_list_domain, safe_fields_2),
+                    (proj_list_domain, safe_fields_3),
+                    (proj_list_domain, safe_fields_bare),
+                ])
+            update_configs.extend([
+                (fallback_update_domain, safe_fields_3),
+                (fallback_update_domain, safe_fields_bare),
+                (manager_only_domain, safe_fields_3),
+                (manager_only_domain, safe_fields_bare),
+            ])
+
             updates = []
             for u_dom, u_fields in update_configs:
                 try:
@@ -1078,7 +1175,15 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         logger.info("Self-notification filter: skipped update %d created by subscriber UID %d", update_id, uid)
                         continue
 
-                    is_user_proj = (not user_project_ids or proj_id in user_project_ids)
+                    # Follower & manager recipient verification
+                    is_user_proj = True
+                    if user_project_ids:
+                        is_user_proj = (proj_id in user_project_ids)
+                        if not is_user_proj and partner_id and "message_partner_ids" in up and isinstance(up["message_partner_ids"], (list, tuple)):
+                            is_user_proj = (partner_id in up["message_partner_ids"])
+                    elif partner_id and "message_partner_ids" in up and isinstance(up["message_partner_ids"], (list, tuple)):
+                        is_user_proj = (partner_id in up["message_partner_ids"])
+
                     if not is_user_proj:
                         logger.info("Privacy filter: skipped update %d (project %s) for UID %d", update_id, proj_id, uid)
                         continue

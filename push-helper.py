@@ -1237,14 +1237,69 @@ def process_notification(input_data):
                 try:
                     conn = sqlite3.connect(db_path)
                     cur = conn.cursor()
-                    cur.execute(
-                        "SELECT odoo_record_id FROM res_users_app WHERE account_id = ? AND active = 1 LIMIT 1",
-                        (account_id,)
-                    )
-                    user_row = cur.fetchone()
+                    current_user_uid = None
+                    if subscriber_uid:
+                        try:
+                            cur.execute(
+                                "SELECT odoo_record_id FROM res_users_app WHERE account_id = ? AND odoo_record_id = ? AND (active = 1 OR active IS NULL) LIMIT 1",
+                                (account_id, int(subscriber_uid))
+                            )
+                            user_row = cur.fetchone()
+                            if user_row and user_row[0]:
+                                current_user_uid = int(user_row[0])
+                            else:
+                                current_user_uid = int(subscriber_uid)
+                        except Exception:
+                            current_user_uid = int(subscriber_uid)
+
+                    if not current_user_uid:
+                        uname = None
+                        try:
+                            cur.execute("SELECT username FROM users WHERE id = ? LIMIT 1", (account_id,))
+                            row = cur.fetchone()
+                            if row and row[0]:
+                                uname = str(row[0]).strip()
+                        except Exception:
+                            pass
+                        if not uname:
+                            try:
+                                cur.execute("SELECT name FROM users WHERE id = ? LIMIT 1", (account_id,))
+                                row = cur.fetchone()
+                                if row and row[0]:
+                                    uname = str(row[0]).strip()
+                            except Exception:
+                                pass
+
+                        if uname:
+                            try:
+                                cur.execute(
+                                    """
+                                    SELECT odoo_record_id FROM res_users_app
+                                    WHERE account_id = ? AND (active = 1 OR active IS NULL)
+                                      AND (login = ? OR email = ? OR work_email = ?
+                                           OR LOWER(login) = LOWER(?) OR LOWER(email) = LOWER(?) OR LOWER(work_email) = LOWER(?))
+                                    LIMIT 1
+                                    """,
+                                    (account_id, uname, uname, uname, uname, uname, uname)
+                                )
+                                user_row = cur.fetchone()
+                                if user_row and user_row[0]:
+                                    current_user_uid = int(user_row[0])
+                            except sqlite3.OperationalError:
+                                try:
+                                    cur.execute(
+                                        "SELECT odoo_record_id FROM res_users_app WHERE account_id = ? AND (name = ? OR LOWER(name) = LOWER(?)) LIMIT 1",
+                                        (account_id, uname, uname)
+                                    )
+                                    user_row = cur.fetchone()
+                                    if user_row and user_row[0]:
+                                        current_user_uid = int(user_row[0])
+                                except Exception:
+                                    pass
+
                     conn.close()
-                    if user_row and user_row[0] and creator_val:
-                        if int(user_row[0]) == int(creator_val):
+                    if current_user_uid and creator_val:
+                        if int(current_user_uid) == int(creator_val):
                             is_self_action = True
                 except Exception:
                     pass
