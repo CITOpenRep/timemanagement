@@ -1809,7 +1809,9 @@ def test_push_helper_silently_prepopulates_self_update():
         conn.commit()
         conn.close()
 
-        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path):
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path), \
+             patch.object(push_helper_mod, "should_popup_notification", return_value=True), \
+             patch.object(push_helper_mod, "check_client_burst_flood", return_value=(False, False)):
             raw_input = json.dumps({
                 "notification": {
                     "card": {
@@ -1900,4 +1902,601 @@ def test_unregister_account_push_flow():
     finally:
         if os.path.exists(tmp_db_path):
             os.remove(tmp_db_path)
+
+
+def _load_addon_model(module_rel_path, module_name):
+    """
+    Helper to load an Odoo addon model file with lightweight mocked odoo framework.
+    """
+    import types
+    if "odoo" not in sys.modules:
+        odoo = types.ModuleType("odoo")
+        api = types.ModuleType("odoo.api")
+        models = types.ModuleType("odoo.models")
+
+        class FakeModel:
+            def __init__(self, **kwargs):
+                for k, v in kwargs.items():
+                    setattr(self, k, v)
+
+            def write(self, vals):
+                return True
+
+            def __iter__(self):
+                return iter([self])
+
+        models.Model = FakeModel
+        api.model_create_multi = lambda f: f
+        odoo.api = api
+        odoo.models = models
+        sys.modules["odoo"] = odoo
+        sys.modules["odoo.api"] = api
+        sys.modules["odoo.models"] = models
+
+    addon_file = Path(__file__).resolve().parents[2] / module_rel_path
+    spec = importlib.util.spec_from_file_location(module_name, str(addon_file))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_addon_activity_payload_validity_and_write_hook():
+    """
+    Verify addon mail.activity push payload validity:
+    - expire_on is ISO 8601 UTC timestamp +24h
+    - record dictionary is populated with model, record_id, summary, deadline, and res_model/res_id
+    - notification card and data contain sound and vibrate properties
+    - write hook dispatches push notifications on user_id change
+    """
+    from datetime import datetime, timezone
+    mod_act = _load_addon_model("odoo-addon/ubtms_push/models/mail_activity.py", "test_mail_activity")
+
+    user = MagicMock()
+    user.id = 42
+    user.ubports_push_token = "token_activity_user_42"
+
+    act = mod_act.MailActivity()
+    act.id = 88
+    act.summary = "Review timesheet log"
+    act.date_deadline = "2026-11-26"
+    act.res_name = "Task 101"
+    act.res_model = "project.task"
+    act.res_id = 101
+    act.user_id = user
+    act.activity_type_id = MagicMock()
+    act.activity_type_id.name = "Review"
+
+    with patch("requests.post") as mock_post:
+        mock_post.return_value = MagicMock(status_code=200)
+
+        # Trigger write with user_id change
+        act.write({"user_id": 42})
+        assert mock_post.called
+
+        payload = mock_post.call_args.kwargs["json"]
+        headers = mock_post.call_args.kwargs["headers"]
+        assert headers.get("Content-Type") == "application/json"
+
+        # 1. Check expire_on format and expiration horizon (~24 hours)
+        assert "expire_on" in payload
+        expire_dt = datetime.strptime(payload["expire_on"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        now_dt = datetime.now(timezone.utc)
+        diff_hours = (expire_dt - now_dt).total_seconds() / 3600.0
+        assert 23.5 <= diff_hours <= 24.5
+
+        # 2. Check record dictionary
+        record = payload["data"]["record"]
+        assert record["model"] == "mail.activity"
+        assert record["record_id"] == 88
+        assert record["summary"] == "Review timesheet log"
+        assert record["deadline"] == "2026-11-26"
+        assert record["res_name"] == "Task 101"
+        assert record["res_model"] == "project.task"
+        assert record["res_id"] == 101
+        assert record["user_id"] == 42
+
+        # 3. Check notification card and sound/vibrate
+        card = payload["data"]["notification"]["card"]
+        assert card["record"] == record
+        assert card["sound"] == "sounds/lomiri/notifications/Positive.ogg"
+        assert card["vibrate"]["pattern"] == [200, 100, 200]
+        assert payload["data"]["notification"]["sound"] == "sounds/lomiri/notifications/Positive.ogg"
+        assert payload["data"]["notification"]["vibrate"]["pattern"] == [200, 100, 200]
+        assert "ubtms://notification?type=Activity&id=88&odoo_id=1" in card["actions"]
+
+    # Write without user_id should not dispatch push
+    with patch("requests.post") as mock_post_noop:
+        act.write({"summary": "Updated summary only"})
+        assert not mock_post_noop.called
+
+
+def test_addon_task_payload_validity_and_write_hook():
+    """
+    Verify addon project.task push payload validity:
+    - expire_on is ISO 8601 UTC timestamp +24h
+    - record dictionary contains model, record_id, project details, and stage
+    - sound and vibrate are included
+    - write hook dispatches push notifications on user_ids change
+    """
+    from datetime import datetime, timezone
+    mod_task = _load_addon_model("odoo-addon/ubtms_push/models/project_task.py", "test_project_task")
+
+    user = MagicMock()
+    user.id = 55
+    user.ubports_push_token = "token_task_user_55"
+
+    project = MagicMock()
+    project.id = 12
+    project.name = "Mobile Integration"
+
+    stage = MagicMock()
+    stage.id = 3
+    stage.name = "In Progress"
+
+    task = mod_task.ProjectTask()
+    task.id = 301
+    task.name = "Confined push e2e test"
+    task.description = "Implement automated verification tests"
+    task.project_id = project
+    task.stage_id = stage
+    task.date_deadline = "2026-11-30"
+    task.priority = "1"
+    task.user_ids = [user]
+
+    with patch("requests.post") as mock_post:
+        mock_post.return_value = MagicMock(status_code=200)
+
+        task.write({"user_ids": [(6, 0, [55])]})
+        assert mock_post.called
+
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["token"] == "token_task_user_55"
+
+        # Check expire_on
+        assert "expire_on" in payload
+        expire_dt = datetime.strptime(payload["expire_on"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        now_dt = datetime.now(timezone.utc)
+        diff_hours = (expire_dt - now_dt).total_seconds() / 3600.0
+        assert 23.5 <= diff_hours <= 24.5
+
+        # Check record dictionary
+        record = payload["data"]["record"]
+        assert record["model"] == "project.task"
+        assert record["record_id"] == 301
+        assert record["name"] == "Confined push e2e test"
+        assert record["project_id"] == 12
+        assert record["project_name"] == "Mobile Integration"
+        assert record["stage_id"] == 3
+        assert record["stage_name"] == "In Progress"
+        assert record["deadline"] == "2026-11-30"
+        assert record["priority"] == "1"
+
+        # Check sound and vibrate
+        card = payload["data"]["notification"]["card"]
+        assert card["sound"] == "sounds/lomiri/notifications/Positive.ogg"
+        assert card["vibrate"]["pattern"] == [200, 100, 200]
+        assert payload["data"]["notification"]["sound"] == "sounds/lomiri/notifications/Positive.ogg"
+        assert payload["data"]["notification"]["vibrate"]["pattern"] == [200, 100, 200]
+
+
+def test_addon_project_update_follower_delivery_and_payload_validity():
+    """
+    Verify addon project.update push notifications:
+    - dispatches to project manager and project followers
+    - excludes the update author (user_id / create_uid / env.uid)
+    - deduplicates recipient tokens
+    - includes expire_on, record dictionary, and sound/vibrate in payload
+    """
+    from datetime import datetime, timezone
+    mod_update = _load_addon_model("odoo-addon/ubtms_push/models/project_update.py", "test_project_update")
+
+    manager_user = MagicMock(id=10, ubports_push_token="token_proj_mgr_10")
+    follower_user_1 = MagicMock(id=20, ubports_push_token="token_follower_20")
+    follower_user_2 = MagicMock(id=30, ubports_push_token="token_follower_30")
+    author_user = MagicMock(id=40, ubports_push_token="token_author_40")
+
+    partner_follower_1 = MagicMock(id=201, user_ids=[follower_user_1])
+    partner_follower_2 = MagicMock(id=202, user_ids=[])
+
+    project = MagicMock()
+    project.id = 70
+    project.name = "Platform Services"
+    project.user_id = manager_user
+    project.message_partner_ids = [partner_follower_1, partner_follower_2]
+
+    update = mod_update.ProjectUpdate()
+    update.id = 501
+    update.name = "Weekly Status: Phase 2 Kickoff"
+    update.status = "on_track"
+    update.progress = 60
+    update.description = "Phase 2 scope confirmed with team"
+    update.date = "2026-11-24"
+    update.project_id = project
+    update.user_id = author_user
+    update.create_uid = author_user
+
+    pu_model = mod_update.ProjectUpdate()
+    pu_model.env = MagicMock()
+    pu_model.env.uid = author_user.id
+    # Mock searching res.users for partner_follower_2
+    users_proxy = MagicMock()
+    users_proxy.search.return_value = [follower_user_2]
+    pu_model.env.__getitem__.return_value = users_proxy
+
+    # 1. Test recipient resolution
+    target_users = pu_model._get_target_users(update)
+    target_ids = {u.id for u in target_users}
+    assert 10 in target_ids  # manager included
+    assert 20 in target_ids  # follower 1 included
+    assert 30 in target_ids  # follower 2 included
+    assert 40 not in target_ids  # author excluded
+
+    # 2. Test push dispatch and payload structure
+    with patch("requests.post") as mock_post:
+        mock_post.return_value = MagicMock(status_code=200)
+
+        pu_model._send_project_update_push(update)
+        assert mock_post.call_count == 3
+
+        sent_tokens = {call.kwargs["json"]["token"] for call in mock_post.call_args_list}
+        assert "token_proj_mgr_10" in sent_tokens
+        assert "token_follower_20" in sent_tokens
+        assert "token_follower_30" in sent_tokens
+        assert "token_author_40" not in sent_tokens
+
+        sample_payload = mock_post.call_args_list[0].kwargs["json"]
+        assert "expire_on" in sample_payload
+        expire_dt = datetime.strptime(sample_payload["expire_on"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        now_dt = datetime.now(timezone.utc)
+        diff_hours = (expire_dt - now_dt).total_seconds() / 3600.0
+        assert 23.5 <= diff_hours <= 24.5
+
+        rec = sample_payload["data"]["record"]
+        assert rec["model"] == "project.update"
+        assert rec["record_id"] == 501
+        assert rec["project_status"] == "on_track"
+        assert rec["progress"] == 60
+        assert rec["project_id"] == 70
+        assert rec["project_name"] == "Platform Services"
+
+        card = sample_payload["data"]["notification"]["card"]
+        assert card["sound"] == "sounds/lomiri/notifications/Positive.ogg"
+        assert card["vibrate"]["pattern"] == [200, 100, 200]
+        assert sample_payload["data"]["notification"]["sound"] == "sounds/lomiri/notifications/Positive.ogg"
+        assert sample_payload["data"]["notification"]["vibrate"]["pattern"] == [200, 100, 200]
+
+
+def test_bridge_project_update_follower_notification_delivery():
+    """
+    Verify legacy bridge polling delivers project.update notifications to project followers,
+    while isolating non-followers and suppressing notifications for the update author.
+    """
+    token_mgr = "ubports_token_bridge_mgr_100"
+    token_follower = "ubports_token_bridge_follower_150"
+    token_stranger = "ubports_token_bridge_stranger_200"
+
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_mgr,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "manager",
+        "password": "key",
+        "uid": 100,
+        "poll_interval": 300
+    })
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_follower,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "follower",
+        "password": "key",
+        "uid": 150,
+        "poll_interval": 300
+    })
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_stranger,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "stranger",
+        "password": "key",
+        "uid": 200,
+        "poll_interval": 300
+    })
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Baseline poll to set initial watermarks
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        # Project 92: Manager is UID 100, follower partner is 1500 (UID 150)
+        # Update is authored by UID 60 (different author)
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "res.users" and method == "read":
+                return [{"partner_id": [uid * 10, f"User {uid}"], "name": f"User {uid}"}]
+            if model == "project.project" and method == "search":
+                if uid in (100, 150):
+                    return [92]
+                return []
+            if model == "project.update" and method == "search_read":
+                if uid in (100, 150):
+                    return [{
+                        "id": 180,
+                        "name": "Mid-sprint Sync",
+                        "status": "on_track",
+                        "progress": 55,
+                        "project_id": [92, "Core Framework"],
+                        "user_id": [60, "Tech Lead"],
+                        "date": "2026-11-24",
+                        "create_uid": [60, "Tech Lead"],
+                        "message_partner_ids": [1500]
+                    }]
+                return []
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+
+        sent_tokens = [call.kwargs["json"]["token"] for call in mock_ubports_post.call_args_list]
+        assert token_mgr in sent_tokens
+        assert token_follower in sent_tokens
+        assert token_stranger not in sent_tokens
+
+
+def test_push_helper_non_self_update_not_wrongly_suppressed():
+    """
+    Verify push-helper.py resolves logged-in user correctly from users and res_users_app
+    rather than blindly picking the first row in res_users_app (UID 1).
+    When UID 1 creates an update for an account logged in as UID 200, the notification
+    must NOT be treated as a self-action, so popup, persist, and sound/vibrate are preserved,
+    and an unread notification record is inserted.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, username TEXT, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, username, name) VALUES (1, 1, 'logged_in_member', 'Logged In Member')")
+        cur.execute("""
+            CREATE TABLE res_users_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                odoo_record_id INTEGER,
+                name TEXT,
+                login TEXT,
+                active INTEGER DEFAULT 1
+            )
+        """)
+        # Row 1 is Administrator (UID 1)
+        cur.execute("INSERT INTO res_users_app (account_id, odoo_record_id, name, login, active) VALUES (1, 1, 'Admin User', 'admin', 1)")
+        # Row 2 is the actual logged-in user (UID 200)
+        cur.execute("INSERT INTO res_users_app (account_id, odoo_record_id, name, login, active) VALUES (1, 200, 'Logged In Member', 'logged_in_member', 1)")
+        cur.execute("""
+            CREATE TABLE project_update_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                name TEXT,
+                project_status TEXT,
+                progress INTEGER,
+                user_id INTEGER,
+                description TEXT,
+                date TEXT,
+                project_id INTEGER,
+                odoo_record_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE notification (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                timestamp TEXT,
+                message TEXT,
+                type TEXT,
+                payload TEXT,
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path), \
+             patch.object(push_helper_mod, "should_popup_notification", return_value=True), \
+             patch.object(push_helper_mod, "check_client_burst_flood", return_value=(False, False)):
+            raw_input = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Update: Backend Services",
+                        "body": "Admin released update v2 (on_track)",
+                        "popup": True,
+                        "persist": True,
+                        "actions": ["ubtms://notification?type=ProjectUpdate&id=205&odoo_id=1"]
+                    },
+                    "sound": "sounds/lomiri/notifications/Positive.ogg",
+                    "vibrate": {"pattern": [200, 100, 200], "repeat": 1}
+                },
+                "data": {
+                    "record": {
+                        "model": "project.update",
+                        "record_id": 205,
+                        "name": "Admin released update v2",
+                        "project_id": 35,
+                        "project_status": "on_track",
+                        "progress": 80,
+                        "user_id": 1,
+                        "create_uid": 1,
+                        "account_id": 1
+                    }
+                }
+            })
+
+            out = json.loads(push_helper_mod.process_notification(raw_input))
+            card = out["notification"]["card"]
+
+            # Must NOT be silenced or suppressed as a self action
+            assert card["popup"] is True
+            assert card["persist"] is True
+            assert "sound" in out["notification"]
+            assert "vibrate" in out["notification"]
+
+            # Verify unread notification record was created in SQLite
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            cur.execute("SELECT type, message, read_status, panel_invoked FROM notification")
+            notif_row = cur.fetchone()
+            assert notif_row is not None
+            assert notif_row[0] == "ProjectUpdate"
+            assert notif_row[1] == "Admin released update v2 (on_track)"
+            assert notif_row[2] == 0
+            assert notif_row[3] == 1
+
+            # Verify pre-population into project_update_app
+            cur.execute("SELECT name, progress, odoo_record_id FROM project_update_app WHERE odoo_record_id = 205")
+            update_row = cur.fetchone()
+            assert update_row is not None
+            assert update_row[0] == "Admin released update v2"
+            assert update_row[1] == 80
+            conn.close()
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
+def test_push_helper_subscriber_uid_explicit_and_self_suppression():
+    """
+    Verify push-helper behavior with account_user_id:
+    1. When account_user_id matches create_uid, self-action suppression silences banners and sound.
+    2. When account_user_id differs from create_uid, banner and notifications are kept.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'Default User')")
+        cur.execute("""
+            CREATE TABLE res_users_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                odoo_record_id INTEGER,
+                name TEXT,
+                active INTEGER DEFAULT 1
+            )
+        """)
+        cur.execute("INSERT INTO res_users_app (account_id, odoo_record_id, name, active) VALUES (1, 100, 'Author', 1)")
+        cur.execute("INSERT INTO res_users_app (account_id, odoo_record_id, name, active) VALUES (1, 200, 'Other User', 1)")
+        cur.execute("""
+            CREATE TABLE project_update_app (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                name TEXT,
+                project_status TEXT,
+                progress INTEGER,
+                user_id INTEGER,
+                description TEXT,
+                date TEXT,
+                project_id INTEGER,
+                odoo_record_id INTEGER,
+                last_modified datetime,
+                status TEXT DEFAULT '',
+                has_draft INTEGER DEFAULT 0
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE notification (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                timestamp TEXT,
+                message TEXT,
+                type TEXT,
+                payload TEXT,
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path), \
+             patch.object(push_helper_mod, "should_popup_notification", return_value=True), \
+             patch.object(push_helper_mod, "check_client_burst_flood", return_value=(False, False)):
+            # Case 1: Non-self update where subscriber_uid is 200 and create_uid is 100
+            non_self_payload = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Update: Core",
+                        "body": "Progress report (on_track)",
+                        "popup": True,
+                        "persist": True,
+                        "actions": ["ubtms://notification?type=ProjectUpdate&id=310&odoo_id=1"]
+                    },
+                    "sound": "sounds/lomiri/notifications/Positive.ogg",
+                    "vibrate": {"pattern": [200, 100, 200], "repeat": 1}
+                },
+                "data": {
+                    "record": {
+                        "model": "project.update",
+                        "record_id": 310,
+                        "name": "Progress report",
+                        "project_id": 10,
+                        "project_status": "on_track",
+                        "progress": 40,
+                        "create_uid": 100,
+                        "account_user_id": 200,
+                        "account_id": 1
+                    }
+                }
+            })
+            out_non_self = json.loads(push_helper_mod.process_notification(non_self_payload))
+            assert out_non_self["notification"]["card"]["popup"] is True
+            assert out_non_self["notification"]["card"]["persist"] is True
+            assert "sound" in out_non_self["notification"]
+
+            # Case 2: True self update where subscriber_uid is 100 and create_uid is 100
+            self_payload = json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": "Update: Core",
+                        "body": "Self progress report (on_track)",
+                        "popup": True,
+                        "persist": True,
+                        "actions": ["ubtms://notification?type=ProjectUpdate&id=311&odoo_id=1"]
+                    },
+                    "sound": "sounds/lomiri/notifications/Positive.ogg",
+                    "vibrate": {"pattern": [200, 100, 200], "repeat": 1}
+                },
+                "data": {
+                    "record": {
+                        "model": "project.update",
+                        "record_id": 311,
+                        "name": "Self progress report",
+                        "project_id": 10,
+                        "project_status": "on_track",
+                        "progress": 50,
+                        "create_uid": 100,
+                        "account_user_id": 100,
+                        "account_id": 1
+                    }
+                }
+            })
+            out_self = json.loads(push_helper_mod.process_notification(self_payload))
+            assert out_self["notification"]["card"]["popup"] is False
+            assert out_self["notification"]["card"]["persist"] is False
+            assert "sound" not in out_self["notification"]
+            assert "vibrate" not in out_self["notification"]
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
 
