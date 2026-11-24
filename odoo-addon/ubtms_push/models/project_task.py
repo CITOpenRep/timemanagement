@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from datetime import datetime, timedelta, timezone
 import requests
 from odoo import api, models
 
@@ -34,24 +35,60 @@ class ProjectTask(models.Model):
 
             project_name = task.project_id.name if task.project_id else ''
             deep_link = f"ubtms://notification?type=Task&id={task.id}&odoo_id=1"
+            expire_on = (datetime.now(timezone.utc) + timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+            record = {
+                'model': 'project.task',
+                'record_id': task.id,
+                'name': task.name or '',
+                'summary': task.name or '',
+                'description': getattr(task, 'description', '') or '',
+                'project_id': task.project_id.id if task.project_id else False,
+                'project_name': project_name,
+                'stage_id': task.stage_id.id if getattr(task, 'stage_id', False) else False,
+                'stage_name': task.stage_id.name if getattr(task, 'stage_id', False) else '',
+                'deadline': str(getattr(task, 'date_deadline', '') or ''),
+                'priority': getattr(task, 'priority', '0') or '0',
+                'user_id': user.id if user else False,
+            }
+
+            card = {
+                'summary': f"Task Assigned: {task.name}",
+                'body': f"Project: {project_name}" if project_name else "New task assigned",
+                'icon': 'assets/logo.png',
+                'popup': True,
+                'persist': True,
+                'actions': [deep_link, "appid://ubtms/ubtms/current-user-version"],
+                'sound': 'sounds/lomiri/notifications/Positive.ogg',
+                'vibrate': {
+                    'pattern': [200, 100, 200],
+                    'repeat': 1,
+                },
+                'record': record,
+            }
+
             payload = {
                 'appid': DEFAULT_APP_ID,
                 'token': token,
+                'expire_on': expire_on,
                 'data': {
                     'notification': {
-                        'card': {
-                            'summary': f"Task Assigned: {task.name}",
-                            'body': f"Project: {project_name}" if project_name else "New task assigned",
-                            'icon': 'assets/logo.png',
-                            'popup': True,
-                            'persist': True,
-                            'actions': [deep_link, "appid://ubtms/ubtms/current-user-version"]
-                        }
-                    }
-                }
+                        'card': card,
+                        'sound': 'sounds/lomiri/notifications/Positive.ogg',
+                        'vibrate': {
+                            'pattern': [200, 100, 200],
+                            'repeat': 1,
+                        },
+                        'emblem-counter': {
+                            'count': 1,
+                            'visible': True,
+                        },
+                    },
+                    'record': record,
+                },
             }
 
             try:
-                requests.post(UBPORTS_PUSH_URL, json=payload, timeout=5)
+                requests.post(UBPORTS_PUSH_URL, json=payload, headers={'Content-Type': 'application/json'}, timeout=5)
             except Exception as e:
                 _logger.warning("Failed sending UBports push for task %s: %s", task.id, e)
