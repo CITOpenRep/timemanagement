@@ -17,6 +17,14 @@ from datetime import datetime, timezone
 # Database path for storing notifications
 DB_DIR = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share" / "ubtms")) / "Databases"
 
+# Ensure temporary files stay within the app's sandboxed cache directory
+_cache_dir = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache" / "ubtms"))
+try:
+    _cache_dir.mkdir(parents=True, exist_ok=True)
+    os.environ["TMPDIR"] = str(_cache_dir)
+except Exception:
+    pass
+
 def get_db_path():
     """Get the path to the app database."""
     base_dirs = [
@@ -174,9 +182,13 @@ def check_client_burst_flood(account_id, max_burst=5, window_sec=5.0, max_storag
     Detect rapid notification flood on device (e.g. historical queue flush on account sync).
     Returns (is_silenced, should_suppress_storage).
     """
-    import tempfile
     import time
-    flood_file = Path(tempfile.gettempdir()) / f"ubtms_push_flood_{account_id}.json"
+    cache_dir = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache" / "ubtms"))
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        flood_file = cache_dir / f"ubtms_push_flood_{account_id}.json"
+    except Exception:
+        return False, False
     now = time.time()
     timestamps = []
     try:
@@ -281,7 +293,12 @@ def should_popup_notification(summary="", body="", is_urgent=False):
             db_path = get_db_path()
             conn = sqlite3.connect(db_path)
             cur = conn.cursor()
-            cur.execute("SELECT value FROM settings WHERE key = 'notifications_enabled'")
+            cur.execute("""
+                SELECT value FROM app_settings WHERE key = 'notifications_enabled'
+                UNION ALL
+                SELECT value FROM settings WHERE key = 'notifications_enabled'
+                LIMIT 1
+            """)
             row = cur.fetchone()
             conn.close()
             if row and str(row[0]).strip().lower() == "false":
