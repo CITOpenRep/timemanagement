@@ -28,6 +28,17 @@ class MailActivity(models.Model):
 
     def _send_activity_push(self, activity):
         user = activity.user_id
+        actor_ids = set()
+        env = getattr(self, 'env', None)
+        if env and getattr(env, 'uid', None):
+            actor_ids.add(env.uid)
+        create_uid_obj = getattr(activity, 'create_uid', False)
+        creator_id = create_uid_obj.id if create_uid_obj and getattr(create_uid_obj, 'id', None) else False
+        if creator_id:
+            actor_ids.add(creator_id)
+
+        if not user or getattr(user, 'id', None) in actor_ids:
+            return
         token = getattr(user, 'ubports_push_token', False)
         if not token:
             return
@@ -48,6 +59,7 @@ class MailActivity(models.Model):
             'res_model': getattr(activity, 'res_model', '') or '',
             'res_id': getattr(activity, 'res_id', 0) or 0,
             'user_id': user.id if user else False,
+            'create_uid': creator_id,
         }
 
         card = {

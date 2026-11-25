@@ -2599,4 +2599,283 @@ def test_push_helper_distinct_tasks_same_project_not_deduplicated():
             os.remove(tmp_db_path)
 
 
+def test_privacy_task_self_notification_suppressed():
+    """
+    Verify that when a creator assigns both themselves and a colleague to a new task,
+    polling suppresses the notification for the creator while still notifying the colleague.
+    """
+    token_creator = "ubports_token_task_creator_100"
+    token_colleague = "ubports_token_task_colleague_200"
+
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_creator,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "creator_user",
+        "password": "key",
+        "uid": 100,
+        "poll_interval": 300
+    })
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_colleague,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "colleague_user",
+        "password": "key",
+        "uid": 200,
+        "poll_interval": 300
+    })
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        # Baseline poll
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        # Task created by UID 100 and assigned to both UID 100 and UID 200
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "res.users" and method == "read":
+                return [{"partner_id": [uid * 10, f"User {uid}"], "name": f"User {uid}"}]
+            if model == "project.task" and method == "search_read":
+                return [{
+                    "id": 910,
+                    "name": "Shared Task",
+                    "project_id": [15, "Platform"],
+                    "stage_id": [1, "New"],
+                    "user_ids": [100, 200],
+                    "create_uid": [100, "User 100"],
+                    "priority": "0",
+                }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+
+        sent_tokens = [call.kwargs["json"]["token"] for call in mock_ubports_post.call_args_list]
+        assert token_creator not in sent_tokens
+        assert token_colleague in sent_tokens
+
+
+def test_addon_task_self_notification_suppressed():
+    """
+    Verify addon project.task skips the creator/actor when sending push notifications
+    for a task assigned to both the creator and a colleague.
+    """
+    mod_task = _load_addon_model("odoo-addon/ubtms_push/models/project_task.py", "test_project_task_self")
+
+    creator = MagicMock(id=100, ubports_push_token="token_creator_100")
+    colleague = MagicMock(id=200, ubports_push_token="token_colleague_200")
+
+    project = MagicMock(id=12, name="Mobile Integration")
+    stage = MagicMock(id=3, name="In Progress")
+
+    task = mod_task.ProjectTask()
+    task.id = 402
+    task.name = "Task with self and colleague"
+    task.description = ""
+    task.project_id = project
+    task.stage_id = stage
+    task.date_deadline = "2026-12-01"
+    task.priority = "0"
+    task.create_uid = creator
+    task.user_ids = [creator, colleague]
+    task.env = MagicMock()
+    task.env.uid = 100
+
+    with patch("requests.post") as mock_post:
+        mock_post.return_value = MagicMock(status_code=200)
+        task._send_task_assignment_push(task)
+
+        assert mock_post.call_count == 1
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["token"] == "token_colleague_200"
+        assert payload["data"]["record"]["create_uid"] == 100
+
+
+def test_push_helper_suppresses_self_created_task_notification():
+    """
+    Verify push-helper suppresses popup/persist/sound/storage when create_uid matches
+    the logged-in user for a Task push, while allowing tasks created by others.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'creator_user')")
+        cur.execute("""
+            CREATE TABLE notification (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                timestamp TEXT,
+                message TEXT,
+                type TEXT,
+                payload TEXT,
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        def make_task_payload(rec_id, create_uid):
+            return json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": f"Assigned: Task {rec_id}",
+                        "body": "Project: Platform",
+                        "popup": True,
+                        "persist": True,
+                        "actions": [f"ubtms://notification?type=Task&id={rec_id}&odoo_id=1"]
+                    },
+                    "sound": "sounds/lomiri/notifications/Positive.ogg",
+                    "vibrate": {"pattern": [200, 100, 200], "repeat": 1}
+                },
+                "data": {
+                    "record": {
+                        "model": "project.task",
+                        "record_id": rec_id,
+                        "name": f"Task {rec_id}",
+                        "project_id": 15,
+                        "project_name": "Platform",
+                        "user_id": 100,
+                        "create_uid": create_uid,
+                        "account_user_id": 100,
+                        "account_id": 1
+                    }
+                }
+            })
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path), \
+             patch.object(push_helper_mod, "should_popup_notification", return_value=True), \
+             patch.object(push_helper_mod, "check_client_burst_flood", return_value=(False, False)):
+            out_self = json.loads(push_helper_mod.process_notification(make_task_payload(801, 100)))
+            assert out_self["notification"]["card"]["popup"] is False
+            assert out_self["notification"]["card"]["persist"] is False
+            assert "sound" not in out_self["notification"]
+            assert "vibrate" not in out_self["notification"]
+
+            out_other = json.loads(push_helper_mod.process_notification(make_task_payload(802, 200)))
+            assert out_other["notification"]["card"]["popup"] is True
+            assert out_other["notification"]["card"]["persist"] is True
+            assert "sound" in out_other["notification"]
+
+            conn = sqlite3.connect(tmp_db_path)
+            rows = conn.execute("SELECT payload FROM notification").fetchall()
+            conn.close()
+            stored_ids = [json.loads(r[0]).get("odoo_record_id") for r in rows]
+            assert 801 not in stored_ids
+            assert 802 in stored_ids
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
+def test_privacy_activity_and_project_self_notification_suppressed():
+    """
+    Verify that self-created activities and projects are not pushed to their creator,
+    while activities created by others are delivered.
+    """
+    token_creator = "ubports_token_act_creator_100"
+    bridge_client.post("/v1/legacy/register", json={
+        "ubports_token": token_creator,
+        "odoo_url": "https://odoo.corp.com",
+        "db": "main",
+        "username": "creator_user",
+        "password": "key",
+        "uid": 100,
+        "poll_interval": 300
+    })
+
+    with patch("xmlrpc.client.ServerProxy") as mock_xmlrpc, patch("requests.post") as mock_ubports_post:
+        mock_ubports_post.return_value = MagicMock(status_code=201, text="OK")
+        mock_models = MagicMock()
+        mock_xmlrpc.return_value = mock_models
+
+        mock_models.execute_kw.return_value = []
+        bridge_client.post("/v1/legacy/poll")
+
+        def fake_exec(db, uid, pwd, model, method, args, kwargs=None):
+            if model == "res.users" and method == "read":
+                return [{"partner_id": [1000, "User 100"], "name": "User 100"}]
+            if model == "mail.activity" and method == "search_read":
+                return [
+                    {
+                        "id": 920,
+                        "summary": "Self Activity",
+                        "date_deadline": "2026-12-01",
+                        "res_name": "Task 1",
+                        "res_model": "project.task",
+                        "res_id": 1,
+                        "user_id": [100, "User 100"],
+                        "create_uid": [100, "User 100"],
+                        "activity_type_id": [1, "To Do"]
+                    },
+                    {
+                        "id": 921,
+                        "summary": "Assigned By Colleague",
+                        "date_deadline": "2026-12-01",
+                        "res_name": "Task 2",
+                        "res_model": "project.task",
+                        "res_id": 2,
+                        "user_id": [100, "User 100"],
+                        "create_uid": [200, "User 200"],
+                        "activity_type_id": [1, "To Do"]
+                    }
+                ]
+            if model == "project.project" and method == "search_read":
+                return [{
+                    "id": 930,
+                    "name": "Self Project",
+                    "user_id": [100, "User 100"],
+                    "create_uid": [100, "User 100"]
+                }]
+            return []
+
+        mock_models.execute_kw.side_effect = fake_exec
+        poll_res = bridge_client.post("/v1/legacy/poll")
+        assert poll_res.status_code == 200
+
+        sent_summaries = [
+            call.kwargs["json"]["data"]["notification"]["card"]["summary"]
+            for call in mock_ubports_post.call_args_list
+            if call.kwargs["json"]["token"] == token_creator
+        ]
+        assert "Self Activity" not in sent_summaries
+        assert "Project: Self Project" not in sent_summaries
+        assert "Assigned By Colleague" in sent_summaries
+
+
+def test_addon_activity_self_notification_suppressed():
+    """
+    Verify addon mail.activity skips pushing when the assignee is the creator/actor.
+    """
+    mod_act = _load_addon_model("odoo-addon/ubtms_push/models/mail_activity.py", "test_mail_activity_self")
+
+    creator = MagicMock(id=100, ubports_push_token="token_creator_100")
+    act = mod_act.MailActivity()
+    act.id = 601
+    act.summary = "Self reminder"
+    act.date_deadline = "2026-12-01"
+    act.res_name = "Task 1"
+    act.res_model = "project.task"
+    act.res_id = 1
+    act.user_id = creator
+    act.create_uid = creator
+    act.activity_type_id = MagicMock(name="To Do")
+    act.env = MagicMock()
+    act.env.uid = 100
+
+    with patch("requests.post") as mock_post:
+        act._send_activity_push(act)
+        assert not mock_post.called
+
+
+
 

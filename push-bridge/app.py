@@ -481,12 +481,14 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
             record_data.setdefault("username", sub_row[2])
             record_data.setdefault("account_user_id", sub_row[3])
             subscriber_uid = sub_row[3]
-            if nav_type == "ProjectUpdate" and subscriber_uid:
-                raw_creator = extra_data.get("create_uid") or extra_data.get("user_id")
+            if nav_type in ("ProjectUpdate", "Task", "Activity", "Project") and subscriber_uid:
+                raw_creator = extra_data.get("create_uid")
+                if nav_type == "ProjectUpdate" and not raw_creator:
+                    raw_creator = extra_data.get("user_id")
                 if isinstance(raw_creator, (list, tuple)) and len(raw_creator) > 0:
                     raw_creator = raw_creator[0]
                 if raw_creator and int(raw_creator) == int(subscriber_uid):
-                    logger.info("Self-notification filter: skipped relay update for author UID %d", subscriber_uid)
+                    logger.info("Self-notification filter: skipped relay %s for creator UID %d", nav_type, subscriber_uid)
                     return Response(status_code=status.HTTP_200_OK)
     except Exception as e:
         logger.debug("Could not enrich relay record with subscription: %s", e)
@@ -797,11 +799,22 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for act in activities:
                 act_id = act.get("id", 0)
                 if act_id > last_act_id:
+                    if act_id > max_seen_act_id:
+                        max_seen_act_id = act_id
+
                     user_tuple = act.get("user_id")
                     assignee_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
                     if assignee_id != uid:
                         logger.info("Privacy filter: skipped activity %d assigned to UID %s (polled for UID %d)", act_id, assignee_id, uid)
                         continue
+
+                    create_tuple = act.get("create_uid")
+                    raw_creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else (create_tuple if isinstance(create_tuple, int) else None)
+                    creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else ""
+                    if raw_creator_id and raw_creator_id == uid:
+                        logger.info("Self-notification filter: skipped activity %d created by subscriber UID %d", act_id, uid)
+                        continue
+                    creator_id = raw_creator_id or uid
 
                     if not is_first_poll:
                         summary = act.get("summary") or "Odoo Activity"
@@ -816,10 +829,6 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         act_type_tuple = act.get("activity_type_id")
                         act_type_id = act_type_tuple[0] if isinstance(act_type_tuple, (list, tuple)) and len(act_type_tuple) > 0 else (act_type_tuple or 1)
                         act_type_name = act_type_tuple[1] if isinstance(act_type_tuple, (list, tuple)) and len(act_type_tuple) > 1 else ""
-
-                        create_tuple = act.get("create_uid")
-                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else (create_tuple or uid)
-                        creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else ""
 
                         deadline_str = act.get("date_deadline") or ""
                         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -988,6 +997,9 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for task in tasks:
                 task_id = task.get("id", 0)
                 if task_id > last_task_id:
+                    if task_id > max_seen_task_id:
+                        max_seen_task_id = task_id
+
                     task_uids = []
                     if "user_ids" in task and isinstance(task["user_ids"], (list, tuple)):
                         task_uids = [u for u in task["user_ids"] if isinstance(u, int)]
@@ -1000,6 +1012,14 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
 
                     if task_uids and uid not in task_uids:
                         logger.info("Privacy filter: skipped task %d assigned to %s (polled for UID %d)", task_id, task_uids, uid)
+                        continue
+
+                    create_tuple = task.get("create_uid")
+                    creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else (create_tuple if isinstance(create_tuple, int) else None)
+                    creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else ""
+
+                    if creator_id and creator_id == uid:
+                        logger.info("Self-notification filter: skipped task %d created by subscriber UID %d", task_id, uid)
                         continue
 
                     if not is_first_poll:
@@ -1017,10 +1037,6 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
 
                         personal_tuple = task.get("personal_stage_type_id")
                         personal_stage_id = personal_tuple[0] if isinstance(personal_tuple, (list, tuple)) and len(personal_tuple) > 0 else (personal_tuple or None)
-
-                        create_tuple = task.get("create_uid")
-                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else None
-                        creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else ""
 
                         user_tuple = task.get("user_id")
                         if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1:
@@ -1062,8 +1078,6 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         }
                         if send_ubports_notification(token, summary, body, deep_link=deep_link, record=record):
                             sent_count += 1
-                    if task_id > max_seen_task_id:
-                        max_seen_task_id = task_id
         except Exception as e:
             logger.warning("Error polling tasks for UID %d: %s", uid, e)
 
@@ -1265,6 +1279,15 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
             for p in projects:
                 proj_id = p.get("id", 0)
                 if proj_id > last_proj_id:
+                    if proj_id > max_seen_proj_id:
+                        max_seen_proj_id = proj_id
+
+                    create_tuple = p.get("create_uid")
+                    raw_creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else (create_tuple if isinstance(create_tuple, int) else None)
+                    if raw_creator_id and raw_creator_id == uid:
+                        logger.info("Self-notification filter: skipped project %d created by subscriber UID %d", proj_id, uid)
+                        continue
+
                     if not is_first_poll:
                         proj_name = p.get("name") or "New Project"
                         parent_tuple = p.get("parent_id")
@@ -1280,8 +1303,7 @@ def poll_single_legacy_subscription(sub_id: int, sub_dict: Dict[str, Any]) -> in
                         manager_id = user_tuple[0] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 0 else (user_tuple or uid)
                         manager_name = user_tuple[1] if isinstance(user_tuple, (list, tuple)) and len(user_tuple) > 1 else ""
 
-                        create_tuple = p.get("create_uid")
-                        creator_id = create_tuple[0] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 0 else manager_id
+                        creator_id = raw_creator_id or manager_id
                         creator_name = create_tuple[1] if isinstance(create_tuple, (list, tuple)) and len(create_tuple) > 1 else manager_name
 
                         summary = f"Project: {proj_name}"

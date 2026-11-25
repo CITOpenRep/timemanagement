@@ -28,7 +28,18 @@ class ProjectTask(models.Model):
 
     def _send_task_assignment_push(self, task):
         assigned_users = task.user_ids
+        actor_ids = set()
+        env = getattr(self, 'env', None)
+        if env and getattr(env, 'uid', None):
+            actor_ids.add(env.uid)
+        create_uid_obj = getattr(task, 'create_uid', False)
+        creator_id = create_uid_obj.id if create_uid_obj and getattr(create_uid_obj, 'id', None) else False
+        if creator_id:
+            actor_ids.add(creator_id)
+
         for user in assigned_users:
+            if getattr(user, 'id', None) in actor_ids:
+                continue
             token = getattr(user, 'ubports_push_token', False)
             if not token:
                 continue
@@ -50,6 +61,7 @@ class ProjectTask(models.Model):
                 'deadline': str(getattr(task, 'date_deadline', '') or ''),
                 'priority': getattr(task, 'priority', '0') or '0',
                 'user_id': user.id if user else False,
+                'create_uid': creator_id,
             }
 
             card = {

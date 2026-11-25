@@ -1299,16 +1299,19 @@ def process_notification(input_data):
         if record_id:
             card["tag"] = f"{notif_type}_{record_id}"
 
-        # Detect self-authored project updates to prevent self-notification
+        # Detect self-authored project updates or self-created records to prevent self-notification
         is_self_action = False
-        if notif_type == "ProjectUpdate" and isinstance(extra_record, dict):
+        if notif_type in ("ProjectUpdate", "Task", "Activity", "Project") and isinstance(extra_record, dict):
             def _extract_id(val):
                 if isinstance(val, (list, tuple)) and len(val) > 0:
                     return val[0]
                 return val
 
-            author_val = _extract_id(extra_record.get("user_id"))
-            creator_val = _extract_id(extra_record.get("create_uid")) or author_val
+            if notif_type == "ProjectUpdate":
+                author_val = _extract_id(extra_record.get("user_id"))
+                creator_val = _extract_id(extra_record.get("create_uid")) or author_val
+            else:
+                creator_val = _extract_id(extra_record.get("create_uid"))
             subscriber_uid = _extract_id(extra_record.get("account_user_id"))
 
             if subscriber_uid and creator_val:
