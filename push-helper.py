@@ -126,6 +126,81 @@ def resolve_account_id(cursor, extra):
 
     return 1
 
+def _parse_positive_int(val):
+    """Return positive integer value or None."""
+    try:
+        parsed = int(val)
+        return parsed if parsed > 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def extract_notification_record_id(payload):
+    """Extract positive integer Odoo record ID from notification payload, if present."""
+    if not isinstance(payload, dict):
+        return None
+    val = payload.get("odoo_record_id") or payload.get("record_id")
+    if not val and payload.get("is_odoo_id"):
+        val = payload.get("id")
+    return _parse_positive_int(val)
+
+
+def find_duplicate_notification_id(
+    cursor,
+    notif_type,
+    message,
+    record_id=None,
+    summary="",
+    account_id=None,
+    unread_only=False,
+    recent_minutes=None,
+):
+    """Return matching notification row ID by record_id when available, else summary+message."""
+    norm_record_id = _parse_positive_int(record_id) if record_id is not None else None
+
+    clauses = ["type = ?"]
+    params = [notif_type]
+    if account_id is not None:
+        clauses.append("account_id = ?")
+        params.append(account_id)
+    if norm_record_id is None:
+        clauses.append("message = ?")
+        params.append(message)
+
+    if unread_only and recent_minutes is not None:
+        clauses.append("(read_status = 0 OR datetime(timestamp) > datetime('now', ?))")
+        params.append(f"-{int(recent_minutes)} minutes")
+    elif unread_only:
+        clauses.append("read_status = 0")
+    elif recent_minutes is not None:
+        clauses.append("datetime(timestamp) > datetime('now', ?)")
+        params.append(f"-{int(recent_minutes)} minutes")
+
+    sql = f"SELECT id, message, payload FROM notification WHERE {' AND '.join(clauses)} ORDER BY id DESC"
+    cursor.execute(sql, params)
+    for row_id, row_message, raw_payload in cursor.fetchall():
+        data = {}
+        if raw_payload:
+            try:
+                parsed = json.loads(raw_payload)
+                if isinstance(parsed, dict):
+                    data = parsed
+            except (TypeError, ValueError):
+                pass
+
+        if norm_record_id is not None:
+            if extract_notification_record_id(data) == norm_record_id:
+                return row_id
+        else:
+            row_summary = str(data.get("summary") or "")
+            expected_summary = str(summary or "")
+            if row_message == message and (
+                (not expected_summary and not row_summary) or row_summary == expected_summary
+            ):
+                return row_id
+    return None
+
+
 def store_notification(notif_type, message, payload, account_id=0):
     """Store notification in database for in-app display."""
     try:
@@ -153,15 +228,17 @@ def store_notification(notif_type, message, payload, account_id=0):
         if "panel_invoked" not in columns:
             cursor.execute("ALTER TABLE notification ADD COLUMN panel_invoked INTEGER DEFAULT 0")
         
-        # Check for duplicate unread notification with same type+message
-        cursor.execute("""
-            SELECT COUNT(*) FROM notification 
-            WHERE message = ? AND type = ? AND read_status = 0
-        """, (message, notif_type))
-        count = cursor.fetchone()[0]
-        
-        if count > 0:
-            # Duplicate unread notification exists, skip
+        record_id = extract_notification_record_id(payload)
+        summary = payload.get("summary", "") if isinstance(payload, dict) else ""
+        if find_duplicate_notification_id(
+            cursor,
+            notif_type,
+            message,
+            record_id=record_id,
+            summary=summary,
+            account_id=account_id,
+            unread_only=True,
+        ):
             conn.close()
             return
         
@@ -212,7 +289,7 @@ def check_client_burst_flood(account_id, max_burst=5, window_sec=5.0, max_storag
     should_suppress_storage = count > max_storage_burst
     return is_silenced, should_suppress_storage
 
-def is_duplicate_notification(notif_type, record_id, summary, body):
+def is_duplicate_notification(notif_type, record_id, summary, body, account_id=None):
     """
     Check if an identical notification was recently received or is currently unread.
     Returns True if this is a duplicate.
@@ -223,27 +300,18 @@ def is_duplicate_notification(notif_type, record_id, summary, body):
             return False
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
-
-        # Check 1: Record ID matching unread notification in local database
-        if record_id and int(record_id) > 0:
-            cur.execute("""
-                SELECT id FROM notification 
-                WHERE type = ? AND read_status = 0 AND payload LIKE ?
-                LIMIT 1
-            """, (notif_type, f'%"odoo_record_id": {record_id}%'))
-            if cur.fetchone():
-                conn.close()
-                return True
-
-        # Check 2: Same type and message received recently (within 30 minutes)
-        cur.execute("""
-            SELECT id FROM notification 
-            WHERE type = ? AND message = ? AND timestamp > datetime('now', '-30 minutes')
-            LIMIT 1
-        """, (notif_type, body))
-        row = cur.fetchone()
+        dup_id = find_duplicate_notification_id(
+            cur,
+            notif_type,
+            body,
+            record_id=record_id,
+            summary=summary,
+            account_id=account_id,
+            unread_only=True,
+            recent_minutes=30,
+        )
         conn.close()
-        return row is not None
+        return dup_id is not None
     except Exception:
         return False
 
@@ -1331,7 +1399,7 @@ def process_notification(input_data):
             card["persist"] = True
         else:
             # Suppress audible popup banner if this is a duplicate delivery
-            is_dup = is_duplicate_notification(notif_type, record_id, summary, body)
+            is_dup = is_duplicate_notification(notif_type, record_id, summary, body, account_id=account_id)
             if is_dup:
                 card["popup"] = False
             else:

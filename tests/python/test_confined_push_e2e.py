@@ -2500,3 +2500,103 @@ def test_push_helper_subscriber_uid_explicit_and_self_suppression():
             os.remove(tmp_db_path)
 
 
+def test_push_helper_distinct_tasks_same_project_not_deduplicated():
+    """
+    Verify distinct tasks in the same project (sharing body 'Project: ...')
+    both trigger popup banners and are both persisted, while true duplicates
+    of the same record ID are suppressed per account.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        tmp_db_path = f.name
+
+    try:
+        conn = sqlite3.connect(tmp_db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, is_default INTEGER, name TEXT)")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (1, 1, 'User One')")
+        cur.execute("INSERT INTO users (id, is_default, name) VALUES (2, 0, 'User Two')")
+        cur.execute("""
+            CREATE TABLE notification (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER,
+                timestamp TEXT,
+                message TEXT,
+                type TEXT,
+                payload TEXT,
+                read_status INTEGER DEFAULT 0,
+                panel_invoked INTEGER DEFAULT 0
+            )
+        """)
+        conn.commit()
+        conn.close()
+
+        def make_task_push(record_id, name, account_id=1, summary=None, body="Project: Shared Project"):
+            return json.dumps({
+                "notification": {
+                    "card": {
+                        "summary": summary if summary is not None else f"Assigned: {name}",
+                        "body": body,
+                        "popup": True,
+                        "persist": True,
+                        "actions": [f"ubtms://notification?type=Task&id={record_id}&odoo_id=1"] if record_id else []
+                    },
+                    "sound": "sounds/lomiri/notifications/Positive.ogg",
+                    "vibrate": {"pattern": [200, 100, 200], "repeat": 1}
+                },
+                "data": {
+                    "record": {
+                        "model": "project.task",
+                        "record_id": record_id,
+                        "name": name,
+                        "project_id": 59,
+                        "project_name": "Shared Project",
+                        "account_id": account_id
+                    } if record_id else {
+                        "model": "project.task",
+                        "name": name,
+                        "account_id": account_id
+                    }
+                }
+            })
+
+        with patch.object(push_helper_mod, "get_db_path", return_value=tmp_db_path), \
+             patch.object(push_helper_mod, "should_popup_notification", return_value=True), \
+             patch.object(push_helper_mod, "check_client_burst_flood", return_value=(False, False)):
+            out1 = json.loads(push_helper_mod.process_notification(make_task_push(1544, "Task A")))
+            out2 = json.loads(push_helper_mod.process_notification(make_task_push(1545, "Task B")))
+            # Same numeric prefix check (15 vs 1544)
+            out_prefix = json.loads(push_helper_mod.process_notification(make_task_push(15, "Task Prefix")))
+            # Exact duplicate of unread 1544 on same account should silence popup & skip storage
+            out_dup = json.loads(push_helper_mod.process_notification(make_task_push(1544, "Task A")))
+            # Same record ID on a different account should not be suppressed
+            out_other_acc = json.loads(push_helper_mod.process_notification(make_task_push(1544, "Task A", account_id=2)))
+            # Non-record notifications sharing body but with different summaries must both store
+            out_no_id_1 = json.loads(push_helper_mod.process_notification(make_task_push(None, "Manual 1", summary="Notice 1")))
+            out_no_id_2 = json.loads(push_helper_mod.process_notification(make_task_push(None, "Manual 2", summary="Notice 2")))
+            out_no_id_dup = json.loads(push_helper_mod.process_notification(make_task_push(None, "Manual 1", summary="Notice 1")))
+
+            assert out1["notification"]["card"]["popup"] is True
+            assert out2["notification"]["card"]["popup"] is True
+            assert out_prefix["notification"]["card"]["popup"] is True
+            assert out_dup["notification"]["card"]["popup"] is False
+            assert "sound" not in out_dup["notification"]
+            assert out_other_acc["notification"]["card"]["popup"] is True
+            assert out_no_id_1["notification"]["card"]["popup"] is True
+            assert out_no_id_2["notification"]["card"]["popup"] is True
+            assert out_no_id_dup["notification"]["card"]["popup"] is False
+
+            conn = sqlite3.connect(tmp_db_path)
+            cur = conn.cursor()
+            rows = cur.execute("SELECT account_id, message, payload FROM notification ORDER BY id ASC").fetchall()
+            conn.close()
+            assert len(rows) == 6
+            acc1_ids = [json.loads(r[2]).get("odoo_record_id") for r in rows if r[0] == 1]
+            acc2_ids = [json.loads(r[2]).get("odoo_record_id") for r in rows if r[0] == 2]
+            assert acc1_ids == [1544, 1545, 15, None, None]
+            assert acc2_ids == [1544]
+    finally:
+        if os.path.exists(tmp_db_path):
+            os.remove(tmp_db_path)
+
+
+

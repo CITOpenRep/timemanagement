@@ -277,6 +277,36 @@ def test_relay_burst_flood_protection(mock_post):
     assert mock_post.call_count == 12
 
 
+@patch("requests.post")
+def test_relay_project_task_classification(mock_post):
+    mock_post.return_value = MagicMock(status_code=201, text="OK")
+    token = "classify_token_abc123"
+    client.get(f"/v1/subscription/{token}")
+
+    cases = [
+        ("Project: Alpha - New Task", "project.task", 701, "Task"),
+        ("New Project Created", "project.project", 702, "Project"),
+        ("Project Status Changed", "project.update", 703, "ProjectUpdate"),
+        ("Task Reminder", "mail.activity", 704, "Activity"),
+        ("Logged Time", "account.analytic.line", 705, "Timesheet"),
+        ("Project Update Q4", "", 706, "ProjectUpdate"),
+    ]
+    for title, model, rec_id, expected_type in cases:
+        body = json.dumps({
+            "title": title,
+            "body": "Details",
+            "data": {"model": model, "res_id": rec_id}
+        })
+        res = client.post(
+            f"/v1/relay/{token}",
+            content=body,
+            headers={"Content-Type": "application/json"}
+        )
+        assert res.status_code in (200, 201)
+        card = mock_post.call_args.kwargs["json"]["data"]["notification"]["card"]
+        assert f"type={expected_type}&id={rec_id}" in card["actions"][0]
+
+
 if __name__ == "__main__":
     test_health()
     test_subscription_creation()
@@ -285,4 +315,5 @@ if __name__ == "__main__":
     test_token_validation()
     test_security_headers_and_body_limits()
     test_relay_burst_flood_protection()
+    test_relay_project_task_classification()
     print("All push bridge tests (native + legacy) passed!")

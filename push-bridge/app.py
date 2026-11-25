@@ -352,6 +352,36 @@ def get_or_create_subscription(ubports_token: str, request: Request):
     }
 
 
+def classify_relay_nav_type(res_model: str, title: str) -> str:
+    """Resolve app navigation type from Odoo model name first, falling back to title."""
+    model_lower = (res_model or "").lower()
+    if model_lower:
+        for token, nav_type in (
+            ("activity", "Activity"),
+            ("project.update", "ProjectUpdate"),
+            ("update", "ProjectUpdate"),
+            ("project.task", "Task"),
+            ("task", "Task"),
+            ("project", "Project"),
+            ("analytic.line", "Timesheet"),
+            ("timesheet", "Timesheet"),
+        ):
+            if token in model_lower:
+                return nav_type
+
+    title_lower = (title or "").lower()
+    for token, nav_type in (
+        ("activity", "Activity"),
+        ("update", "ProjectUpdate"),
+        ("task", "Task"),
+        ("project", "Project"),
+        ("timesheet", "Timesheet"),
+    ):
+        if token in title_lower:
+            return nav_type
+    return "Task"
+
+
 @app.post("/v1/relay/{ubports_token}")
 async def relay_odoo_notification(ubports_token: str, request: Request):
     """
@@ -415,15 +445,7 @@ async def relay_odoo_notification(ubports_token: str, request: Request):
     res_model = str(extra_data.get("model") or "")
     res_id = extra_data.get("res_id") or extra_data.get("id")
 
-    nav_type = "Task"
-    if "activity" in res_model.lower() or "Activity" in notification_title:
-        nav_type = "Activity"
-    elif "project.update" in res_model.lower() or "update" in res_model.lower() or "Update" in notification_title:
-        nav_type = "ProjectUpdate"
-    elif "project" in res_model.lower() or "Project" in notification_title:
-        nav_type = "Project"
-    elif "timesheet" in res_model.lower() or "Timesheet" in notification_title:
-        nav_type = "Timesheet"
+    nav_type = classify_relay_nav_type(res_model, notification_title)
 
     actions = []
     pkg_name = DEFAULT_APP_ID.split("_")[0]
