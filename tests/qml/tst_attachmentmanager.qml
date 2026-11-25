@@ -223,5 +223,55 @@ MainView {
             compare(itemClickedSpy.count, 1);
             compare(itemClickedSpy.signalArguments[0][0].name, "file.zip");
         }
+
+        function test_pendingUploadCountKeepsBusyState() {
+            testManager._pendingUploadCount = 3;
+            testManager.uploadStarted();
+            compare(testManager._busy, true);
+
+            // First file completes but 2 still pending -> remains busy
+            testManager.uploadCompleted();
+            compare(testManager._busy, true);
+
+            // Last file completes -> busy becomes false
+            testManager._pendingUploadCount = 0;
+            testManager.uploadCompleted();
+            compare(testManager._busy, false);
+        }
+
+        function test_extractFilePathsDeduplicationAndNormalizing() {
+            // Test array of objects with .url and duplicates
+            var rawFiles = [
+                { url: "file:///media/photo1.jpg" },
+                { url: "file:///media/photo2.png" },
+                { url: "file:///media/photo1.jpg" }, // duplicate
+                { url: "/media/photo3.pdf" }
+            ];
+            var extracted = testManager._extractFilePaths(rawFiles);
+            compare(extracted.length, 3);
+            compare(extracted[0], "/media/photo1.jpg");
+            compare(extracted[1], "/media/photo2.png");
+            compare(extracted[2], "/media/photo3.pdf");
+
+            // Test null/empty input
+            compare(testManager._extractFilePaths(null).length, 0);
+            compare(testManager._extractFilePaths([]).length, 0);
+
+            // Test array of plain string paths
+            var strFiles = ["file:///doc/a.txt", "file:///doc/b.txt", "file:///doc/a.txt"];
+            var strExtracted = testManager._extractFilePaths(strFiles);
+            compare(strExtracted.length, 2);
+            compare(strExtracted[0], "/doc/a.txt");
+            compare(strExtracted[1], "/doc/b.txt");
+        }
+
+        function test_uploadFilesIgnoresWhenBusy() {
+            testManager._busy = true;
+            uploadStartedSpy.clear();
+            testManager.uploadFiles([{ url: "file:///test.jpg" }]);
+            // Should not start a new upload when busy
+            compare(uploadStartedSpy.count, 0);
+            testManager._busy = false;
+        }
     }
 }

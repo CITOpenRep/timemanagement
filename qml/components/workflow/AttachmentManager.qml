@@ -48,18 +48,23 @@ Item {
     property list<ContentItem> _importItems
     property bool _busy: false
     property string _statusMessage: ""
+    property int _pendingUploadCount: 0
 
     onUploadStarted: {
         _statusMessage = i18n.dtr("ubtms", "Starting upload...");
         _busy = true;
     }
     onUploadCompleted: {
-        _busy = false;
-        _statusMessage = "";
+        if (_pendingUploadCount <= 0) {
+            _busy = false;
+            _statusMessage = "";
+        }
     }
     onUploadFailed: {
-        _busy = false;
-        _statusMessage = "";
+        if (_pendingUploadCount <= 0) {
+            _busy = false;
+            _statusMessage = "";
+        }
     }
 
     // Fallback ListModel
@@ -353,44 +358,139 @@ Item {
             id: dlg
             isExport: false   // importing from device/apps
             onFilesImported: function (files) {
-                if (!files || !files.length || attachmentManager._busy)
-                    return;
-
-                if (host) {
-                    host.activeTransfer = dlg.activeTransfer;
-                    host.uploadStarted();
-                }
-
-                var seenPaths = {};
-                for (var i = 0; i < files.length; i++) {
-                    var filePath = (files[i].url || "").toString().replace(/^file:\/\//, "");
-                    if (!filePath || seenPaths[filePath])
-                        continue;
-                    seenPaths[filePath] = true;
-
-                    python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
-                        if (!path) {
-                            if (host) {
-                                host._notify(i18n.dtr("ubtms", "Failed to upload: Database path unresolved"), 3000);
-                                host.uploadFailed();
-                            }
-                            return;
-                        }
-                        python.call("backend.attachment_upload", [path, attachmentManager.account_id, filePath, attachmentManager.resource_type, attachmentManager.resource_id], function (res) {
-                            if (!res) {
-                                console.warn("No response from attachment_upload");
-                                if (host) {
-                                    host.uploadFailed();
-                                }
-                                return;
-                            }
-                        });
-                    });
+                var mgr = host || attachmentManager;
+                if (mgr && typeof mgr.uploadFiles === "function") {
+                    mgr.uploadFiles(files, dlg.activeTransfer);
                 }
             }
 
             onComplete: /* dialog auto-closes itself */ {}
         }
+    }
+
+    // ----------- Path extraction helper -----------
+    function _extractFilePaths(files) {
+        var count = 0;
+        if (files) {
+            if (typeof files.length === "number") {
+                count = files.length;
+            } else if (typeof files.count === "number") {
+                count = files.count;
+            }
+        }
+
+        var filePaths = [];
+        var seenPaths = {};
+        for (var i = 0; i < count; i++) {
+            var item = (typeof files.get === "function") ? files.get(i) : files[i];
+            if (!item)
+                continue;
+            var rawUrl = (item && item.url !== undefined) ? item.url : item;
+            var filePath = (rawUrl || "").toString().replace(/^file:\/\//, "");
+            if (!filePath || seenPaths[filePath])
+                continue;
+            seenPaths[filePath] = true;
+            filePaths.push(filePath);
+        }
+
+        if (count === 0 && files) {
+            var singleUrl = (files.url !== undefined) ? files.url : files;
+            var singlePath = (singleUrl || "").toString().replace(/^file:\/\//, "");
+            if (singlePath && singlePath.length > 0 && typeof singlePath === "string" && !seenPaths[singlePath]) {
+                filePaths.push(singlePath);
+            }
+        }
+
+        return filePaths;
+    }
+
+    // ----------- Upload handling -----------
+    function uploadFiles(files, transfer) {
+        if (_busy) {
+            console.warn("[AttachmentManager] Upload already in progress, skipping.");
+            return;
+        }
+
+        if (transfer) {
+            attachmentManager.activeTransfer = transfer;
+        }
+
+        var filePaths = _extractFilePaths(files);
+        if (filePaths.length === 0) {
+            console.warn("[AttachmentManager] No valid file paths to upload.");
+            return;
+        }
+
+        attachmentManager._pendingUploadCount = filePaths.length;
+        attachmentManager.uploadStarted();
+
+        python.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
+            if (!path) {
+                attachmentManager._pendingUploadCount = 0;
+                attachmentManager._notify(i18n.dtr("ubtms", "Failed to upload: Database path unresolved"), 3000);
+                attachmentManager.uploadFailed();
+                return;
+            }
+
+            var currentIndex = 0;
+            var successCount = 0;
+            var failCount = 0;
+
+            function uploadNext() {
+                if (currentIndex >= filePaths.length) {
+                    attachmentManager._pendingUploadCount = 0;
+                    attachmentManager._busy = false;
+                    attachmentManager._statusMessage = "";
+                    if (failCount > 0 && successCount === 0) {
+                        attachmentManager._notify(i18n.dtr("ubtms", "Failed to upload attachments"), 4000);
+                        attachmentManager.uploadFailed();
+                    } else if (failCount > 0) {
+                        attachmentManager._notify(i18n.dtr("ubtms", "Uploaded %1 of %2 attachments (%3 failed)").arg(successCount).arg(filePaths.length).arg(failCount), 4000);
+                        attachmentManager.uploadCompleted();
+                    } else {
+                        if (filePaths.length > 1) {
+                            attachmentManager._notify(i18n.dtr("ubtms", "All attachments processed"), 3000);
+                        }
+                        attachmentManager.uploadCompleted();
+                    }
+                    return;
+                }
+
+                var currentFilePath = filePaths[currentIndex];
+                var fileNum = currentIndex + 1;
+                currentIndex++;
+
+                if (filePaths.length > 1) {
+                    attachmentManager._statusMessage = i18n.dtr("ubtms", "Uploading %1 of %2...").arg(fileNum).arg(filePaths.length);
+                    attachmentManager._notify(attachmentManager._statusMessage, 2000);
+                }
+
+                python.call("backend.attachment_upload", [
+                    path,
+                    attachmentManager.account_id,
+                    currentFilePath,
+                    attachmentManager.resource_type,
+                    attachmentManager.resource_id
+                ], function (res) {
+                    if (res && res > 0) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        console.warn("[AttachmentManager] No response or failed attachment_upload for:", currentFilePath);
+                    }
+
+                    attachmentManager._pendingUploadCount = filePaths.length - currentIndex;
+                    attachmentManager.uploadCompleted();
+                    if (currentIndex < filePaths.length) {
+                        attachmentManager._busy = true;
+                    }
+
+                    uploadNext();
+                });
+            }
+
+            uploadNext();
+        });
     }
 
     // ----------- EXPORT dialog (Open with…) -----------
@@ -471,7 +571,9 @@ Item {
             break;
         case "ondemand_upload_completed":
             if (data.payload === true) {
-                attachmentManager._notify(i18n.dtr("ubtms", "Attachment has been processed"), 3000);
+                if (attachmentManager._pendingUploadCount <= 1) {
+                    attachmentManager._notify(i18n.dtr("ubtms", "Attachment has been processed"), 3000);
+                }
                 attachmentManager.uploadCompleted();
             } else {
                 var errMsg = attachmentManager._statusMessage ? attachmentManager._statusMessage : i18n.dtr("ubtms", "Failed to upload");
