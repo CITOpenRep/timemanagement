@@ -37,6 +37,7 @@ import "../../../../models/timer_service.js" as TimerService
 import "../../../../models/utils.js" as Utils
 import "../../../../models/global.js" as Global
 import "../../../../models/task.js" as Task
+import "../../../../models/project.js" as Project
 import "../../../components"
 import "../../../components/richtext"
 import "../components"
