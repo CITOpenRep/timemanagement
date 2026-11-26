@@ -561,7 +561,7 @@ Page {
 
                                                 backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                                                     var targetDb = path || "app_settings.db";
-                                                    backendBridge.call("backend.start_sync_in_background", [targetDb, model.id], function (result) {
+                                                    backendBridge.call("backend.start_sync_in_background", [targetDb, model.id, "full"], function (result) {
                                                         if (!result) {
                                                             console.warn("Failed to start sync for account:", model.id);
                                                             syncingAccountId = -1;

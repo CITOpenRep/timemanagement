@@ -128,8 +128,9 @@ MainView {
             }
         }
         onMessageReceived: function (evt) {
-            if (evt && evt.event === "sync_completed" && evt.payload === true) {
-                mainView.accountDataRefreshRequested(-1);
+            if (evt && ((evt.event === "sync_completed" && evt.payload === true) || evt.event === "queue_synced")) {
+                var refreshAccId = (evt.event === "queue_synced" && evt.payload && evt.payload.account_id) ? evt.payload.account_id : -1;
+                mainView.accountDataRefreshRequested(refreshAccId);
             }
         }
     }
@@ -139,9 +140,9 @@ MainView {
         onStateChanged: {
             if (Qt.application.state === Qt.ApplicationActive) {
                 var now = Date.now();
-                if (now - lastResumeSyncTime > 3 * 60 * 1000) {
+                if (now - lastResumeSyncTime > 15 * 1000) {
                     lastResumeSyncTime = now;
-                    triggerAutoSync();
+                    triggerAutoSync(true);
                 }
             }
         }
@@ -186,7 +187,7 @@ MainView {
             if (syncAccountId > 0 && backend_bridge && backend_bridge.ready) {
                 backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
                     var targetDb = dbPath || "app_settings.db";
-                    backend_bridge.call("backend.start_sync_in_background", [targetDb, syncAccountId], function (res) {
+                    backend_bridge.call("backend.start_sync_in_background", [targetDb, syncAccountId, "auto"], function (res) {
                     });
                 });
             }
@@ -195,18 +196,16 @@ MainView {
 
     Timer {
         id: mutationSyncDebounceTimer
-        interval: 1500
+        interval: 150
         repeat: false
         onTriggered: {
             var targetAccId = _pendingMutationAccountId > 0 ? _pendingMutationAccountId : (currentAccountId > 0 ? currentAccountId : foregroundAutoSyncTimer.syncAccountId);
-            if (targetAccId > 0 && backend_bridge && backend_bridge.ready) {
+            if (backend_bridge && backend_bridge.ready) {
                 backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
                     var targetDb = dbPath || "app_settings.db";
-                    backend_bridge.call("backend.start_sync_in_background", [targetDb, targetAccId], function (res) {
+                    backend_bridge.call("backend.wake_sync_queue", [targetDb, targetAccId], function (res) {
                     });
                 });
-            } else if (backend_bridge && backend_bridge.ready) {
-                triggerAutoSync();
             }
             _pendingMutationAccountId = -1;
         }
@@ -219,7 +218,7 @@ MainView {
         mutationSyncDebounceTimer.restart();
     }
 
-    function triggerAutoSync() {
+    function triggerAutoSync(forceResumeSync) {
         if (backend_bridge && backend_bridge.ready) {
             startupManager.triggerAutoSync(backend_bridge, function(enabled, intervalMinutes, accountId) {
                 if (enabled && intervalMinutes > 0 && accountId > 0) {
@@ -229,7 +228,7 @@ MainView {
                 } else {
                     foregroundAutoSyncTimer.stop();
                 }
-            });
+            }, !!forceResumeSync);
         }
     }
 

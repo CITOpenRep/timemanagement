@@ -934,7 +934,7 @@ Page {
             mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
                 var targetDb = dbPath || "app_settings.db";
                 var acctId = (accountid && accountid > 0) ? accountid : Accounts.getDefaultRemoteAccountId();
-                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, acctId], function (res) {
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, acctId, "fast"], function (res) {
                     console.log("Activities: On-demand sync initiated for missing activity:", res);
                 });
             });
@@ -946,7 +946,7 @@ Page {
             mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
                 var targetDb = dbPath || "app_settings.db";
                 var acctId = (accountid && accountid > 0) ? accountid : Accounts.getDefaultRemoteAccountId();
-                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, acctId], function (res) {
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, acctId, "fast"], function (res) {
                     console.log("Activities: Quiet background sync initiated for pre-populated record:", res);
                 });
             });

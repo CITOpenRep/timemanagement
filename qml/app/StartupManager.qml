@@ -296,7 +296,7 @@ Item {
         }
     }
 
-    function triggerAutoSync(backendBridge, onSyncConfiguredCallback) {
+    function triggerAutoSync(backendBridge, onSyncConfiguredCallback, forceResumeSync) {
         if (!backendBridge)
             return;
 
@@ -362,6 +362,13 @@ Item {
 
             if (isStartingUp) {
                 syncNextAccountInQueue();
+            } else if (forceResumeSync && primaryAccountId > 0) {
+                backendBridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
+                    var targetDb = dbPath || "app_settings.db";
+                    backendBridge.call("backend.start_sync_in_background", [targetDb, primaryAccountId, "fast"], function (res) {
+                        Logger.debug("StartupManager", "Foreground resume fast delta sync initiated for account " + primaryAccountId + ": " + res);
+                    });
+                });
             }
         } catch (e) {
             Logger.warn("StartupManager", "Failed to initialize startup sync queue:", e);

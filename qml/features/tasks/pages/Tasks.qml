@@ -1057,7 +1057,7 @@ Page {
             mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
                 var targetDb = dbPath || "app_settings.db";
                 var accountId = Accounts.getDefaultRemoteAccountId();
-                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, accountId], function (res) {
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, accountId, "fast"], function (res) {
                     Logger.info("Tasks", "On-demand sync initiated for missing task: " + res);
                 });
             });
@@ -1069,7 +1069,7 @@ Page {
             mainView.backend_bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (dbPath) {
                 var targetDb = dbPath || "app_settings.db";
                 var accountId = Accounts.getDefaultRemoteAccountId();
-                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, accountId], function (res) {
+                mainView.backend_bridge.call("backend.start_sync_in_background", [targetDb, accountId, "fast"], function (res) {
                     Logger.debug("Tasks", "Quiet background refresh initiated for task notification: " + res);
                 });
             });

@@ -207,7 +207,7 @@ Page {
                             }
                             bridge.call("backend.resolve_qml_db_path", ["ubtms"], function (path) {
                                 var targetDb = path || "app_settings.db";
-                                bridge.call("backend.start_sync_in_background", [targetDb, newAccountId], function (syncStarted) {
+                                bridge.call("backend.start_sync_in_background", [targetDb, newAccountId, "full"], function (syncStarted) {
                                     console.log("Initial background sync initiated for account:", newAccountId, syncStarted);
                                 });
                             });
