@@ -39,6 +39,7 @@ Item {
     property string labelText: i18n.dtr("ubtms", "Assignees")
     property int accountId: -1
     property bool enabledState: true
+    property var optionPickerOverride: null
     property var selectedAssignees: [] // Array of {id, name} objects
     readonly property var selectedAssigneeIdList: {
         var ids = [];
@@ -126,11 +127,36 @@ Item {
                 onClicked: {
                     if (!readOnly && enabledState) {
                         openingPicker();
-                        if (!assigneePickerLoader.active) {
-                            assigneePickerLoader.active = true;
-                        }
-                        if (assigneePickerLoader.item) {
-                            assigneePickerLoader.item.open();
+                        var picker = _getPicker();
+                        if (picker) {
+                            picker.open({
+                                titleText: i18n.dtr("ubtms", "Select Assignees"),
+                                modelData: multiAssigneeSelector.availableAssignees,
+                                multiSelect: true,
+                                selectedIds: multiAssigneeSelector.selectedAssigneeIdList,
+                                searchThreshold: 5,
+                                onMultiToggled: function (id, name, shouldSelect) {
+                                    if (shouldSelect) {
+                                        addAssignee({
+                                            id: id,
+                                            name: name
+                                        });
+                                    } else {
+                                        for (var i = 0; i < selectedAssignees.length; i++) {
+                                            if (selectedAssignees[i].id === id) {
+                                                removeAssignee(i);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                },
+                                onMultiCleared: function () {
+                                    if (!readOnly) {
+                                        selectedAssignees = [];
+                                        assigneesChanged(selectedAssignees);
+                                    }
+                                }
+                            });
                         }
                     }
                 }
@@ -235,43 +261,14 @@ Item {
         assigneesChanged(selectedAssignees);
     }
 
-    Loader {
-        id: assigneePickerLoader
-        active: false
-        asynchronous: false
-        source: "../dialogs/OptionPickerDialog.qml"
-
-        onLoaded: {
-            item.anchorItem = multiAssigneeSelector;
-            item.titleText = i18n.dtr("ubtms", "Select Assignees");
-            item.modelData = Qt.binding(function () { return multiAssigneeSelector.availableAssignees; });
-            item.selectedIds = Qt.binding(function () { return multiAssigneeSelector.selectedAssigneeIdList; });
-            item.multiSelect = true;
-            item.searchThreshold = 5;
-
-            item.multiItemToggled.connect(function (id, name, shouldSelect) {
-                if (shouldSelect) {
-                    addAssignee({
-                        id: id,
-                        name: name
-                    });
-                } else {
-                    for (let i = 0; i < selectedAssignees.length; i++) {
-                        if (selectedAssignees[i].id === id) {
-                            removeAssignee(i);
-                            break;
-                        }
-                    }
-                }
-            });
-
-            item.multiCleared.connect(function () {
-                if (!readOnly) {
-                    selectedAssignees = [];
-                    assigneesChanged(selectedAssignees);
-                }
-            });
+    function _getPicker() {
+        if (optionPickerOverride) {
+            return optionPickerOverride;
         }
+        if (typeof mainView !== "undefined" && mainView && mainView.optionPicker) {
+            return mainView.optionPicker;
+        }
+        return null;
     }
 
     Component.onCompleted:

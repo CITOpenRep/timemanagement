@@ -32,6 +32,10 @@ Item {
     property int visibleItemCount: 5  // Number of items visible when expanded
     property int pickerThreshold: 6
     property bool useModalPicker: true
+    property var optionPickerOverride: null
+    property int optionCount: 0
+    property bool _inlineModelDirty: false
+    property bool _ownsOpenPicker: false
     z: !collapsed ? 9999 : 1
 
     readonly property bool isDarkTheme: (typeof Theme !== "undefined" && Theme.name === "Ubuntu.Components.Themes.SuruDark") || (typeof theme !== "undefined" && theme.name === "Ubuntu.Components.Themes.SuruDark")
@@ -72,20 +76,60 @@ Item {
     signal selectionMade(int id, string name, string selectorType)
     signal aboutToExpand()
 
-    // Internal model
+    // Internal model (populated lazily when expanded inline)
     ListModel {
         id: optionsModel
     }
 
-    // Update model when modelData changes
-    onModelDataChanged: {
+    function _getPicker() {
+        if (optionPickerOverride) {
+            return optionPickerOverride;
+        }
+        if (typeof mainView !== "undefined" && mainView && mainView.optionPicker) {
+            return mainView.optionPicker;
+        }
+        return null;
+    }
+
+    function _populateInlineModel() {
+        if (!_inlineModelDirty) {
+            return;
+        }
         optionsModel.clear();
+        if (modelData && Array.isArray(modelData)) {
+            for (var i = 0; i < modelData.length; i++) {
+                var item = modelData[i];
+                if (!item || item.name === undefined || item.name === null) {
+                    continue;
+                }
+                var cleanName = String(item.name).trim();
+                if (cleanName === "") {
+                    continue;
+                }
+                optionsModel.append({
+                    itemId: item.id !== undefined ? item.id : -1,
+                    name: cleanName
+                });
+            }
+        }
+        _inlineModelDirty = false;
+    }
+
+    // Update metadata without populating inline ListModel while collapsed
+    onModelDataChanged: {
+        if (optionsModel.count > 0) {
+            optionsModel.clear();
+        }
         if (!modelData || !Array.isArray(modelData)) {
+            optionCount = 0;
+            _inlineModelDirty = false;
             expandedHeight = units.gu(15);
             return;
         }
 
         var validCount = 0;
+        var resolvedName = "";
+        var foundSelected = false;
         for (var i = 0; i < modelData.length; i++) {
             var item = modelData[i];
             if (!item || item.name === undefined || item.name === null) {
@@ -95,26 +139,26 @@ Item {
             if (cleanName === "") {
                 continue;
             }
-
-            optionsModel.append({
-                itemId: item.id !== undefined ? item.id : -1,
-                name: cleanName
-            });
             validCount++;
+            if (selectedId !== -1 && !foundSelected && item.id === selectedId) {
+                resolvedName = cleanName;
+                foundSelected = true;
+            }
         }
+
+        optionCount = validCount;
+        _inlineModelDirty = true;
 
         // Auto-adjust expanded height based on valid item count
         var calculatedHeight = Math.min(validCount * units.gu(5) + units.gu(6), maxExpandedHeight);
         expandedHeight = Math.max(calculatedHeight, units.gu(15));
 
-        // If selectedId is already set, resolve its name from the new data
-        if (selectedId !== -1) {
-            for (var j = 0; j < modelData.length; j++) {
-                if (modelData[j] && modelData[j].id === selectedId) {
-                    selectedName = modelData[j].name;
-                    break;
-                }
-            }
+        if (foundSelected) {
+            selectedName = resolvedName;
+        }
+
+        if (!collapsed) {
+            _populateInlineModel();
         }
     }
 
@@ -136,11 +180,13 @@ Item {
 
     onCollapsedChanged: {
         if (!collapsed) {
+            _populateInlineModel();
             Qt.callLater(_scrollToSelected);
         }
     }
 
     function _scrollToSelected() {
+        _populateInlineModel();
         if (optionsModel.count === 0) {
             return;
         }
@@ -153,28 +199,6 @@ Item {
                 optionsList.positionViewAtIndex(i, ListView.Center);
                 return;
             }
-        }
-    }
-
-    Loader {
-        id: pickerLoader
-        active: false
-        asynchronous: false
-        source: "../dialogs/OptionPickerDialog.qml"
-
-        onLoaded: {
-            item.anchorItem = inlineSelector;
-            item.titleText = Qt.binding(function () { return inlineSelector.labelText; });
-            item.modelData = Qt.binding(function () { return inlineSelector.modelData; });
-            item.selectedId = Qt.binding(function () { return inlineSelector.selectedId; });
-            item.multiSelect = false;
-            item.searchThreshold = Qt.binding(function () { return inlineSelector.pickerThreshold; });
-            item.optionSelected.connect(function (id, name) {
-                inlineSelector.selectedId = id;
-                inlineSelector.selectedName = name;
-                inlineSelector.selectionMade(id, name, selectorType);
-                inlineSelector.collapsed = true;
-            });
         }
     }
 
@@ -246,9 +270,9 @@ Item {
                     anchors.fill: parent
                     enabled: enabledState && !readOnly
                     onClicked: {
-                        if (optionsModel.count > 0) {
+                        if (optionCount > 0) {
                             aboutToExpand();
-                            if (useModalPicker && optionsModel.count > pickerThreshold) {
+                            if (useModalPicker && optionCount > pickerThreshold && _getPicker() !== null) {
                                 openPicker();
                             } else {
                                 collapsed = !collapsed;
@@ -270,7 +294,7 @@ Item {
             ListView {
                 id: optionsList
                 width: parent.width
-                height: parent.height - headerRow.height - 1
+                height: Math.max(0, parent.height - headerRow.height - 1)
                 visible: !collapsed
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -406,22 +430,41 @@ Item {
     }
 
     function openPicker() {
-        if (optionsModel.count > 0) {
-            aboutToExpand();
-            collapsed = true;
-            if (!pickerLoader.active) {
-                pickerLoader.active = true;
-            }
-            if (pickerLoader.item) {
-                pickerLoader.item.open();
-            }
+        if (optionCount <= 0) {
+            return;
+        }
+        aboutToExpand();
+        collapsed = true;
+        var picker = _getPicker();
+        if (picker) {
+            _ownsOpenPicker = true;
+            picker.open({
+                titleText: inlineSelector.labelText,
+                modelData: inlineSelector.modelData,
+                multiSelect: false,
+                selectedId: inlineSelector.selectedId,
+                searchThreshold: inlineSelector.pickerThreshold,
+                onSelected: function (id, name) {
+                    inlineSelector.selectedId = id;
+                    inlineSelector.selectedName = name;
+                    inlineSelector.selectionMade(id, name, inlineSelector.selectorType);
+                    inlineSelector.collapsed = true;
+                },
+                onClosed: function () {
+                    inlineSelector._ownsOpenPicker = false;
+                }
+            });
         }
     }
 
     function collapse() {
         collapsed = true;
-        if (pickerLoader.item) {
-            pickerLoader.item.close();
+        if (_ownsOpenPicker) {
+            var picker = _getPicker();
+            if (picker && picker.isOpen) {
+                picker.close();
+            }
+            _ownsOpenPicker = false;
         }
     }
 
