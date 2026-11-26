@@ -43,6 +43,7 @@ MainView {
     property alias infobar: globalWidgets.infobar
     property alias startupStatusIndicator: globalWidgets.startupStatusIndicator
     property alias startupManager: startupManager
+    property alias syncStateStore: syncStateStore
 
     property int currentAccountId: -1
     property string currentAccountName: ""
@@ -68,6 +69,10 @@ MainView {
         notifPopup: globalWidgets.notifPopup
         notificationSystem: systemIntegration.notificationSystem
         handleDeepLinkCallback: handleDeepLink
+    }
+
+    SyncStateStore {
+        id: syncStateStore
     }
     width: units.gu(50)
     //  width: Screen.desktopAvailableWidth < units.gu(130) ? units.gu(40) : units.gu(130)
@@ -123,14 +128,14 @@ MainView {
         onReadyChanged: {
             if (backend_bridge && backend_bridge.ready) {
                 startupManager.connectToBridge(backend_bridge);
+                syncStateStore.connectToBridge(backend_bridge);
                 startupManager.initializePushNotifications(backend_bridge);
                 triggerAutoSync();
             }
         }
         onMessageReceived: function (evt) {
-            if (evt && ((evt.event === "sync_completed" && evt.payload === true) || evt.event === "queue_synced")) {
-                var refreshAccId = (evt.event === "queue_synced" && evt.payload && evt.payload.account_id) ? evt.payload.account_id : -1;
-                mainView.accountDataRefreshRequested(refreshAccId);
+            if (evt && evt.event === "sync_completed" && evt.payload === true) {
+                mainView.accountDataRefreshRequested(-1);
             }
         }
     }
@@ -211,9 +216,12 @@ MainView {
         }
     }
 
-    function triggerDebouncedSync(accountId) {
+    function triggerDebouncedSync(accountId, modelName, localId) {
         if (accountId !== undefined && accountId !== null && accountId > 0) {
             _pendingMutationAccountId = accountId;
+            if (modelName && localId !== undefined && localId !== null && localId > 0) {
+                syncStateStore.markPending(accountId, modelName, localId);
+            }
         }
         mutationSyncDebounceTimer.restart();
     }

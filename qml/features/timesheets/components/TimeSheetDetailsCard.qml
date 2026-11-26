@@ -98,7 +98,7 @@ ListItem {
             } else {
                 notifPopup.open("Success", "Timesheet is now ready to be synced to Odoo", "success");
                 if (accountId > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
-                    mainView.triggerDebouncedSync(accountId);
+                    mainView.triggerDebouncedSync(accountId, "account.analytic.line", recordId);
                 }
             }
             timesheetItem.refresh();
@@ -315,38 +315,14 @@ anchors.right: parent.right
     }
 }
 
-                Rectangle {
+                SyncStatusBadge {
                     id: pendingSyncIndicator
-                    visible: !hasDraft && status === "updated" && accountId > 0
-                    width: pendingSyncRow.width + units.gu(1.2)
-                    height: visible ? units.gu(2) : 0
-                    radius: height / 2
-                    color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2210" : "#FFF8E1"
-                    border.color: "#FFA000"
-                    border.width: units.gu(0.12)
+                    accountId: timesheetItem.accountId
+                    modelName: "account.analytic.line"
+                    localId: timesheetItem.recordId
+                    rawStatus: timesheetItem.status
+                    hasDraft: timesheetItem.hasDraft
                     anchors.right: parent.right
-
-                    Row {
-                        id: pendingSyncRow
-                        spacing: units.gu(0.3)
-                        anchors.centerIn: parent
-
-                        Icon {
-                            name: "sync"
-                            width: units.gu(1.2)
-                            height: units.gu(1.2)
-                            color: "#E65100"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            text: i18n.dtr("ubtms", "Pending")
-                            font.pixelSize: units.gu(1.0)
-                            font.bold: true
-                            color: "#E65100"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
                 }
 
                 Text {

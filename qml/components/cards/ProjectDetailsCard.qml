@@ -349,7 +349,7 @@ ListItem {
                         starIcon.source = isFavorite ? "../../images/star.png" : "../../images/star-inactive.png";
                         projectCard.status = "updated";
                         if (projectCard.accountId > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
-                            mainView.triggerDebouncedSync(projectCard.accountId);
+                            mainView.triggerDebouncedSync(projectCard.accountId, "project.project", projectCard.localId);
                         }
                     } else {
                         console.warn("Failed to toggle project favorite:", result.message);
@@ -415,39 +415,15 @@ ListItem {
                         }
                     }
 
-                    // Pending sync indicator badge
-                    Rectangle {
+                    // Sync status indicator badge
+                    SyncStatusBadge {
                         id: pendingSyncIndicator
-                        visible: !hasDraft && (status === "updated" || status === "new") && (projectCard.accountId > 0)
-                        height: visible ? units.gu(2.2) : 0
-                        width: pendingSyncRow.width + units.gu(1.2)
-                        radius: height / 2
+                        accountId: projectCard.accountId
+                        modelName: "project.project"
+                        localId: projectCard.localId
+                        rawStatus: projectCard.status
+                        hasDraft: projectCard.hasDraft
                         anchors.verticalCenter: parent.verticalCenter
-                        color: projectCard.isDark ? "#2C2210" : "#FFF8E1"
-                        border.color: "#FFA000"
-                        border.width: units.gu(0.12)
-
-                        Row {
-                            id: pendingSyncRow
-                            spacing: units.gu(0.3)
-                            anchors.centerIn: parent
-
-                            Icon {
-                                name: "sync"
-                                width: units.gu(1.2)
-                                height: units.gu(1.2)
-                                color: "#E65100"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Text {
-                                text: i18n.dtr("ubtms", "Pending")
-                                font.pixelSize: units.gu(1.0)
-                                font.bold: true
-                                color: "#E65100"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
                     }
 
                     // Stage pill with high-contrast styling for high-DPI

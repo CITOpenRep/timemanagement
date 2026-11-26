@@ -34,6 +34,7 @@ SaveDiscardDialog 1.0 dialogs/SaveDiscardDialog.qml
 SelectionButton 1.0 selectors/SelectionButton.qml
 StageFilterMenu 1.0 selectors/StageFilterMenu.qml
 StatusSelector 1.0 selectors/StatusSelector.qml
+SyncStatusBadge 1.0 feedback/SyncStatusBadge.qml
 TSButton 1.0 base/TSButton.qml
 TSIconButton 1.0 base/TSIconButton.qml
 TSLabel 1.0 base/TSLabel.qml

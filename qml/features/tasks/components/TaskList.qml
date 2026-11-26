@@ -97,6 +97,14 @@ Item {
 
     // Loading state property
     property bool isLoading: false
+    property bool _pendingRefresh: false
+
+    onVisibleChanged: {
+        if (visible && _pendingRefresh) {
+            _pendingRefresh = false;
+            refreshWithFilter();
+        }
+    }
 
     signal taskSelected(int recordId)
     signal taskEditRequested(int recordId)
@@ -127,7 +135,19 @@ Item {
         target: typeof mainView !== "undefined" ? mainView : null
 
         onTaskDataChanged: {
-            refreshWithFilter();
+            if (taskNavigator.visible) {
+                refreshWithFilter();
+            } else {
+                taskNavigator._pendingRefresh = true;
+            }
+        }
+
+        onAccountDataRefreshRequested: function (accountId) {
+            if (taskNavigator.visible) {
+                refreshWithFilter();
+            } else {
+                taskNavigator._pendingRefresh = true;
+            }
         }
     }
 

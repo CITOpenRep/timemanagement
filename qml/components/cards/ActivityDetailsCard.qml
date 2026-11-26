@@ -331,37 +331,13 @@ ListItem {
     }
 }
 
-                        Rectangle {
+                        SyncStatusBadge {
                             id: pendingSyncIndicator
-                            visible: !hasDraft && (status === "updated" || status === "new") && (account_id !== undefined && account_id !== null && account_id > 0)
-                            width: pendingSyncRow.width + units.gu(1.2)
-                            height: visible ? units.gu(2) : 0
-                            radius: height / 2
-                            color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2210" : "#FFF8E1"
-                            border.color: "#FFA000"
-                            border.width: units.gu(0.12)
-
-                            Row {
-                                id: pendingSyncRow
-                                spacing: units.gu(0.3)
-                                anchors.centerIn: parent
-
-                                Icon {
-                                    name: "sync"
-                                    width: units.gu(1.2)
-                                    height: units.gu(1.2)
-                                    color: "#E65100"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: i18n.dtr("ubtms", "Pending")
-                                    font.pixelSize: units.gu(1.0)
-                                    font.bold: true
-                                    color: "#E65100"
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
+                            accountId: (root.account_id !== undefined && root.account_id !== null && !isNaN(Number(root.account_id))) ? Number(root.account_id) : -1
+                            modelName: "mail.activity"
+                            localId: root.id > 0 ? root.id : ((root.odoo_record_id !== undefined && root.odoo_record_id !== null && !isNaN(Number(root.odoo_record_id))) ? Number(root.odoo_record_id) : -1)
+                            rawStatus: root.status
+                            hasDraft: root.hasDraft
                         }
                     }
                 }

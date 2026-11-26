@@ -754,7 +754,7 @@ Page {
                     Activity.markAsDone(accountid, recordid);
                     get_activity_list();
                     if (accountid > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
-                        mainView.triggerDebouncedSync(accountid);
+                        mainView.triggerDebouncedSync(accountid, "mail.activity", recordid);
                     }
                 }
                 onDateChanged: function (accountid, recordid, newDate) {
@@ -762,7 +762,7 @@ Page {
                     Activity.updateActivityDate(accountid, recordid, newDate);
                     get_activity_list();
                     if (accountid > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
-                        mainView.triggerDebouncedSync(accountid);
+                        mainView.triggerDebouncedSync(accountid, "mail.activity", recordid);
                     }
                 }
 
@@ -773,7 +773,7 @@ Page {
                     if (result.success === true) {
                         //console.log("Followup activity has been created");
                         if (accountid > 0 && typeof mainView !== "undefined" && mainView && typeof mainView.triggerDebouncedSync === "function") {
-                            mainView.triggerDebouncedSync(accountid);
+                            mainView.triggerDebouncedSync(accountid, "mail.activity", recordid);
                         }
                         apLayout.addPageToNextColumn(activity, Qt.resolvedUrl("Activities.qml"), {
                             "recordid": result.record_id,
