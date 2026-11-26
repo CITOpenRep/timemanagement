@@ -31,7 +31,17 @@ from odoo_client import OdooClient
 import logging
 from datetime import timezone
 from datetime import datetime
-from common import sanitize_datetime, safe_sql_execute, add_notification, clear_sync_notifications
+from common import (
+    sanitize_datetime,
+    safe_sql_execute,
+    open_db_connection,
+    add_notification,
+    clear_sync_notifications,
+    get_cached_model_schema,
+    save_cached_model_schema,
+    invalidate_cached_model_schema,
+    ensure_sync_schema,
+)
 from pathlib import Path
 import os
 from bus import send
@@ -148,6 +158,66 @@ def should_update_local(odoo_write_date: str, local_last_modified: str) -> bool:
         log.warning(f"[WARN] Failed to compare timestamps: {e}")
         return True
 
+def resolve_timesheet_hierarchy(db_path, account_id, raw_proj, raw_task, connection=None):
+    """
+    Resolve parent_proj_id, sub_proj_to_set, parent_task_id, sub_task_to_set
+    for an account.analytic.line record given raw Odoo project_id / task_id values.
+    """
+    odoo_proj_id = None
+    if isinstance(raw_proj, (list, tuple)) and len(raw_proj) > 0:
+        odoo_proj_id = raw_proj[0]
+    elif isinstance(raw_proj, int) and raw_proj > 0:
+        odoo_proj_id = raw_proj
+
+    odoo_task_id = None
+    if isinstance(raw_task, (list, tuple)) and len(raw_task) > 0:
+        odoo_task_id = raw_task[0]
+    elif isinstance(raw_task, int) and raw_task > 0:
+        odoo_task_id = raw_task
+
+    parent_proj_id = odoo_proj_id
+    sub_proj_to_set = None
+    if odoo_proj_id:
+        try:
+            check_proj_sql = "SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?"
+            if connection is not None:
+                c = connection.cursor()
+                c.execute(check_proj_sql, (odoo_proj_id, account_id))
+                p_row = c.fetchone()
+            else:
+                p_res = safe_sql_execute(db_path, check_proj_sql, (odoo_proj_id, account_id), fetch=True, commit=False)
+                p_row = p_res[0] if p_res else None
+            if p_row and p_row[0] and int(p_row[0]) > 0:
+                parent_proj_id = int(p_row[0])
+                sub_proj_to_set = int(odoo_proj_id)
+        except Exception as e:
+            log.debug(f"[DEBUG] Could not check project parent_id: {e}")
+
+    parent_task_id = odoo_task_id
+    sub_task_to_set = None
+    if odoo_task_id:
+        try:
+            check_task_sql = "SELECT parent_id, project_id, sub_project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?"
+            if connection is not None:
+                c = connection.cursor()
+                c.execute(check_task_sql, (odoo_task_id, account_id))
+                t_row = c.fetchone()
+            else:
+                t_res = safe_sql_execute(db_path, check_task_sql, (odoo_task_id, account_id), fetch=True, commit=False)
+                t_row = t_res[0] if t_res else None
+            if t_row and t_row[0] and int(t_row[0]) > 0:
+                parent_task_id = int(t_row[0])
+                sub_task_to_set = int(odoo_task_id)
+            if sub_proj_to_set is None and t_row and len(t_row) > 2 and t_row[2] and int(t_row[2]) > 0:
+                sub_proj_to_set = int(t_row[2])
+                if t_row[1] and int(t_row[1]) > 0:
+                    parent_proj_id = int(t_row[1])
+        except Exception as e:
+            log.debug(f"[DEBUG] Could not check task parent_id: {e}")
+
+    return parent_proj_id, sub_proj_to_set, parent_task_id, sub_task_to_set
+
+
 def insert_record(
     table_name,
     model_name,
@@ -252,57 +322,9 @@ def insert_record(
         parent_task_id = None
 
         if model_name == "account.analytic.line":
-            raw_proj = record.get("project_id")
-            odoo_proj_id = None
-            if isinstance(raw_proj, (list, tuple)) and len(raw_proj) > 0:
-                odoo_proj_id = raw_proj[0]
-            elif isinstance(raw_proj, int) and raw_proj > 0:
-                odoo_proj_id = raw_proj
-
-            raw_task = record.get("task_id")
-            odoo_task_id = None
-            if isinstance(raw_task, (list, tuple)) and len(raw_task) > 0:
-                odoo_task_id = raw_task[0]
-            elif isinstance(raw_task, int) and raw_task > 0:
-                odoo_task_id = raw_task
-
-            parent_proj_id = odoo_proj_id
-            if odoo_proj_id:
-                try:
-                    check_proj_sql = "SELECT parent_id FROM project_project_app WHERE odoo_record_id = ? AND account_id = ?"
-                    if connection is not None:
-                        c = connection.cursor()
-                        c.execute(check_proj_sql, (odoo_proj_id, account_id))
-                        p_row = c.fetchone()
-                    else:
-                        p_res = safe_sql_execute(db_path, check_proj_sql, (odoo_proj_id, account_id), fetch=True, commit=False)
-                        p_row = p_res[0] if p_res else None
-                    if p_row and p_row[0] and int(p_row[0]) > 0:
-                        parent_proj_id = int(p_row[0])
-                        sub_proj_to_set = int(odoo_proj_id)
-                except Exception as e:
-                    log.debug(f"[DEBUG] Could not check project parent_id: {e}")
-
-            parent_task_id = odoo_task_id
-            if odoo_task_id:
-                try:
-                    check_task_sql = "SELECT parent_id, project_id, sub_project_id FROM project_task_app WHERE odoo_record_id = ? AND account_id = ?"
-                    if connection is not None:
-                        c = connection.cursor()
-                        c.execute(check_task_sql, (odoo_task_id, account_id))
-                        t_row = c.fetchone()
-                    else:
-                        t_res = safe_sql_execute(db_path, check_task_sql, (odoo_task_id, account_id), fetch=True, commit=False)
-                        t_row = t_res[0] if t_res else None
-                    if t_row and t_row[0] and int(t_row[0]) > 0:
-                        parent_task_id = int(t_row[0])
-                        sub_task_to_set = int(odoo_task_id)
-                    if sub_proj_to_set is None and t_row and len(t_row) > 2 and t_row[2] and int(t_row[2]) > 0:
-                        sub_proj_to_set = int(t_row[2])
-                        if t_row[1] and int(t_row[1]) > 0:
-                            parent_proj_id = int(t_row[1])
-                except Exception as e:
-                    log.debug(f"[DEBUG] Could not check task parent_id: {e}")
+            parent_proj_id, sub_proj_to_set, parent_task_id, sub_task_to_set = resolve_timesheet_hierarchy(
+                db_path, account_id, record.get("project_id"), record.get("task_id"), connection=connection
+            )
 
             if existing_status in ("updated", "created"):
                 if existing_sub_project_id is not None:
@@ -365,6 +387,11 @@ def insert_record(
             columns.append(sqlite_field)
             values.append(val)
 
+        if "base_write_date" in table_columns and record.get("write_date") is not None:
+            if existing_status not in ("updated", "created"):
+                columns.append("base_write_date")
+                values.append(str(record.get("write_date")))
+
         if model_name == "account.analytic.line":
             if "sub_project_id" in table_columns:
                 columns.append("sub_project_id")
@@ -418,19 +445,28 @@ def insert_record(
         )
 
 
-def get_model_fields(client, model_name):
+def get_model_fields(client, model_name, db_path=None, account_id=None, force_refresh=False):
     """
-    Retrieve all available fields for a specific Odoo model.
-    
+    Retrieve all available fields for a specific Odoo model, using cached
+    schemas in SQLite/memory when db_path and account_id are provided.
+
     Args:
         client (OdooClient): Authenticated Odoo client instance
         model_name (str): Name of the Odoo model
-        
+        db_path (str|None): Optional SQLite database path for persistent caching
+        account_id (int|None): Optional account ID for cache key isolation
+        force_refresh (bool): Force fresh fields_get from Odoo
+
     Returns:
-        list: List of field names available in the model. Returns empty list on error.
+        list/keys: Collection of field names available in the model. Returns [] on error.
     """
+    if not force_refresh and db_path and account_id is not None:
+        cached = get_cached_model_schema(db_path, account_id, model_name)
+        if cached:
+            return cached.keys()
+
     try:
-        return client.models.execute_kw(
+        fields_dict = client.models.execute_kw(
             client.db,
             client.uid,
             client.password,
@@ -438,13 +474,31 @@ def get_model_fields(client, model_name):
             "fields_get",
             [],
             {"attributes": ["string", "type"]},
-        ).keys()
+        )
+        if db_path and account_id is not None and isinstance(fields_dict, dict):
+            save_cached_model_schema(db_path, account_id, model_name, fields_dict)
+        return fields_dict.keys()
     except Exception as e:
         log.error(
             f"[ERROR] Failed to fetch fields for model '{model_name}': {e}. "
             f"Please check the model exists, is accessible, and your connection is active."
         )
         return []
+
+
+def _get_queued_local_ids(db_path, model_name, account_id):
+    """Return local_ids that currently have pending, failed, or conflict entries in sync_queue."""
+    try:
+        rows = safe_sql_execute(
+            db_path,
+            "SELECT local_id FROM sync_queue WHERE account_id = ? AND model_name = ? AND status IN ('pending', 'in_flight', 'failed', 'conflict')",
+            (account_id, model_name),
+            fetch=True,
+            commit=False,
+        )
+        return {row[0] for row in rows} if rows else set()
+    except Exception:
+        return set()
 
 
 def sync_model(
@@ -455,25 +509,27 @@ def sync_model(
     db_path="app_settings.db",
     config_path="field_config.json",
     account_name="",
+    run_orphan_check=True,
+    collected_lookup_refs=None,
 ):
     """
-    Synchronize a complete Odoo model with its corresponding SQLite table.
-    
+    Synchronize an Odoo model with its corresponding SQLite table.
+
     Args:
         client (OdooClient): Authenticated Odoo client instance
         model_name (str): Name of the Odoo model to sync
         table_name (str): Name of the SQLite table to sync to
         account_id (int): Account ID for record association
-        db_path (str): Path to the SQLite database file  
+        db_path (str): Path to the SQLite database file
         config_path (str): Path to the field configuration JSON file
-        
-    Note:
-        Performs complete sync including fetching records, updating local database,
-        and removing orphaned records. Adds notification on failure.
+        run_orphan_check (bool): When False, skip search([]) orphan ID check for fast delta pulls.
+        collected_lookup_refs (dict | None): Optional map collecting referenced lookup IDs.
     """
     clear_table_columns_cache()
     sync_start_time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    field_map = prepare_field_mapping(client, model_name, config_path)
+    model_fields_list, field_map, safe_fields = _resolve_read_fields(
+        client, model_name, account_id, db_path, config_path
+    )
     odoo_fields = list(field_map.keys())
     if not odoo_fields:
         log.warning(f"[WARN] No valid fields found for model '{model_name}'. Skipping sync.")
@@ -488,22 +544,24 @@ def sync_model(
 
     try:
         # Step 1: Lightweight search to get all active record IDs for deletion/orphan checking
-        try:
-            search_options = {"context": {"active_test": False}} if model_name == "res.users" else {}
-            all_odoo_ids = client.models.execute_kw(
-                client.db, client.uid, client.password,
-                model_name, "search", [[]], search_options
-            )
-            all_odoo_ids = set(all_odoo_ids)
-        except Exception as search_err:
-            log.warning(f"[SYNC] Failed to fetch active IDs for {model_name}: {search_err}. Fallback to full sync.")
-            all_odoo_ids = None
+        all_odoo_ids = None
+        if run_orphan_check:
+            try:
+                search_options = {"context": {"active_test": False}} if model_name == "res.users" else {}
+                all_odoo_ids = client.models.execute_kw(
+                    client.db, client.uid, client.password,
+                    model_name, "search", [[]], search_options
+                )
+                all_odoo_ids = set(all_odoo_ids)
+            except Exception as search_err:
+                log.warning(f"[SYNC] Failed to fetch active IDs for {model_name}: {search_err}. Fallback to full sync.")
+                all_odoo_ids = None
 
         # Step 2: Determine if we can do an incremental delta sync
         is_incremental = False
         last_sync_domain = [[]]
-        
-        if has_last_modified and all_odoo_ids is not None:
+
+        if has_last_modified and (not run_orphan_check or all_odoo_ids is not None):
             # Try to get last sync time from app_settings
             setting_key = f"last_sync_{model_name}_{account_id}"
             setting_sql = "SELECT value FROM app_settings WHERE key = ?"
@@ -562,13 +620,6 @@ def sync_model(
         # Step 3: Fetch the records (incremental or full)
         if is_incremental:
             try:
-                safe_fields = list(odoo_fields)
-                if "id" not in safe_fields:
-                    safe_fields.append("id")
-                model_fields = get_model_fields(client, model_name)
-                if "write_date" in model_fields and "write_date" not in safe_fields:
-                    safe_fields.append("write_date")
-
                 read_options = {"fields": safe_fields}
                 if model_name == "res.users":
                     read_options["context"] = {"active_test": False}
@@ -578,13 +629,22 @@ def sync_model(
                     read_options
                 )
             except Exception as read_err:
+                if "invalid field" in str(read_err).lower():
+                    invalidate_cached_model_schema(db_path, account_id, model_name)
+                    model_fields_list, field_map, safe_fields = _resolve_read_fields(
+                        client, model_name, account_id, db_path, config_path, force_refresh=True
+                    )
+                    odoo_fields = list(field_map.keys())
                 log.warning(f"[SYNC] Incremental fetch failed for {model_name}: {read_err}. Falling back to full fetch.")
-                records = fetch_odoo_records(client, model_name, odoo_fields)
+                records = fetch_odoo_records(client, model_name, odoo_fields, model_fields=model_fields_list)
                 is_incremental = False
         else:
-            records = fetch_odoo_records(client, model_name, odoo_fields)
+            records = fetch_odoo_records(client, model_name, odoo_fields, model_fields=model_fields_list)
 
         log.info(f"[SYNC] Downloaded {len(records)} records for '{model_name}'.")
+
+        if collected_lookup_refs is not None and records:
+            _collect_lookup_references(model_name, records, collected_lookup_refs)
 
         # Step 4: Batch process the records in a single transaction connection
         fetched_odoo_ids = process_odoo_records(
@@ -592,17 +652,12 @@ def sync_model(
         )
 
         # Step 5: Clean up orphaned records
-        # If we have the full active IDs set from Odoo, use it for orphan checks.
-        # Otherwise, fall back to fetched_odoo_ids if it was a full sync.
-        if all_odoo_ids is not None:
-            orphan_reference_ids = all_odoo_ids
-        else:
-            orphan_reference_ids = fetched_odoo_ids
-
-        if not is_incremental or all_odoo_ids is not None:
-            remove_orphaned_local_records(
-                orphan_reference_ids, table_name, model_name, account_id, db_path
-            )
+        if run_orphan_check:
+            orphan_reference_ids = all_odoo_ids if all_odoo_ids is not None else fetched_odoo_ids
+            if not is_incremental or all_odoo_ids is not None:
+                remove_orphaned_local_records(
+                    orphan_reference_ids, table_name, model_name, account_id, db_path
+                )
 
         log.info(f"[SYNC] Completed sync for '{model_name}' -> '{table_name}'")
         
@@ -654,7 +709,7 @@ def sync_model(
             )
 
 
-def prepare_field_mapping(client, model_name, config_path):
+def prepare_field_mapping(client, model_name, config_path, model_fields=None):
     """
     Prepare and validate field mapping for a model against available Odoo fields.
     
@@ -662,12 +717,13 @@ def prepare_field_mapping(client, model_name, config_path):
         client (OdooClient): Authenticated Odoo client instance
         model_name (str): Name of the Odoo model
         config_path (str): Path to the field configuration JSON file
+        model_fields (iterable|None): Optional pre-fetched field names to avoid repeat fields_get calls
         
     Returns:
         dict: Validated field mapping with only fields that exist in the Odoo model
     """
     field_map = load_field_mapping(model_name, config_path)
-    all_model_fields = get_model_fields(client, model_name)
+    all_model_fields = list(model_fields) if model_fields is not None else get_model_fields(client, model_name)
 
     valid_field_map = {}
     missing_fields = []
@@ -689,7 +745,7 @@ def prepare_field_mapping(client, model_name, config_path):
     return valid_field_map
 
 
-def fetch_odoo_records(client, model_name, fields):
+def fetch_odoo_records(client, model_name, fields, model_fields=None):
     """
     Fetch all records from an Odoo model with specified fields.
     
@@ -709,13 +765,13 @@ def fetch_odoo_records(client, model_name, fields):
         Automatically includes 'id' field and 'write_date' if available in the model.
     """
     # Ensure we include 'id' (safe for all), but 'write_date' only if it's valid
-    model_fields = get_model_fields(client, model_name)
+    resolved_model_fields = list(model_fields) if model_fields is not None else get_model_fields(client, model_name)
     safe_fields = list(fields)
     log.debug(f"[FETCH] {model_name} fetching fields: {safe_fields}")
 
     if "id" not in safe_fields:
         safe_fields.append("id")
-    if "write_date" in model_fields and "write_date" not in safe_fields:
+    if "write_date" in resolved_model_fields and "write_date" not in safe_fields:
         safe_fields.append("write_date")
 
     # Fast path: fetch all records in a single request
@@ -838,7 +894,9 @@ def process_odoo_records(
     if not records:
         return fetched_odoo_ids
 
-    conn = sqlite3.connect(db_path)
+    queued_local_ids = _get_queued_local_ids(db_path, model_name, account_id)
+
+    conn = open_db_connection(db_path)
     try:
         cursor = conn.cursor()
         cursor.execute(f"PRAGMA table_info({table_name})")
@@ -847,7 +905,7 @@ def process_odoo_records(
         has_status = "status" in columns
         has_draft_flag = "has_draft" in columns
 
-        select_fields = []
+        select_fields = ["id"]
         if has_last_modified:
             select_fields.append("last_modified")
         if has_status:
@@ -855,36 +913,34 @@ def process_odoo_records(
         if has_draft_flag:
             select_fields.append("has_draft")
 
-        check_sql = None
-        if select_fields:
-            check_sql = f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
+        check_sql = f"SELECT {', '.join(select_fields)} FROM {table_name} WHERE odoo_record_id = ? AND account_id = ?"
 
         for rec in records:
             odoo_id = rec["id"]
             fetched_odoo_ids.add(odoo_id)
 
+            local_id = None
             local_last_modified = None
             local_status = None
             local_has_draft = False
 
-            if check_sql:
-                cursor.execute(check_sql, (odoo_id, account_id))
-                row = cursor.fetchone()
-                if row:
-                    field_index = 0
-                    if_last_modified = has_last_modified
-                    if if_last_modified:
-                        local_last_modified = row[field_index]
-                        field_index += 1
-                    if has_status:
-                        local_status = row[field_index]
-                        field_index += 1
-                    if has_draft_flag:
-                        local_has_draft = bool(row[field_index])
+            cursor.execute(check_sql, (odoo_id, account_id))
+            row = cursor.fetchone()
+            if row:
+                local_id = row[0]
+                field_index = 1
+                if has_last_modified:
+                    local_last_modified = row[field_index]
+                    field_index += 1
+                if has_status:
+                    local_status = row[field_index]
+                    field_index += 1
+                if has_draft_flag:
+                    local_has_draft = bool(row[field_index])
 
             odoo_write_date = rec.get("write_date")
 
-            if local_status in ("updated", "created"):
+            if local_status in ("updated", "created") or (local_id is not None and local_id in queued_local_ids):
                 log.info(
                     f"[SKIP] {model_name} id={odoo_id} has pending local changes (status={local_status}) - keeping local record."
                 )
@@ -977,6 +1033,7 @@ def remove_orphaned_local_records(
         fetch=True,
         commit=False,
     )
+    queued_local_ids = _get_queued_local_ids(db_path, model_name, account_id)
 
     for row in rows:
         field_index = 0
@@ -993,8 +1050,8 @@ def remove_orphaned_local_records(
         has_draft = bool(row[field_index]) if has_draft_flag else False
         
         if odoo_id not in fetched_odoo_ids:
-            # Skip deletion if record has pending local changes
-            if status in ("updated", "created"):
+            # Skip deletion if record has pending local changes or active queue entry
+            if status in ("updated", "created") or local_id in queued_local_ids:
                 log.info(f"[SKIP_DELETE] {model_name}: local_id={local_id}, odoo_id={odoo_id} has pending local changes (status={status}) - keeping record")
                 continue
 
@@ -1018,53 +1075,309 @@ def remove_orphaned_local_records(
             )
 
 
+FAST_SYNC_MODELS = {
+    "project.project": "project_project_app",
+    "project.task": "project_task_app",
+    "account.analytic.line": "account_analytic_line_app",
+    "mail.activity": "mail_activity_app",
+    "project.update": "project_update_app",
+    "ir.attachment": "ir_attachment_app",
+}
+
+FULL_RECONCILE_MODELS = {
+    "project.project": "project_project_app",
+    "project.task": "project_task_app",
+    "account.analytic.line": "account_analytic_line_app",
+    "mail.activity.type": "mail_activity_type_app",
+    "mail.activity": "mail_activity_app",
+    "res.users": "res_users_app",
+    "ir.model": "ir_model_app",
+    "project.update": "project_update_app",
+    "project.task.type": "project_task_type_app",
+    "project.project.stage": "project_project_stage_app",
+    "ir.attachment": "ir_attachment_app",
+}
+
+LOOKUP_REFERENCE_MAP = {
+    "project.task": (
+        ("stage_id", "project.task.type"),
+        ("personal_stage_type_id", "project.task.type"),
+        ("user_ids", "res.users"),
+        ("create_uid", "res.users"),
+    ),
+    "project.project": (
+        ("stage_id", "project.project.stage"),
+        ("user_id", "res.users"),
+        ("create_uid", "res.users"),
+    ),
+    "account.analytic.line": (
+        ("user_id", "res.users"),
+    ),
+    "mail.activity": (
+        ("activity_type_id", "mail.activity.type"),
+        ("user_id", "res.users"),
+        ("create_uid", "res.users"),
+        ("res_model_id", "ir.model"),
+    ),
+    "project.update": (
+        ("user_id", "res.users"),
+        ("create_uid", "res.users"),
+    ),
+}
+
+
+def _resolve_read_fields(client, model_name, account_id, db_path, config_path, force_refresh=False):
+    """Resolve field metadata, field_map, and safe search_read field list for a model."""
+    cached_fields = get_model_fields(
+        client,
+        model_name,
+        db_path=db_path,
+        account_id=account_id,
+        force_refresh=force_refresh,
+    )
+    model_fields_list = list(cached_fields) if cached_fields is not None else []
+    field_map = prepare_field_mapping(
+        client,
+        model_name,
+        config_path,
+        model_fields=model_fields_list,
+    )
+    safe_fields = list(field_map.keys())
+    if "id" not in safe_fields:
+        safe_fields.append("id")
+    if "write_date" in model_fields_list and "write_date" not in safe_fields:
+        safe_fields.append("write_date")
+    return model_fields_list, field_map, safe_fields
+
+
+def _extract_positive_int_ids(value):
+    """Extract positive integer IDs from many2one tuples/lists, many2many lists, or scalars."""
+    if value is None or isinstance(value, bool):
+        return []
+    if isinstance(value, int):
+        return [value] if value > 0 else []
+    if isinstance(value, (list, tuple)) and value:
+        if all(isinstance(item, int) and not isinstance(item, bool) for item in value):
+            return [item for item in value if item > 0]
+        first = value[0]
+        if isinstance(first, int) and not isinstance(first, bool) and first > 0:
+            return [first]
+    return []
+
+
+def _collect_lookup_references(model_name, records, target_refs):
+    """Collect lookup model IDs referenced by records pulled in a delta sync."""
+    mappings = LOOKUP_REFERENCE_MAP.get(model_name)
+    if not mappings or not records:
+        return
+    for rec in records:
+        for field_name, lookup_model in mappings:
+            ids = _extract_positive_int_ids(rec.get(field_name))
+            if ids:
+                target_refs.setdefault(lookup_model, set()).update(ids)
+
+
+def _fetch_lookup_records_by_ids(client, lookup_model, missing_ids, account_id, db_path, config_path):
+    """Fetch specific lookup record IDs from Odoo using cached schemas with invalid-field retry."""
+    _, field_map, safe_fields = _resolve_read_fields(
+        client, lookup_model, account_id, db_path, config_path
+    )
+    if not field_map:
+        return []
+
+    read_options = {"fields": safe_fields}
+    if lookup_model == "res.users":
+        read_options["context"] = {"active_test": False}
+
+    try:
+        return client.models.execute_kw(
+            client.db,
+            client.uid,
+            client.password,
+            lookup_model,
+            "search_read",
+            [[("id", "in", missing_ids)]],
+            read_options,
+        )
+    except Exception as err:
+        if "invalid field" not in str(err).lower():
+            raise
+        invalidate_cached_model_schema(db_path, account_id, lookup_model)
+        _, field_map, safe_fields = _resolve_read_fields(
+            client, lookup_model, account_id, db_path, config_path, force_refresh=True
+        )
+        if not field_map:
+            return []
+        read_options["fields"] = safe_fields
+        return client.models.execute_kw(
+            client.db,
+            client.uid,
+            client.password,
+            lookup_model,
+            "search_read",
+            [[("id", "in", missing_ids)]],
+            read_options,
+        )
+
+
+def _resolve_missing_lookup_records(client, account_id, db_path, config_path, referenced_lookup_ids):
+    """Fetch only lookup records (stages, users, activity types, ir.model) missing locally."""
+    if not referenced_lookup_ids:
+        return
+
+    missing_by_model = {}
+    conn = open_db_connection(db_path)
+    try:
+        cursor = conn.cursor()
+        for lookup_model, candidate_ids in referenced_lookup_ids.items():
+            if not candidate_ids:
+                continue
+            lookup_table = FULL_RECONCILE_MODELS.get(lookup_model)
+            if not lookup_table:
+                continue
+
+            sorted_ids = sorted(candidate_ids)
+            existing_ids = set()
+            for start in range(0, len(sorted_ids), 500):
+                chunk = sorted_ids[start:start + 500]
+                placeholders = ", ".join(["?"] * len(chunk))
+                cursor.execute(
+                    f"SELECT odoo_record_id FROM {lookup_table} "
+                    f"WHERE account_id = ? AND odoo_record_id IN ({placeholders})",
+                    [account_id] + chunk,
+                )
+                existing_ids.update(row[0] for row in cursor.fetchall())
+
+            missing_ids = [oid for oid in sorted_ids if oid not in existing_ids]
+            if missing_ids:
+                missing_by_model[lookup_model] = (lookup_table, missing_ids)
+    finally:
+        conn.close()
+
+    for lookup_model, (lookup_table, missing_ids) in missing_by_model.items():
+        try:
+            records = _fetch_lookup_records_by_ids(
+                client, lookup_model, missing_ids, account_id, db_path, config_path
+            )
+            if records:
+                write_conn = open_db_connection(db_path)
+                try:
+                    for rec in records:
+                        insert_record(
+                            lookup_table,
+                            lookup_model,
+                            account_id,
+                            rec,
+                            db_path,
+                            config_path,
+                            connection=write_conn,
+                        )
+                    write_conn.commit()
+                except Exception:
+                    write_conn.rollback()
+                    raise
+                finally:
+                    write_conn.close()
+                log.info(
+                    f"[SYNC] On-demand lookup fetched {len(records)} missing '{lookup_model}' record(s)."
+                )
+        except Exception as err:
+            log.warning(
+                f"[SYNC] On-demand lookup failed for '{lookup_model}' ids={missing_ids}: {err}"
+            )
+
+
+def resolve_effective_sync_mode(db_path, account_id, sync_mode="auto", full_reconcile_hours=6):
+    """Resolve 'auto' sync mode to 'full' when no recent reconciliation exists, else 'fast'."""
+    if sync_mode in ("fast", "full"):
+        return sync_mode
+
+    try:
+        ensure_sync_schema(db_path)
+        setting_key = f"last_full_sync_{account_id}"
+        res = safe_sql_execute(
+            db_path,
+            "SELECT value FROM app_settings WHERE key = ? LIMIT 1",
+            (setting_key,),
+            fetch=True,
+            commit=False,
+        )
+        if not res or not res[0][0]:
+            return "full"
+        last_full = datetime.fromisoformat(str(res[0][0]).replace("Z", "+00:00"))
+        if last_full.tzinfo is None:
+            last_full = last_full.replace(tzinfo=timezone.utc)
+        age_hours = (datetime.now(timezone.utc) - last_full).total_seconds() / 3600.0
+        if age_hours >= full_reconcile_hours:
+            return "full"
+        return "fast"
+    except Exception:
+        return "full"
+
+
 def sync_all_from_odoo(
-    client, account_id, db_path="app_settings.db", config_path="field_config.json",
+    client,
+    account_id,
+    db_path="app_settings.db",
+    config_path="field_config.json",
     account_name="",
+    sync_mode="auto",
 ):
     """
-    Synchronize all configured Odoo models with their corresponding SQLite tables.
-    
+    Synchronize configured Odoo models with their corresponding SQLite tables.
+
     Args:
         client (OdooClient): Authenticated Odoo client instance
         account_id (int): Account ID for record association
         db_path (str): Path to the SQLite database file
         config_path (str): Path to the field configuration JSON file
-        
-    Note:
-        Syncs the following models:
-        - project.project -> project_project_app
-        - project.task -> project_task_app  
-        - account.analytic.line -> account_analytic_line_app
-        - mail.activity.type -> mail_activity_type_app
-        - mail.activity -> mail_activity_app
-        - res.users -> res_users_app
+        sync_mode (str): 'fast' (active delta models + on-demand lookup misses, no search([]) orphan check),
+                         'full' (all models + metadata + orphan reconciliation),
+                         or 'auto' ('full' once per 6h/first sync, otherwise 'fast').
     """
     log.debug(f"Account id is {account_id}")
+    ensure_sync_schema(db_path)
 
-    models_to_sync = {
-        "project.project": "project_project_app",
-        "project.task": "project_task_app",
-        "account.analytic.line": "account_analytic_line_app",
-        "mail.activity.type": "mail_activity_type_app",
-        "mail.activity": "mail_activity_app",
-        "res.users": "res_users_app",
-        "ir.model":"ir_model_app",
-        "project.update":"project_update_app",
-        "project.task.type":"project_task_type_app",
-        "project.project.stage":"project_project_stage_app",
-        "ir.attachment":"ir_attachment_app",
-    }
+    effective_mode = resolve_effective_sync_mode(db_path, account_id, sync_mode)
+    is_full = effective_mode == "full"
+    models_to_sync = FULL_RECONCILE_MODELS if is_full else FAST_SYNC_MODELS
+    collected_lookup_refs = None if is_full else {}
+    log.info(f"[SYNC] Starting sync_all_from_odoo mode={effective_mode} ({len(models_to_sync)} models)")
 
-    # Dont do this , too heavy
-    """
-    models_to_sync = {
-        "ir.attachment":"ir_attachment_app",
-    }
-    """
     for model, table in models_to_sync.items():
-        send("sync_message",f"Syncing from Server {model}")
-        sync_model(client, model, table, account_id, db_path, config_path, account_name=account_name)
+        send("sync_message", f"Syncing from Server {model}")
+        sync_model(
+            client,
+            model,
+            table,
+            account_id,
+            db_path,
+            config_path,
+            account_name=account_name,
+            run_orphan_check=is_full,
+            collected_lookup_refs=collected_lookup_refs,
+        )
+
+    if not is_full and collected_lookup_refs:
+        _resolve_missing_lookup_records(
+            client,
+            account_id,
+            db_path,
+            config_path,
+            collected_lookup_refs,
+        )
+
+    if is_full:
+        try:
+            now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            safe_sql_execute(
+                db_path,
+                "INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+                (f"last_full_sync_{account_id}", now_str),
+                commit=True,
+            )
+        except Exception as e:
+            log.debug(f"[SYNC] Failed to record last_full_sync timestamp: {e}")
 
 
 

@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import sqlite3
 import time
@@ -38,6 +38,208 @@ AVATAR_CACHE_DIR = Path.home() / ".cache" / "ubtms" / "avatars"
 
 # Optional: Global lock if multithreaded write access is expected
 db_lock = threading.Lock()
+_wal_initialized_dbs = set()
+_schema_memory_cache = {}
+_schema_cache_lock = threading.Lock()
+
+
+def open_db_connection(db_path, timeout=10.0, enable_wal=True):
+    """Open a SQLite connection configured with busy_timeout and WAL mode."""
+    conn = sqlite3.connect(db_path, timeout=timeout, check_same_thread=False)
+    try:
+        conn.execute("PRAGMA busy_timeout = 5000")
+        if enable_wal and db_path != ":memory:":
+            resolved = str(Path(db_path).resolve()) if db_path else db_path
+            if resolved not in _wal_initialized_dbs:
+                conn.execute("PRAGMA journal_mode = WAL")
+                _wal_initialized_dbs.add(resolved)
+    except Exception as pragma_err:
+        log.debug(f"[DB] PRAGMA configuration skipped for {db_path}: {pragma_err}")
+    return conn
+
+
+def ensure_sync_schema(db_path):
+    """
+    Ensure sync_queue, cached_model_schemas, and optimistic-lock columns exist.
+    Safe and idempotent for Python-first test databases or older schemas.
+    """
+    with db_lock:
+        conn = open_db_connection(db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sync_queue (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    account_id INTEGER NOT NULL,
+                    model_name TEXT NOT NULL,
+                    table_name TEXT NOT NULL,
+                    local_id INTEGER NOT NULL,
+                    odoo_record_id INTEGER,
+                    operation TEXT NOT NULL DEFAULT 'upsert',
+                    dirty_fields TEXT,
+                    base_write_date TEXT,
+                    queued_seq INTEGER DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    retry_count INTEGER DEFAULT 0,
+                    next_retry_at TEXT,
+                    last_error TEXT,
+                    created_at TEXT DEFAULT (datetime('now')),
+                    updated_at TEXT DEFAULT (datetime('now')),
+                    UNIQUE (account_id, model_name, local_id)
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_sync_queue_pending
+                ON sync_queue (account_id, status, next_retry_at)
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS cached_model_schemas (
+                    account_id INTEGER NOT NULL,
+                    model_name TEXT NOT NULL,
+                    fields_json TEXT NOT NULL,
+                    fetched_at TEXT NOT NULL,
+                    PRIMARY KEY (account_id, model_name)
+                )
+                """
+            )
+            for tbl in (
+                "project_project_app",
+                "project_task_app",
+                "account_analytic_line_app",
+                "mail_activity_app",
+                "project_update_app",
+            ):
+                cur.execute(f"PRAGMA table_info({tbl})")
+                cols = {row[1] for row in cur.fetchall()}
+                if cols:
+                    if "base_write_date" not in cols:
+                        cur.execute(f"ALTER TABLE {tbl} ADD COLUMN base_write_date TEXT")
+                    if "mutation_seq" not in cols:
+                        cur.execute(f"ALTER TABLE {tbl} ADD COLUMN mutation_seq INTEGER DEFAULT 0")
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def _schema_cache_key(db_path, account_id, model_name):
+    resolved = str(Path(db_path).resolve()) if db_path and db_path != ":memory:" else str(db_path)
+    return (resolved, int(account_id) if account_id is not None else -1, model_name)
+
+
+def get_cached_model_schema(db_path, account_id, model_name, max_age_hours=24):
+    """
+    Return cached Odoo field metadata dict ({field_name: {'type': ...}}) if fresh,
+    checking in-memory cache first and SQLite cached_model_schemas second.
+    """
+    if not db_path or db_path == ":memory:" or account_id is None:
+        return None
+
+    key = _schema_cache_key(db_path, account_id, model_name)
+    now_utc = datetime.now(timezone.utc)
+    max_age = timedelta(hours=max_age_hours)
+
+    with _schema_cache_lock:
+        cached_entry = _schema_memory_cache.get(key)
+        if cached_entry is not None:
+            fields_dict, fetched_dt = cached_entry
+            if now_utc - fetched_dt < max_age:
+                return fields_dict
+            _schema_memory_cache.pop(key, None)
+
+    try:
+        rows = safe_sql_execute(
+            db_path,
+            "SELECT fields_json, fetched_at FROM cached_model_schemas WHERE account_id = ? AND model_name = ? LIMIT 1",
+            (int(account_id), model_name),
+            fetch=True,
+            commit=False,
+        )
+        if rows and len(rows) > 0:
+            fields_json, fetched_at_str = rows[0]
+            if fetched_at_str:
+                fetched_dt = datetime.fromisoformat(fetched_at_str.replace("Z", "+00:00"))
+                if fetched_dt.tzinfo is None:
+                    fetched_dt = fetched_dt.replace(tzinfo=timezone.utc)
+                if now_utc - fetched_dt < max_age:
+                    fields_dict = json.loads(fields_json)
+                    if isinstance(fields_dict, dict) and fields_dict:
+                        with _schema_cache_lock:
+                            _schema_memory_cache[key] = (fields_dict, fetched_dt)
+                        return fields_dict
+    except Exception as e:
+        log.debug(f"[SCHEMA_CACHE] Read miss/skip for {model_name}: {e}")
+    return None
+
+
+def save_cached_model_schema(db_path, account_id, model_name, fields_dict):
+    """Persist Odoo fields_get metadata dict into memory and cached_model_schemas."""
+    if not fields_dict or not isinstance(fields_dict, dict):
+        return
+    if not db_path or db_path == ":memory:" or account_id is None:
+        return
+
+    now_utc = datetime.now(timezone.utc)
+    now_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+    key = _schema_cache_key(db_path, account_id, model_name)
+
+    with _schema_cache_lock:
+        _schema_memory_cache[key] = (fields_dict, now_utc)
+
+    try:
+        ensure_sync_schema(db_path)
+        safe_sql_execute(
+            db_path,
+            "INSERT OR REPLACE INTO cached_model_schemas (account_id, model_name, fields_json, fetched_at) VALUES (?, ?, ?, ?)",
+            (int(account_id), model_name, json.dumps(fields_dict), now_str),
+            commit=True,
+        )
+    except Exception as e:
+        log.debug(f"[SCHEMA_CACHE] Save skipped for {model_name}: {e}")
+
+
+def invalidate_cached_model_schema(db_path, account_id=None, model_name=None):
+    """Invalidate cached model schema from memory and SQLite."""
+    with _schema_cache_lock:
+        resolved = str(Path(db_path).resolve()) if db_path and db_path != ":memory:" else str(db_path)
+        keys_to_remove = [
+            k for k in _schema_memory_cache
+            if k[0] == resolved
+            and (account_id is None or k[1] == int(account_id))
+            and (model_name is None or k[2] == model_name)
+        ]
+        for k in keys_to_remove:
+            _schema_memory_cache.pop(k, None)
+
+    if not db_path or db_path == ":memory:":
+        return
+    try:
+        if account_id is not None and model_name is not None:
+            safe_sql_execute(
+                db_path,
+                "DELETE FROM cached_model_schemas WHERE account_id = ? AND model_name = ?",
+                (int(account_id), model_name),
+            )
+        elif account_id is not None:
+            safe_sql_execute(
+                db_path,
+                "DELETE FROM cached_model_schemas WHERE account_id = ?",
+                (int(account_id),),
+            )
+        elif model_name is not None:
+            safe_sql_execute(
+                db_path,
+                "DELETE FROM cached_model_schemas WHERE model_name = ?",
+                (model_name,),
+            )
+        else:
+            safe_sql_execute(db_path, "DELETE FROM cached_model_schemas")
+    except Exception as e:
+        log.debug(f"[SCHEMA_CACHE] Invalidate skipped: {e}")
 
 
 def safe_sql_execute(
@@ -77,7 +279,7 @@ def safe_sql_execute(
     for attempt in range(retries):
         try:
             with db_lock:  # Ensures thread-safe access
-                conn = sqlite3.connect(db_path, check_same_thread=False)
+                conn = open_db_connection(db_path)
                 cursor = conn.cursor()
                 if many:
                     cursor.executemany(sql, values)
@@ -94,7 +296,7 @@ def safe_sql_execute(
         except sqlite3.OperationalError as e:
             if "locked" in str(e).lower() and attempt < retries - 1:
                 log.debug("database is locked, delaying")
-                time.sleep(delay)
+                time.sleep(delay * (attempt + 1))
                 continue
             raise e
         except Exception as e:
