@@ -509,6 +509,16 @@ function updateProjectStage(projectId, stageOdooRecordId, accountId) {
                 'UPDATE project_project_app SET stage = ?, last_modified = ?, status = ? WHERE id = ?',
                 [stageOdooRecordId, timestamp, statusVal, projectId]
             );
+            if (accountId > 0 && statusVal === "updated") {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: accountId,
+                    modelName: "project.project",
+                    tableName: "project_project_app",
+                    localId: projectId,
+                    operation: "upsert",
+                    dirtyFields: ["stage"]
+                });
+            }
         });
 
         return { success: true };
@@ -1059,13 +1069,14 @@ function createUpdateProject(project_data, recordid) {
                 ? project_data.stage
                 : defaultStage;
 
+            var convertedHours = Utils.convertDurationToFloat(project_data.allocated_hours);
             if (recordid === 0) {
                 tx.executeSql('INSERT INTO project_project_app \
                             (account_id, name, parent_id, planned_start_date, planned_end_date, \
                             allocated_hours, favorites, description, last_modified, color_pallet, stage, status, user_id)\
                             Values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     [project_data.account_id, project_data.name, project_data.parent_id,
-                    project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
+                    project_data.planned_start_date, project_data.planned_end_date, convertedHours,
                     project_data.favorites, project_data.description, timestamp, project_data.color, stageValue, project_data.status, project_data.user_id || null]);
 
                 // Get the ID of the newly inserted project
@@ -1073,14 +1084,59 @@ function createUpdateProject(project_data, recordid) {
                 if (result.rows.length > 0) {
                     newRecordId = result.rows.item(0).id;
                 }
+                if (project_data.account_id > 0 && newRecordId && (project_data.status === "updated" || project_data.status === "created")) {
+                    DBCommon.enqueueSyncOperation(tx, {
+                        accountId: project_data.account_id,
+                        modelName: "project.project",
+                        tableName: "project_project_app",
+                        localId: newRecordId,
+                        operation: "upsert",
+                        dirtyFields: null
+                    });
+                }
             } else {
+                var oldProjRs = tx.executeSql(
+                    'SELECT account_id, name, parent_id, planned_start_date, planned_end_date, allocated_hours, favorites, description, color_pallet, stage, user_id, odoo_record_id FROM project_project_app WHERE id = ? LIMIT 1',
+                    [recordid]
+                );
+                var oldProjRow = oldProjRs.rows.length > 0 ? oldProjRs.rows.item(0) : null;
+
                 tx.executeSql('UPDATE project_project_app SET \
                             account_id = ?, name = ?, parent_id = ?, planned_start_date = ?, planned_end_date = ?, \
                             allocated_hours = ?, favorites = ?, description = ?, last_modified = ?, color_pallet = ?, stage = ?, status = ?, user_id = ?\
                             where id = ?',
                     [project_data.account_id, project_data.name, project_data.parent_id,
-                    project_data.planned_start_date, project_data.planned_end_date, Utils.convertDurationToFloat(project_data.allocated_hours),
+                    project_data.planned_start_date, project_data.planned_end_date, convertedHours,
                     project_data.favorites, project_data.description, timestamp, project_data.color, stageValue, project_data.status, project_data.user_id || null, recordid]);
+
+                if (project_data.account_id > 0 && (project_data.status === "updated" || project_data.status === "created")) {
+                    var projDirty = null;
+                    if (oldProjRow && oldProjRow.odoo_record_id) {
+                        projDirty = DBCommon.computeDirtyFields(oldProjRow, {
+                            name: project_data.name,
+                            parent_id: project_data.parent_id,
+                            planned_start_date: project_data.planned_start_date,
+                            planned_end_date: project_data.planned_end_date,
+                            allocated_hours: convertedHours,
+                            favorites: project_data.favorites,
+                            description: project_data.description,
+                            color_pallet: project_data.color,
+                            stage: stageValue,
+                            user_id: project_data.user_id || null
+                        });
+                    }
+                    if (!oldProjRow || !oldProjRow.odoo_record_id || (projDirty && projDirty.length > 0)) {
+                        DBCommon.enqueueSyncOperation(tx, {
+                            accountId: project_data.account_id,
+                            modelName: "project.project",
+                            tableName: "project_project_app",
+                            localId: newRecordId,
+                            operation: "upsert",
+                            dirtyFields: projDirty,
+                            baseValues: oldProjRow ? DBCommon.rowToObject(oldProjRow) : null
+                        });
+                    }
+                }
             }
             messageObj['is_success'] = true;
             messageObj['message'] = 'Project saved Successfully!';
@@ -1136,9 +1192,25 @@ function createUpdateSnapShot(update_data, recordid) {
                 if (result.rows.length > 0) {
                     newRecordId = result.rows.item(0).id;
                 }
+                if (update_data.account_id > 0 && newRecordId) {
+                    DBCommon.enqueueSyncOperation(tx, {
+                        accountId: update_data.account_id,
+                        modelName: "project.update",
+                        tableName: "project_update_app",
+                        localId: newRecordId,
+                        operation: "upsert",
+                        dirtyFields: null
+                    });
+                }
 
                 messageObj.message = "Project Update created successfully!";
             } else {
+                var oldUpdRs = tx.executeSql(
+                    "SELECT account_id, project_id, name, project_status, progress, description, user_id, odoo_record_id FROM project_update_app WHERE id = ? LIMIT 1",
+                    [recordid]
+                );
+                var oldUpdRow = oldUpdRs.rows.length > 0 ? oldUpdRs.rows.item(0) : null;
+
                 // UPDATE existing project update
                 tx.executeSql(
                     `UPDATE project_update_app 
@@ -1158,6 +1230,31 @@ function createUpdateSnapShot(update_data, recordid) {
                         recordid
                     ]
                 );
+
+                if (update_data.account_id > 0) {
+                    var updDirty = null;
+                    if (oldUpdRow && oldUpdRow.odoo_record_id) {
+                        updDirty = DBCommon.computeDirtyFields(oldUpdRow, {
+                            project_id: update_data.project_id,
+                            name: update_data.name,
+                            project_status: update_data.project_status,
+                            progress: update_data.progress,
+                            description: update_data.description,
+                            user_id: update_data.user_id
+                        });
+                    }
+                    if (!oldUpdRow || !oldUpdRow.odoo_record_id || (updDirty && updDirty.length > 0)) {
+                        DBCommon.enqueueSyncOperation(tx, {
+                            accountId: update_data.account_id,
+                            modelName: "project.update",
+                            tableName: "project_update_app",
+                            localId: newRecordId,
+                            operation: "upsert",
+                            dirtyFields: updDirty,
+                            baseValues: oldUpdRow ? DBCommon.rowToObject(oldUpdRow) : null
+                        });
+                    }
+                }
 
                 messageObj.message = "Project Update updated successfully!";
             }
@@ -1186,10 +1283,24 @@ function markProjectUpdateAsDeleted(updateId) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
+            var metaRs = tx.executeSql(
+                "SELECT account_id, odoo_record_id FROM project_update_app WHERE id = ? LIMIT 1",
+                [updateId]
+            );
             tx.executeSql(
                 "UPDATE project_update_app SET status = 'deleted' WHERE id = ?",
                 [updateId]
             );
+            if (metaRs.rows.length > 0 && metaRs.rows.item(0).account_id > 0) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: metaRs.rows.item(0).account_id,
+                    modelName: "project.update",
+                    tableName: "project_update_app",
+                    localId: updateId,
+                    operation: "delete",
+                    odooRecordId: metaRs.rows.item(0).odoo_record_id
+                });
+            }
         });
 
         DBCommon.log("Project update marked as deleted (id: " + updateId + ")");
@@ -1504,6 +1615,7 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
         var result = { success: false, message: "" };
 
         db.transaction(function (tx) {
+            var acctRs = tx.executeSql('SELECT account_id, odoo_record_id FROM project_project_app WHERE id = ? LIMIT 1', [projectId]);
             var favoriteValue = isFavorite ? 1 : 0;
             var updateResult = tx.executeSql(
                 'UPDATE project_project_app SET favorites = ?, last_modified = ?, status = ? WHERE id = ?',
@@ -1511,9 +1623,19 @@ function toggleProjectFavorite(projectId, isFavorite, status) {
             );
 
             if (updateResult.rowsAffected > 0) {
+                if (acctRs.rows.length > 0 && acctRs.rows.item(0).account_id > 0) {
+                    DBCommon.enqueueSyncOperation(tx, {
+                        accountId: acctRs.rows.item(0).account_id,
+                        modelName: "project.project",
+                        tableName: "project_project_app",
+                        localId: projectId,
+                        operation: "favorite",
+                        dirtyFields: ["favorites"],
+                        odooRecordId: acctRs.rows.item(0).odoo_record_id
+                    });
+                }
                 result.success = true;
                 result.message = isFavorite ? "Project marked as favorite" : "Project removed from favorites";
-                //  console.log("Project favorite status updated:", projectId, "favorite:", isFavorite);
             } else {
                 result.message = "Project not found or no changes made";
                 Logger.warn("Project", "No project updated with ID:", projectId)

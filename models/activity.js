@@ -540,7 +540,16 @@ function markAsDone(accountId, id) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [accountId, id]);
-            //   console.log("Marked as done: Account ID =", accountId, ", Record ID =", id);
+            if (accountId > 0) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: accountId,
+                    modelName: "mail.activity",
+                    tableName: "mail_activity_app",
+                    localId: id,
+                    operation: "action_done",
+                    dirtyFields: ["state"]
+                });
+            }
         });
 
     } catch (e) {
@@ -574,6 +583,16 @@ function updateActivityDate(accountId, id, newDate) {
             WHERE account_id = ? AND id = ?
             `;
             tx.executeSql(query, [newDate, accountId, id]);
+            if (accountId > 0) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: accountId,
+                    modelName: "mail.activity",
+                    tableName: "mail_activity_app",
+                    localId: id,
+                    operation: "upsert",
+                    dirtyFields: ["due_date"]
+                });
+            }
             Logger.debug("Activity", "Updated activity date: Account ID =", accountId, ", Record ID =", id, ", New Date =", newDate)
         });
 
@@ -684,7 +703,15 @@ function saveActivityData(data, recordId) {
         var savedRecordId = recordId;
 
         db.transaction(function (tx) {
+            var parsedDueDate = Utils.extractDate(data.updatedDate);
             if (recordId > 0) {
+                var oldRs = tx.executeSql(
+                    `SELECT account_id, activity_type_id, summary, user_id, due_date, notes, resModel, resId, task_id, project_id, link_id, state, odoo_record_id
+                     FROM mail_activity_app WHERE id = ? LIMIT 1`,
+                    [recordId]
+                );
+                var oldRow = oldRs.rows.length > 0 ? oldRs.rows.item(0) : null;
+
                 // UPDATE existing record
                 tx.executeSql(
                     `UPDATE mail_activity_app SET
@@ -708,7 +735,7 @@ function saveActivityData(data, recordId) {
                         data.updatedActivity,
                         data.updatedSummary,
                         data.updatedUserId,
-                        Utils.extractDate(data.updatedDate),
+                        parsedDueDate,
                         data.updatedNote,
                         data.resModel,
                         data.resId,
@@ -722,6 +749,35 @@ function saveActivityData(data, recordId) {
                     ]
                 );
                 savedRecordId = recordId;
+                if (data.updatedAccount > 0 && (data.status === "updated" || data.status === "created")) {
+                    var dirtyFields = null;
+                    if (oldRow && oldRow.odoo_record_id) {
+                        dirtyFields = DBCommon.computeDirtyFields(oldRow, {
+                            activity_type_id: data.updatedActivity,
+                            summary: data.updatedSummary,
+                            user_id: data.updatedUserId,
+                            due_date: parsedDueDate,
+                            notes: data.updatedNote,
+                            resModel: data.resModel,
+                            resId: data.resId,
+                            task_id: data.task_id,
+                            project_id: data.project_id,
+                            link_id: data.link_id,
+                            state: data.state
+                        });
+                    }
+                    if (!oldRow || !oldRow.odoo_record_id || (dirtyFields && dirtyFields.length > 0)) {
+                        DBCommon.enqueueSyncOperation(tx, {
+                            accountId: data.updatedAccount,
+                            modelName: "mail.activity",
+                            tableName: "mail_activity_app",
+                            localId: savedRecordId,
+                            operation: "upsert",
+                            dirtyFields: dirtyFields,
+                            baseValues: oldRow ? DBCommon.rowToObject(oldRow) : null
+                        });
+                    }
+                }
                 Logger.debug("Activity", "Activity record updated: ID "+ recordId)
             } else {
                 // INSERT new record
@@ -736,7 +792,7 @@ function saveActivityData(data, recordId) {
                         data.updatedActivity,
                         data.updatedSummary,
                         data.updatedUserId,
-                        Utils.extractDate(data.updatedDate),
+                        parsedDueDate,
                         data.updatedNote,
                         data.resModel,
                         data.resId,
@@ -751,6 +807,16 @@ function saveActivityData(data, recordId) {
                 var inserted = tx.executeSql("SELECT last_insert_rowid() AS id");
                 if (inserted.rows.length > 0) {
                     savedRecordId = inserted.rows.item(0).id;
+                }
+                if (data.updatedAccount > 0 && savedRecordId && (data.status === "updated" || data.status === "created")) {
+                    DBCommon.enqueueSyncOperation(tx, {
+                        accountId: data.updatedAccount,
+                        modelName: "mail.activity",
+                        tableName: "mail_activity_app",
+                        localId: savedRecordId,
+                        operation: "upsert",
+                        dirtyFields: null
+                    });
                 }
                 Logger.debug("Activity", "New activity record inserted: ID "+ savedRecordId)
             }
@@ -888,6 +954,16 @@ function createFollowupActivity(account_id, activityId) {
             var inserted = tx.executeSql("SELECT last_insert_rowid() AS id");
             if (inserted.rows.length > 0) {
                 newRecordId = inserted.rows.item(0).id;
+            }
+            if (account_id > 0 && newRecordId) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: account_id,
+                    modelName: "mail.activity",
+                    tableName: "mail_activity_app",
+                    localId: newRecordId,
+                    operation: "upsert",
+                    dirtyFields: null
+                });
             }
         });
 
@@ -1249,6 +1325,10 @@ function deleteActivity(accountId, recordId) {
         db.transaction(function (tx) {
             var query = `DELETE FROM mail_activity_app WHERE account_id = ? AND id = ?`;
             tx.executeSql(query, [accountId, recordId]);
+            tx.executeSql(
+                `DELETE FROM sync_queue WHERE account_id = ? AND model_name = 'mail.activity' AND local_id = ?`,
+                [accountId, recordId]
+            );
             Logger.debug("Activity", "Deleted activity: Account ID =", accountId, ", Record ID =", recordId)
         });
 

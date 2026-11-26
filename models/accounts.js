@@ -462,7 +462,9 @@ function deleteAccountAndRelatedData(userId) {
                 "project_project_stage_app",
                 "attachment_download_app",
                 "form_drafts",
-                "notification"
+                "notification",
+                "sync_queue",
+                "cached_model_schemas"
             ];
 
             var numericUserId = parseInt(userId, 10);

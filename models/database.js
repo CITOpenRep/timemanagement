@@ -349,3 +349,224 @@ function rowToObject(row) {
 
     return obj;
 }
+
+function _isEmptySyncValue(val) {
+    return val === null || val === undefined || val === "";
+}
+
+/**
+ * Compares existing persisted row values against incoming column values and
+ * returns the list of columns that actually changed.
+ *
+ * @param {object} oldRow - Existing SQLite row before UPDATE
+ * @param {object} newValues - Map of sqliteColumnName -> newValue
+ * @returns {Array<string>|null}
+ */
+function computeDirtyFields(oldRow, newValues) {
+    if (!oldRow || !newValues) {
+        return null;
+    }
+    var dirty = [];
+    for (var col in newValues) {
+        if (!Object.prototype.hasOwnProperty.call(newValues, col)) {
+            continue;
+        }
+        var oldVal = oldRow[col];
+        var newVal = newValues[col];
+        if (_isEmptySyncValue(oldVal) && _isEmptySyncValue(newVal)) {
+            continue;
+        }
+        if (oldVal === newVal) {
+            continue;
+        }
+        if (oldVal !== null && oldVal !== undefined && newVal !== null && newVal !== undefined) {
+            if (typeof oldVal === "number" || typeof newVal === "number") {
+                var oldNum = Number(oldVal);
+                var newNum = Number(newVal);
+                if (!isNaN(oldNum) && !isNaN(newNum) && oldNum === newNum) {
+                    continue;
+                }
+            }
+            if (String(oldVal) === String(newVal)) {
+                continue;
+            }
+        }
+        dirty.push(col);
+    }
+    return dirty;
+}
+
+function _normalizeDirtyInput(dirtyInput) {
+    if (!dirtyInput) {
+        return { fields: null, base: null };
+    }
+    if (Array.isArray(dirtyInput)) {
+        return { fields: dirtyInput, base: null };
+    }
+    if (typeof dirtyInput === "object" && Array.isArray(dirtyInput.fields)) {
+        return {
+            fields: dirtyInput.fields,
+            base: (dirtyInput.base && typeof dirtyInput.base === "object") ? dirtyInput.base : null
+        };
+    }
+    return { fields: null, base: null };
+}
+
+/**
+ * Atomically increments mutation_seq on the target table and inserts or coalesces
+ * a pending outbox job in sync_queue inside the caller's active transaction.
+ *
+ * Supports 3-way merge by preserving the earliest pre-edit baseline value for each dirty field.
+ *
+ * @param {object} tx - Active Sql.LocalStorage transaction object
+ * @param {object} params - { accountId, modelName, tableName, localId, operation, dirtyFields, baseValues, odooRecordId }
+ */
+function enqueueSyncOperation(tx, params) {
+    if (!tx || !params) {
+        return;
+    }
+    var accountId = parseInt(params.accountId, 10);
+    if (isNaN(accountId) || accountId <= 0) {
+        return;
+    }
+    var localId = parseInt(params.localId, 10);
+    if (isNaN(localId) || localId <= 0) {
+        return;
+    }
+
+    var modelName = params.modelName;
+    var tableName = params.tableName;
+    var operation = params.operation || "upsert";
+    var normInput = _normalizeDirtyInput(params.dirtyFields);
+    var incomingFields = normInput.fields;
+    var incomingBase = (params.baseValues && typeof params.baseValues === "object") ? params.baseValues : normInput.base;
+
+    try {
+        tx.executeSql(
+            "UPDATE " + tableName + " SET mutation_seq = COALESCE(mutation_seq, 0) + 1 WHERE id = ?",
+            [localId]
+        );
+
+        var rowRs = tx.executeSql(
+            "SELECT odoo_record_id, base_write_date, COALESCE(mutation_seq, 1) AS seq FROM " + tableName + " WHERE id = ? LIMIT 1",
+            [localId]
+        );
+        if (rowRs.rows.length === 0) {
+            return;
+        }
+        var row = rowRs.rows.item(0);
+        var odooRecordId = row.odoo_record_id || params.odooRecordId || null;
+        var baseWriteDate = row.base_write_date || null;
+        var queuedSeq = row.seq || 1;
+
+        // If deleting an item that never reached Odoo, drop any pending queue entry cleanly.
+        if (operation === "delete" && (!odooRecordId || odooRecordId <= 0)) {
+            tx.executeSql(
+                "DELETE FROM sync_queue WHERE account_id = ? AND model_name = ? AND local_id = ?",
+                [accountId, modelName, localId]
+            );
+            return;
+        }
+
+        var existingRs = tx.executeSql(
+            "SELECT operation, dirty_fields, base_write_date, status FROM sync_queue WHERE account_id = ? AND model_name = ? AND local_id = ? LIMIT 1",
+            [accountId, modelName, localId]
+        );
+
+        var mergedDirtyJson = null;
+        var fieldSet = {};
+        var mergedBase = {};
+        var hasMergedBase = false;
+        var keepAllFields = false;
+
+        if (existingRs.rows.length > 0) {
+            var existing = existingRs.rows.item(0);
+            if (!baseWriteDate && existing.base_write_date) {
+                baseWriteDate = existing.base_write_date;
+            }
+            if (operation === "delete") {
+                mergedDirtyJson = null;
+            } else if (incomingFields !== null) {
+                if (existing.dirty_fields) {
+                    try {
+                        var prevParsed = JSON.parse(existing.dirty_fields);
+                        if (Array.isArray(prevParsed)) {
+                            for (var p = 0; p < prevParsed.length; p++) {
+                                fieldSet[prevParsed[p]] = true;
+                            }
+                        } else if (prevParsed && typeof prevParsed === "object" && Array.isArray(prevParsed.fields)) {
+                            for (var pf = 0; pf < prevParsed.fields.length; pf++) {
+                                fieldSet[prevParsed.fields[pf]] = true;
+                            }
+                            if (prevParsed.base && typeof prevParsed.base === "object") {
+                                for (var bk in prevParsed.base) {
+                                    if (Object.prototype.hasOwnProperty.call(prevParsed.base, bk)) {
+                                        mergedBase[bk] = prevParsed.base[bk];
+                                        hasMergedBase = true;
+                                    }
+                                }
+                            }
+                        } else {
+                            keepAllFields = true;
+                        }
+                    } catch (parseErr) {
+                        keepAllFields = true;
+                    }
+                } else if (existing.status === "pending" || existing.status === "in_flight" || existing.status === "failed") {
+                    keepAllFields = true;
+                }
+
+                if (!keepAllFields) {
+                    for (var i = 0; i < incomingFields.length; i++) {
+                        var fName = incomingFields[i];
+                        fieldSet[fName] = true;
+                        // Keep earliest baseline value if this field was already edited offline earlier
+                        if (incomingBase && Object.prototype.hasOwnProperty.call(incomingBase, fName) &&
+                            !Object.prototype.hasOwnProperty.call(mergedBase, fName)) {
+                            mergedBase[fName] = incomingBase[fName];
+                            hasMergedBase = true;
+                        }
+                    }
+                    var mergedKeys = Object.keys(fieldSet);
+                    mergedDirtyJson = hasMergedBase
+                        ? JSON.stringify({ fields: mergedKeys, base: mergedBase })
+                        : JSON.stringify(mergedKeys);
+                }
+            }
+
+            tx.executeSql(
+                "UPDATE sync_queue SET odoo_record_id = COALESCE(?, odoo_record_id), operation = ?, dirty_fields = ?, " +
+                "base_write_date = COALESCE(?, base_write_date), queued_seq = ?, status = 'pending', " +
+                "retry_count = 0, next_retry_at = NULL, last_error = NULL, updated_at = datetime('now') " +
+                "WHERE account_id = ? AND model_name = ? AND local_id = ?",
+                [odooRecordId, operation, mergedDirtyJson, baseWriteDate, queuedSeq, accountId, modelName, localId]
+            );
+        } else {
+            if (operation !== "delete" && incomingFields !== null) {
+                if (incomingBase) {
+                    var initBase = {};
+                    var anyBase = false;
+                    for (var j = 0; j < incomingFields.length; j++) {
+                        var colKey = incomingFields[j];
+                        if (Object.prototype.hasOwnProperty.call(incomingBase, colKey)) {
+                            initBase[colKey] = incomingBase[colKey];
+                            anyBase = true;
+                        }
+                    }
+                    mergedDirtyJson = anyBase
+                        ? JSON.stringify({ fields: incomingFields, base: initBase })
+                        : JSON.stringify(incomingFields);
+                } else {
+                    mergedDirtyJson = JSON.stringify(incomingFields);
+                }
+            }
+            tx.executeSql(
+                "INSERT INTO sync_queue (account_id, model_name, table_name, local_id, odoo_record_id, operation, dirty_fields, base_write_date, queued_seq, status, retry_count, next_retry_at, last_error, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, NULL, NULL, datetime('now'), datetime('now'))",
+                [accountId, modelName, tableName, localId, odooRecordId, operation, mergedDirtyJson, baseWriteDate, queuedSeq]
+            );
+        }
+    } catch (e) {
+        Logger.warn("Database", "enqueueSyncOperation failed for " + tableName + "#" + localId + ": " + e);
+    }
+}

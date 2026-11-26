@@ -138,7 +138,16 @@ function saveOrUpdateTask(data) {
             : defaultTaskStage;
 
         db.transaction(function (tx) {
+            var oldRow = null;
             if (data.record_id) {
+                var existingRs = tx.executeSql(
+                    'SELECT account_id, name, project_id, parent_id, initial_planned_hours, priority, description, user_id, sub_project_id, start_date, end_date, deadline, state, personal_stage, odoo_record_id, status FROM project_task_app WHERE id = ? LIMIT 1',
+                    [data.record_id]
+                );
+                if (existingRs.rows.length > 0) {
+                    oldRow = existingRs.rows.item(0);
+                }
+
                 // UPDATE
                 tx.executeSql('UPDATE project_task_app SET \
                     account_id = ?, name = ?, project_id = ?, parent_id = ?, initial_planned_hours = ?, priority = ?, description = ?, user_id = ?, sub_project_id = ?, \
@@ -153,6 +162,38 @@ function saveOrUpdateTask(data) {
                         timestamp, data.status, data.record_id
                     ]
                 );
+
+                if (data.accountId > 0 && (data.status === "updated" || data.status === "created")) {
+                    var dirtyFields = null;
+                    if (oldRow && oldRow.odoo_record_id) {
+                        dirtyFields = DBCommon.computeDirtyFields(oldRow, {
+                            name: data.name,
+                            project_id: finalProjectId,
+                            parent_id: resolvedParentId,
+                            initial_planned_hours: data.plannedHours,
+                            priority: data.priority,
+                            description: data.description,
+                            user_id: userIdValue,
+                            sub_project_id: data.subProjectId,
+                            start_date: data.startDate,
+                            end_date: data.endDate,
+                            deadline: data.deadline,
+                            state: taskStageVal,
+                            personal_stage: data.personalStageOdooRecordId || null
+                        });
+                    }
+                    if (!oldRow || !oldRow.odoo_record_id || (dirtyFields && dirtyFields.length > 0)) {
+                        DBCommon.enqueueSyncOperation(tx, {
+                            accountId: data.accountId,
+                            modelName: "project.task",
+                            tableName: "project_task_app",
+                            localId: taskRecordId,
+                            operation: "upsert",
+                            dirtyFields: dirtyFields,
+                            baseValues: oldRow ? DBCommon.rowToObject(oldRow) : null
+                        });
+                    }
+                }
 
             } else {
                 // INSERT
@@ -173,6 +214,17 @@ function saveOrUpdateTask(data) {
                 var result = tx.executeSql("SELECT last_insert_rowid() as id");
                 if (result.rows.length > 0) {
                     taskRecordId = result.rows.item(0).id;
+                }
+
+                if (data.accountId > 0 && taskRecordId && (data.status === "updated" || data.status === "created")) {
+                    DBCommon.enqueueSyncOperation(tx, {
+                        accountId: data.accountId,
+                        modelName: "project.task",
+                        tableName: "project_task_app",
+                        localId: taskRecordId,
+                        operation: "upsert",
+                        dirtyFields: null
+                    });
                 }
             }
         });
@@ -557,6 +609,14 @@ function markTaskAsDeleted(taskId, forceDelete = false) {
                 "UPDATE project_task_app SET status = 'deleted', last_modified = ? WHERE id = ?",
                 [timestamp, taskId]
             );
+            DBCommon.enqueueSyncOperation(tx, {
+                accountId: taskRow.account_id,
+                modelName: "project.task",
+                tableName: "project_task_app",
+                localId: taskId,
+                operation: "delete",
+                odooRecordId: taskOdooRecordId
+            });
 
             // Mark related timesheets as deleted and capture their IDs for draft cleanup
             deletedTimesheetIds = markRelatedTimesheetsAsDeleted(tx, [taskId], timestamp);
@@ -709,14 +769,17 @@ function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
         if (taskRecordIds.length > 0) {
             var timesheetPlaceholders = taskRecordIds.map(() => '?').join(',');
 
-            // First, get the IDs of timesheets we're about to delete (for draft cleanup)
+            // First, get the IDs of timesheets we're about to delete (for draft cleanup and queue sync)
             var timesheetQuery = tx.executeSql(
-                "SELECT id FROM account_analytic_line_app WHERE task_id IN (" + timesheetPlaceholders + ") AND (status IS NULL OR status != 'deleted')",
+                "SELECT id, account_id, odoo_record_id FROM account_analytic_line_app WHERE task_id IN (" + timesheetPlaceholders + ") AND (status IS NULL OR status != 'deleted')",
                 taskRecordIds
             );
 
+            var deletedTimesheetMeta = [];
             for (var j = 0; j < timesheetQuery.rows.length; j++) {
-                deletedTimesheetIds.push(timesheetQuery.rows.item(j).id);
+                var tsRow = timesheetQuery.rows.item(j);
+                deletedTimesheetIds.push(tsRow.id);
+                deletedTimesheetMeta.push(tsRow);
             }
 
             // Now mark them as deleted
@@ -725,6 +788,17 @@ function markRelatedTimesheetsAsDeleted(tx, taskIds, timestamp) {
                 "UPDATE account_analytic_line_app SET status = 'deleted', last_modified = ? WHERE task_id IN (" + timesheetPlaceholders + ") AND (status IS NULL OR status != 'deleted')",
                 updateParams
             );
+
+            for (var k = 0; k < deletedTimesheetMeta.length; k++) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: deletedTimesheetMeta[k].account_id,
+                    modelName: "account.analytic.line",
+                    tableName: "account_analytic_line_app",
+                    localId: deletedTimesheetMeta[k].id,
+                    operation: "delete",
+                    odooRecordId: deletedTimesheetMeta[k].odoo_record_id
+                });
+            }
 
             if (result.rowsAffected > 0) {
                 // console.log("Marked " + result.rowsAffected + " related timesheet entries as deleted");
@@ -2894,15 +2968,25 @@ function setTaskPriority(taskId, priority, status) {
         priority.toString(); // Store as string to match Odoo format
 
         db.transaction(function (tx) {
+            var acctRs = tx.executeSql('SELECT account_id FROM project_task_app WHERE id = ? LIMIT 1', [taskId]);
             var updateResult = tx.executeSql(
                 'UPDATE project_task_app SET priority = ?, last_modified = ?, status = ? WHERE id = ?',
                 [priority, Utils.getFormattedTimestampUTC(), status, taskId]
             );
 
             if (updateResult.rowsAffected > 0) {
+                if (acctRs.rows.length > 0 && acctRs.rows.item(0).account_id > 0 && (status === "updated" || status === "created")) {
+                    DBCommon.enqueueSyncOperation(tx, {
+                        accountId: acctRs.rows.item(0).account_id,
+                        modelName: "project.task",
+                        tableName: "project_task_app",
+                        localId: taskId,
+                        operation: "upsert",
+                        dirtyFields: ["priority"]
+                    });
+                }
                 result.success = true;
                 result.message = "Task priority set to " + priority;
-                //  console.log("Task priority updated:", taskId, "priority:", priority);
             } else {
                 result.message = "Task not found or no changes made";
                 Logger.warn("Task", "No task updated with ID:", taskId)
@@ -3516,6 +3600,16 @@ function updateTaskStage(taskId, stageOdooRecordId, accountId) {
                 'UPDATE project_task_app SET state = ?, last_modified = ?, status = ? WHERE id = ?',
                 [stageOdooRecordId, timestamp, statusVal, taskId]
             );
+            if (accountId > 0 && statusVal === "updated") {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: accountId,
+                    modelName: "project.task",
+                    tableName: "project_task_app",
+                    localId: taskId,
+                    operation: "upsert",
+                    dirtyFields: ["state"]
+                });
+            }
         });
 
         return { success: true };
@@ -3608,6 +3702,16 @@ function updateTaskPersonalStage(taskId, personalStageOdooRecordId, accountId) {
                 'UPDATE project_task_app SET personal_stage = ?, last_modified = ?, status = ? WHERE id = ?',
                 [personalStageOdooRecordId, timestamp, "updated", taskId]
             );
+            if (accountId > 0) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: accountId,
+                    modelName: "project.task",
+                    tableName: "project_task_app",
+                    localId: taskId,
+                    operation: "upsert",
+                    dirtyFields: ["personal_stage"]
+                });
+            }
         });
 
         return { success: true };

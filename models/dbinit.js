@@ -103,6 +103,8 @@ function initializeDatabase() {
             odoo_record_id INTEGER,\
             user_id INTEGER,\
             create_uid INTEGER,\
+            base_write_date TEXT,\
+            mutation_seq INTEGER DEFAULT 0,\
             UNIQUE (odoo_record_id, account_id)\
         )',
         [
@@ -124,7 +126,9 @@ function initializeDatabase() {
             'has_draft INTEGER DEFAULT 0',
             'odoo_record_id INTEGER',
             'user_id INTEGER',
-            'create_uid INTEGER'
+            'create_uid INTEGER',
+            'base_write_date TEXT',
+            'mutation_seq INTEGER DEFAULT 0'
         ]
     );
 
@@ -188,11 +192,14 @@ function initializeDatabase() {
             status TEXT DEFAULT "",\
             has_draft INTEGER DEFAULT 0,\
             odoo_record_id INTEGER,\
+            base_write_date TEXT,\
+            mutation_seq INTEGER DEFAULT 0,\
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'name TEXT', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'parent_id INTEGER',
                                   'start_date date', 'end_date date', 'deadline date', 'initial_planned_hours FLOAT', 'priority TEXT', 'state INTEGER',
-                                  'personal_stage INTEGER', 'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'create_uid INTEGER', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER']
+                                  'personal_stage INTEGER', 'description TEXT', 'last_modified datetime', 'user_id INTEGER', 'create_uid INTEGER', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER',
+                                  'base_write_date TEXT', 'mutation_seq INTEGER DEFAULT 0']
                                  );
 
     DBCommon.createOrUpdateTable("account_analytic_line_app",
@@ -213,11 +220,14 @@ function initializeDatabase() {
             timer_type TEXT DEFAULT "manual",\
             has_draft INTEGER DEFAULT 0,\
             odoo_record_id INTEGER,\
+            base_write_date TEXT,\
+            mutation_seq INTEGER DEFAULT 0,\
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'project_id INTEGER', 'sub_project_id INTEGER', 'task_id INTEGER',
                                   'sub_task_id INTEGER', 'name TEXT', 'unit_amount FLOAT', 'last_modified datetime', 'quadrant_id INTEGER',
-                                  'record_date datetime','user_id INTEGER' ,'status TEXT DEFAULT ""', 'timer_type TEXT DEFAULT "manual"', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER']
+                                  'record_date datetime','user_id INTEGER' ,'status TEXT DEFAULT ""', 'timer_type TEXT DEFAULT "manual"', 'has_draft INTEGER DEFAULT 0', 'odoo_record_id INTEGER',
+                                  'base_write_date TEXT', 'mutation_seq INTEGER DEFAULT 0']
                                  );
 
     DBCommon.createOrUpdateTable("mail_activity_type_app",
@@ -269,11 +279,14 @@ function initializeDatabase() {
             state TEXT,\
             status TEXT DEFAULT "",\
             has_draft INTEGER DEFAULT 0,\
+            base_write_date TEXT,\
+            mutation_seq INTEGER DEFAULT 0,\
             UNIQUE (odoo_record_id, account_id)\
         )',
                                  ['id INTEGER', 'account_id INTEGER', 'activity_type_id INTEGER', 'summary TEXT', 'due_date DATE', 'user_id INTEGER',
                                   'create_uid INTEGER', 'notes TEXT', 'odoo_record_id INTEGER', 'last_modified datetime', 'link_id INTEGER', 'project_id INTEGER',
-                                  'task_id INTEGER', 'resId INTEGER', 'resModel TEXT', 'state TEXT', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0']
+                                  'task_id INTEGER', 'resId INTEGER', 'resModel TEXT', 'state TEXT', 'status TEXT DEFAULT ""', 'has_draft INTEGER DEFAULT 0',
+                                  'base_write_date TEXT', 'mutation_seq INTEGER DEFAULT 0']
                                  );
     DBCommon.createOrUpdateTable("ir_attachment_app",
         "CREATE TABLE IF NOT EXISTS ir_attachment_app (" +
@@ -359,6 +372,8 @@ function initializeDatabase() {
             "status TEXT DEFAULT ''," +   // local sync status
             "has_draft INTEGER DEFAULT 0," +
             "create_uid INTEGER," +
+            "base_write_date TEXT," +
+            "mutation_seq INTEGER DEFAULT 0," +
             "UNIQUE (odoo_record_id, account_id)" +
         ")",
         [
@@ -375,7 +390,65 @@ function initializeDatabase() {
             "last_modified datetime",
             "status TEXT DEFAULT ''",
             "has_draft INTEGER DEFAULT 0",
-            "create_uid INTEGER"
+            "create_uid INTEGER",
+            "base_write_date TEXT",
+            "mutation_seq INTEGER DEFAULT 0"
+        ]
+    );
+
+    DBCommon.createOrUpdateTable("sync_queue",
+        "CREATE TABLE IF NOT EXISTS sync_queue (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "account_id INTEGER NOT NULL," +
+            "model_name TEXT NOT NULL," +
+            "table_name TEXT NOT NULL," +
+            "local_id INTEGER NOT NULL," +
+            "odoo_record_id INTEGER," +
+            "operation TEXT NOT NULL DEFAULT 'upsert'," +
+            "dirty_fields TEXT," +
+            "base_write_date TEXT," +
+            "queued_seq INTEGER DEFAULT 0," +
+            "status TEXT NOT NULL DEFAULT 'pending'," +
+            "retry_count INTEGER DEFAULT 0," +
+            "next_retry_at TEXT," +
+            "last_error TEXT," +
+            "created_at TEXT DEFAULT (datetime('now'))," +
+            "updated_at TEXT DEFAULT (datetime('now'))," +
+            "UNIQUE (account_id, model_name, local_id)" +
+        ")",
+        [
+            "id INTEGER",
+            "account_id INTEGER",
+            "model_name TEXT",
+            "table_name TEXT",
+            "local_id INTEGER",
+            "odoo_record_id INTEGER",
+            "operation TEXT",
+            "dirty_fields TEXT",
+            "base_write_date TEXT",
+            "queued_seq INTEGER",
+            "status TEXT",
+            "retry_count INTEGER",
+            "next_retry_at TEXT",
+            "last_error TEXT",
+            "created_at TEXT",
+            "updated_at TEXT"
+        ]
+    );
+
+    DBCommon.createOrUpdateTable("cached_model_schemas",
+        "CREATE TABLE IF NOT EXISTS cached_model_schemas (" +
+            "account_id INTEGER NOT NULL," +
+            "model_name TEXT NOT NULL," +
+            "fields_json TEXT NOT NULL," +
+            "fetched_at TEXT NOT NULL," +
+            "PRIMARY KEY (account_id, model_name)" +
+        ")",
+        [
+            "account_id INTEGER",
+            "model_name TEXT",
+            "fields_json TEXT",
+            "fetched_at TEXT"
         ]
     );
 
@@ -833,7 +906,9 @@ function cleanupOrphanAccountData() {
                 "project_project_stage_app",
                 "attachment_download_app",
                 "form_drafts",
-                "notification"
+                "notification",
+                "sync_queue",
+                "cached_model_schemas"
             ];
 
             for (var i = 0; i < tables.length; i++) {

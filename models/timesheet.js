@@ -813,10 +813,24 @@ function markTimesheetAsDeleted(taskId) {
         var db = Sql.LocalStorage.openDatabaseSync(DBCommon.NAME, DBCommon.VERSION, DBCommon.DISPLAY_NAME, DBCommon.SIZE);
 
         db.transaction(function (tx) {
+            var metaRs = tx.executeSql(
+                "SELECT account_id, odoo_record_id FROM account_analytic_line_app WHERE id = ? LIMIT 1",
+                [taskId]
+            );
             tx.executeSql(
                 "UPDATE account_analytic_line_app SET status = 'deleted' WHERE id = ?",
                 [taskId]
             );
+            if (metaRs.rows.length > 0 && metaRs.rows.item(0).account_id > 0) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: metaRs.rows.item(0).account_id,
+                    modelName: "account.analytic.line",
+                    tableName: "account_analytic_line_app",
+                    localId: taskId,
+                    operation: "delete",
+                    odooRecordId: metaRs.rows.item(0).odoo_record_id
+                });
+            }
         });
 
         DBCommon.log("Timesheet marked as deleted (id: " + taskId + ")");
@@ -1000,6 +1014,23 @@ function saveTimesheet(data) {
     try {
         Logger.debug("Timesheet", "saveTimesheet: Saving timesheet data:", JSON.stringify(data))
         db.transaction(function (tx) {
+            var targetAccountId = (data.instance_id !== undefined && data.instance_id !== null)
+                ? data.instance_id
+                : ((data.account_id !== undefined && data.account_id !== null) ? data.account_id : null);
+            var targetRecordDate = data.record_date || Utils.getToday();
+            var targetDescription = data.description || "";
+            var targetUnitAmount = data.unit_amount || 0;
+            var targetStatus = data.status || "draft";
+            var targetUserId = (data.user_id !== undefined && data.user_id !== null && data.user_id !== "")
+                ? data.user_id
+                : ((data.instance_id === 0 || data.account_id === 0) ? 1 : null);
+
+            var oldRs = tx.executeSql(
+                "SELECT account_id, record_date, project_id, task_id, name, sub_project_id, sub_task_id, quadrant_id, unit_amount, user_id, odoo_record_id, status FROM account_analytic_line_app WHERE id = ? LIMIT 1",
+                [data.id]
+            );
+            var oldRow = oldRs.rows.length > 0 ? oldRs.rows.item(0) : null;
+
             tx.executeSql(`UPDATE account_analytic_line_app SET
                           account_id = ?,
                           record_date = ?,
@@ -1017,21 +1048,49 @@ function saveTimesheet(data) {
                           has_draft = 0
                           WHERE id = ?`,
                 [
-                    (data.instance_id !== undefined && data.instance_id !== null) ? data.instance_id : ((data.account_id !== undefined && data.account_id !== null) ? data.account_id : null),
-                    data.record_date || Utils.getToday(),
+                    targetAccountId,
+                    targetRecordDate,
                     data.project || null,
                     data.task || null,
-                    data.description || "",
+                    targetDescription,
                     data.subprojectId || null,
                     data.subTask || null,
                     data.quadrant || null,
-                    data.unit_amount || 0,
+                    targetUnitAmount,
                     timestamp,
-                    data.status || "draft",
+                    targetStatus,
                     data.timer_type || "manual",
-                    (data.user_id !== undefined && data.user_id !== null && data.user_id !== "") ? data.user_id : ((data.instance_id === 0 || data.account_id === 0) ? 1 : null),
+                    targetUserId,
                     data.id
                 ]);
+
+            if (targetAccountId && targetAccountId > 0 && (targetStatus === "updated" || targetStatus === "created")) {
+                var dirtyFields = null;
+                if (oldRow && oldRow.odoo_record_id) {
+                    dirtyFields = DBCommon.computeDirtyFields(oldRow, {
+                        record_date: targetRecordDate,
+                        project_id: data.project || null,
+                        task_id: data.task || null,
+                        name: targetDescription,
+                        sub_project_id: data.subprojectId || null,
+                        sub_task_id: data.subTask || null,
+                        quadrant_id: data.quadrant || null,
+                        unit_amount: targetUnitAmount,
+                        user_id: targetUserId
+                    });
+                }
+                if (!oldRow || !oldRow.odoo_record_id || (dirtyFields && dirtyFields.length > 0) || oldRow.status === "draft" || oldRow.status === "active") {
+                    DBCommon.enqueueSyncOperation(tx, {
+                        accountId: targetAccountId,
+                        modelName: "account.analytic.line",
+                        tableName: "account_analytic_line_app",
+                        localId: data.id,
+                        operation: "upsert",
+                        dirtyFields: dirtyFields,
+                        baseValues: oldRow ? DBCommon.rowToObject(oldRow) : null
+                    });
+                }
+            }
 
             result.success = true;
             result.id = data.id;
@@ -1461,6 +1520,16 @@ function markTimesheetAsReadyById(timesheetId) {
                 "UPDATE account_analytic_line_app SET last_modified = ?, status = ? WHERE id = ?",
                 [timestamp, "updated", timesheetId]
             );
+            if (accountId > 0) {
+                DBCommon.enqueueSyncOperation(tx, {
+                    accountId: accountId,
+                    modelName: "account.analytic.line",
+                    tableName: "account_analytic_line_app",
+                    localId: timesheetId,
+                    operation: "upsert",
+                    dirtyFields: null
+                });
+            }
         });
         Logger.debug("Timesheet", "Timesheet " + timesheetId + " marked as updated successfully.")
         result.success = true;
