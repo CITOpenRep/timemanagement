@@ -73,6 +73,7 @@ from .sync import (
 )
 from .sync_queue import (
     flush_sync_queue,
+    get_sync_queue_items,
     get_sync_queue_summary,
     wake_sync_queue,
 )
@@ -130,6 +131,7 @@ __all__ = [
     "wake_sync_queue",
     "flush_sync_queue",
     "get_sync_queue_summary",
+    "get_sync_queue_items",
     "sync_lock",
     "sync_in_progress",
     # Voice

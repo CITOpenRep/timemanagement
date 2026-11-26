@@ -26,6 +26,7 @@ def test_qml_exposed_functions_present():
         "wake_sync_queue",
         "flush_sync_queue",
         "get_sync_queue_summary",
+        "get_sync_queue_items",
         "login_odoo",
         "sync",
         "sync_background",

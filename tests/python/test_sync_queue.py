@@ -945,3 +945,111 @@ def test_fast_sync_fetches_missing_lookup_references_on_demand_and_respects_6h_w
     calls.clear()
     sync_from_odoo.sync_all_from_odoo(client, 10, db_path=db_path, sync_mode="fast")
     assert [c for c in calls if c[0] in ("res.users", "project.task.type")] == []
+
+
+def test_queue_item_state_events_and_active_item_hydration(tmp_path, monkeypatch):
+    from backend import sync_queue
+    from common import invalidate_cached_model_schema, save_cached_model_schema
+
+    db_path = str(tmp_path / "queue_events.db")
+    _setup_test_db(db_path, account_id=10)
+    invalidate_cached_model_schema(db_path)
+    sync_queue.invalidate_cached_client()
+    save_cached_model_schema(db_path, 10, "project.task", _task_field_info())
+
+    emitted = []
+    monkeypatch.setattr(sync_queue, "send", lambda evt, payload: emitted.append((evt, payload)) or True)
+
+    conn = sqlite3.connect(db_path)
+    # Row 1: mid-flight edit race -> in_flight -> pending
+    conn.execute(
+        "INSERT INTO project_task_app (id, name, account_id, description, last_modified, base_write_date, status, mutation_seq, odoo_record_id) "
+        "VALUES (1, 'Race Task', 10, 'Edit 1', '2026-11-26T10:00:00Z', '2026-11-26 09:00:00', 'updated', 1, 901)"
+    )
+    conn.execute(
+        "INSERT INTO sync_queue (account_id, model_name, table_name, local_id, odoo_record_id, operation, dirty_fields, base_write_date, queued_seq, status) "
+        "VALUES (10, 'project.task', 'project_task_app', 1, 901, 'upsert', ?, '2026-11-26 09:00:00', 1, 'pending')",
+        (json.dumps(["description"]),),
+    )
+    # Row 2: stuck in_flight recovery test
+    conn.execute(
+        "INSERT INTO project_task_app (id, name, account_id, description, last_modified, status, mutation_seq, odoo_record_id) "
+        "VALUES (2, 'Stuck Task', 10, 'D', '2026-11-26T10:00:00Z', 'updated', 1, 902)"
+    )
+    conn.execute(
+        "INSERT INTO sync_queue (account_id, model_name, table_name, local_id, odoo_record_id, operation, dirty_fields, queued_seq, status) "
+        "VALUES (10, 'project.task', 'project_task_app', 2, 902, 'upsert', ?, 1, 'in_flight')",
+        (json.dumps(["description"]),),
+    )
+    conn.commit()
+    conn.close()
+
+    sync_queue.recover_stuck_queue_items(db_path, account_id=10)
+    assert ("queue_item_state", {"account_id": 10, "model_name": "project.task", "local_id": 2, "state": "pending"}) in emitted
+
+    emitted.clear()
+
+    write_hits = {"901": 0}
+
+    def race_call(model, method, args, kwargs=None):
+        target_id = args[0][0]
+        if method == "read":
+            return [{"id": target_id, "write_date": "2026-11-26 09:00:00", "description": "Old"}]
+        if method == "write":
+            if target_id == 901:
+                write_hits["901"] += 1
+                if write_hits["901"] == 1:
+                    c2 = sqlite3.connect(db_path)
+                    c2.execute("UPDATE project_task_app SET mutation_seq = 2, description = 'Edit 2' WHERE id = 1")
+                    c2.execute("UPDATE sync_queue SET queued_seq = 2 WHERE account_id = 10 AND model_name = 'project.task' AND local_id = 1")
+                    c2.commit()
+                    c2.close()
+            return True
+        return True
+
+    ok_client = MagicMock()
+    ok_client.uid = 5
+    ok_client.call.side_effect = race_call
+
+    sync_queue.flush_sync_queue(db_path, account_id=10, client=ok_client)
+
+    states_1 = [p["state"] for e, p in emitted if e == "queue_item_state" and p["local_id"] == 1]
+    states_2 = [p["state"] for e, p in emitted if e == "queue_item_state" and p["local_id"] == 2]
+    # Pass 1 hits mid-flight edit -> requeued as 'pending'; pass 2 finishes -> 'synced'
+    assert states_1 == ["in_flight", "pending", "in_flight", "synced"]
+    assert states_2 == ["in_flight", "synced"]
+    assert any(e == "queue_synced" for e, _ in emitted)
+    assert sync_queue.get_sync_queue_items(db_path, account_id=10) == []
+
+    # Re-queue Row 1 to test transient backoff retry -> remote-delete conflict events + hydration
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE project_task_app SET status = 'updated', mutation_seq = 3 WHERE id = 1")
+    conn.execute(
+        "INSERT INTO sync_queue (account_id, model_name, table_name, local_id, odoo_record_id, operation, dirty_fields, base_write_date, queued_seq, status) "
+        "VALUES (10, 'project.task', 'project_task_app', 1, 901, 'upsert', ?, '2026-11-26 09:00:00', 3, 'pending')",
+        (json.dumps(["description"]),),
+    )
+    conn.commit()
+    conn.close()
+
+    assert sync_queue.get_sync_queue_items(db_path, account_id=10)[0]["state"] == "pending"
+
+    # Transient error -> pending with error & next_retry_at; remote delete -> conflict
+    emitted.clear()
+    err_client = MagicMock()
+    err_client.uid = 5
+    err_client.call.side_effect = TimeoutError("Connection timed out")
+    sync_queue.flush_sync_queue(db_path, account_id=10, client=err_client, ignore_backoff=True)
+    retry_evts = [p for e, p in emitted if e == "queue_item_state" and p["local_id"] == 1]
+    assert [p["state"] for p in retry_evts] == ["in_flight", "pending"]
+    assert "timed out" in retry_evts[-1]["error"].lower()
+    assert retry_evts[-1].get("next_retry_at")
+
+    emitted.clear()
+    deleted_client = MagicMock()
+    deleted_client.uid = 5
+    deleted_client.call.side_effect = lambda m, meth, a, kw=None: [] if meth == "read" else True
+    sync_queue.flush_sync_queue(db_path, account_id=10, client=deleted_client, ignore_backoff=True)
+    conflict_evts = [p for e, p in emitted if e == "queue_item_state" and p["local_id"] == 1]
+    assert [p["state"] for p in conflict_evts] == ["in_flight", "conflict"]
+    assert sync_queue.get_sync_queue_items(db_path, account_id=10)[0]["state"] == "conflict"

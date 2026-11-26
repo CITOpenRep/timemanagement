@@ -160,21 +160,46 @@ def invalidate_cached_client(account_id=None):
                 _client_pool.pop(k, None)
 
 
+def _emit_queue_item_state(account_id, model_name, local_id, state, error=None, next_retry_at=None):
+    """Broadcast real-time per-item queue state transitions to QML via the bus."""
+    payload = {
+        "account_id": int(account_id) if account_id is not None else -1,
+        "model_name": model_name,
+        "local_id": int(local_id) if local_id is not None else -1,
+        "state": state,
+    }
+    if error:
+        payload["error"] = str(error)[:300]
+    if next_retry_at:
+        payload["next_retry_at"] = str(next_retry_at)
+    send("queue_item_state", payload)
+
+
 def recover_stuck_queue_items(db_path, account_id=None):
     """Reset any queue jobs left in 'in_flight' state (e.g. after app crash/kill) back to 'pending'."""
     try:
         ensure_sync_schema(db_path)
+        select_sql = "SELECT account_id, model_name, local_id FROM sync_queue WHERE status = 'in_flight'"
+        select_params = ()
         if account_id is not None:
-            safe_sql_execute(
-                db_path,
-                "UPDATE sync_queue SET status = 'pending', updated_at = datetime('now') WHERE status = 'in_flight' AND account_id = ?",
-                (account_id,),
-            )
-        else:
-            safe_sql_execute(
-                db_path,
-                "UPDATE sync_queue SET status = 'pending', updated_at = datetime('now') WHERE status = 'in_flight'",
-            )
+            select_sql += " AND account_id = ?"
+            select_params = (account_id,)
+        stuck_rows = safe_sql_execute(db_path, select_sql, select_params, fetch=True, commit=False) or []
+
+        if stuck_rows:
+            if account_id is not None:
+                safe_sql_execute(
+                    db_path,
+                    "UPDATE sync_queue SET status = 'pending', updated_at = datetime('now') WHERE status = 'in_flight' AND account_id = ?",
+                    (account_id,),
+                )
+            else:
+                safe_sql_execute(
+                    db_path,
+                    "UPDATE sync_queue SET status = 'pending', updated_at = datetime('now') WHERE status = 'in_flight'",
+                )
+            for acc_id, model_name, local_id in stuck_rows:
+                _emit_queue_item_state(acc_id, model_name, local_id, "pending")
     except Exception as e:
         log.debug(f"[QUEUE] Failed to recover in_flight items: {e}")
 
@@ -262,6 +287,36 @@ def get_sync_queue_summary(db_path, account_id=-1):
     except Exception as e:
         log.debug(f"[QUEUE] Summary query failed: {e}")
     return summary
+
+
+def get_sync_queue_items(db_path, account_id=-1):
+    """Return active sync_queue items so QML can hydrate per-record badge states."""
+    items = []
+    if not db_path:
+        return items
+    try:
+        ensure_sync_schema(db_path)
+        sql = (
+            "SELECT account_id, model_name, local_id, status, last_error, next_retry_at "
+            "FROM sync_queue WHERE status IN ('pending', 'in_flight', 'failed', 'conflict')"
+        )
+        params = ()
+        if account_id is not None and int(account_id) >= 0:
+            sql += " AND account_id = ?"
+            params = (int(account_id),)
+        rows = safe_sql_execute(db_path, sql, params, fetch=True, commit=False) or []
+        for acc_id, model_name, local_id, st, last_err, next_retry in rows:
+            items.append({
+                "account_id": int(acc_id),
+                "model_name": model_name,
+                "local_id": int(local_id),
+                "state": st,
+                "error": last_err or "",
+                "next_retry_at": next_retry or "",
+            })
+    except Exception as e:
+        log.debug(f"[QUEUE] Item list query failed: {e}")
+    return items
 
 
 def _backfill_parent_odoo_id(conn, account_id, parent_model, local_id, new_odoo_id):
@@ -589,6 +644,7 @@ def _mark_queue_conflict(db_path, account_id, model_name, local_id, message):
         "UPDATE sync_queue SET status = 'conflict', next_retry_at = NULL, last_error = ?, updated_at = datetime('now') WHERE account_id = ? AND model_name = ? AND local_id = ?",
         (str(message)[:500], account_id, model_name, local_id),
     )
+    _emit_queue_item_state(account_id, model_name, local_id, "conflict", error=message)
 
 
 def _mark_queue_retry_or_failed(db_path, account_id, model_name, local_id, current_retry_count, err_str):
@@ -602,6 +658,7 @@ def _mark_queue_retry_or_failed(db_path, account_id, model_name, local_id, curre
             "UPDATE sync_queue SET status = 'failed', retry_count = ?, next_retry_at = NULL, last_error = ?, updated_at = datetime('now') WHERE account_id = ? AND model_name = ? AND local_id = ?",
             (next_retry_count, str(err_str)[:500], account_id, model_name, local_id),
         )
+        _emit_queue_item_state(account_id, model_name, local_id, "failed", error=err_str)
         return None, True
 
     idx = min(next_retry_count - 1, len(BACKOFF_SCHEDULE_SECONDS) - 1)
@@ -612,6 +669,7 @@ def _mark_queue_retry_or_failed(db_path, account_id, model_name, local_id, curre
         "UPDATE sync_queue SET status = 'pending', retry_count = ?, next_retry_at = ?, last_error = ?, updated_at = datetime('now') WHERE account_id = ? AND model_name = ? AND local_id = ?",
         (next_retry_count, next_at, str(err_str)[:500], account_id, model_name, local_id),
     )
+    _emit_queue_item_state(account_id, model_name, local_id, "pending", error=err_str, next_retry_at=next_at)
     return delay_sec, False
 
 
@@ -648,6 +706,7 @@ def _process_single_queue_item(db_path, account_id, queue_item, client, config_p
         "UPDATE sync_queue SET status = 'in_flight', updated_at = datetime('now') WHERE id = ?",
         (queue_item["id"],),
     )
+    _emit_queue_item_state(account_id, model_name, local_id, "in_flight")
 
     records = get_local_records(
         table_name,
@@ -659,6 +718,7 @@ def _process_single_queue_item(db_path, account_id, queue_item, client, config_p
     )
     if not records:
         safe_sql_execute(db_path, "DELETE FROM sync_queue WHERE id = ?", (queue_item["id"],))
+        _emit_queue_item_state(account_id, model_name, local_id, "synced")
         return "skipped", None
 
     record = records[0]
@@ -673,6 +733,7 @@ def _process_single_queue_item(db_path, account_id, queue_item, client, config_p
     # Never push running/paused/draft timers until finalized
     if operation != "delete" and local_status in ("active", "draft", "saved", ""):
         safe_sql_execute(db_path, "DELETE FROM sync_queue WHERE id = ?", (queue_item["id"],))
+        _emit_queue_item_state(account_id, model_name, local_id, "synced")
         return "skipped", None
 
     # Delete operation
@@ -692,6 +753,7 @@ def _process_single_queue_item(db_path, account_id, queue_item, client, config_p
 
         safe_sql_execute(db_path, f"DELETE FROM {table_name} WHERE id = ?", (local_id,))
         safe_sql_execute(db_path, "DELETE FROM sync_queue WHERE id = ?", (queue_item["id"],))
+        _emit_queue_item_state(account_id, model_name, local_id, "synced")
         return "pushed", None
 
     # Check if child depends on an unsynced local parent
@@ -702,6 +764,7 @@ def _process_single_queue_item(db_path, account_id, queue_item, client, config_p
             "UPDATE sync_queue SET status = 'pending', updated_at = datetime('now') WHERE id = ?",
             (queue_item["id"],),
         )
+        _emit_queue_item_state(account_id, model_name, local_id, "pending")
         return "deferred", None
     if blocking_status in ("failed", "conflict"):
         err_msg = f"Waiting on parent record ({blocking_status})"
@@ -781,6 +844,7 @@ def _process_single_queue_item(db_path, account_id, queue_item, client, config_p
             sync_context=sync_context,
             config_path=config_path,
         )
+        _emit_queue_item_state(account_id, model_name, local_id, "pending" if has_more else "synced")
         clear_sync_notifications(db_path, account_id, model_name)
         return ("pushed_and_requeued" if has_more else "pushed"), None
 
@@ -886,6 +950,7 @@ def flush_sync_queue(
                 acct = accounts.get(acct_id)
                 if not acct or not acct.get("link") or not acct.get("api_key"):
                     safe_sql_execute(db_path, "DELETE FROM sync_queue WHERE id = ?", (item["id"],))
+                    _emit_queue_item_state(acct_id, item["model_name"], item["local_id"], "synced")
                     continue
 
                 use_client = client if (client is not None and (account_id is None or acct_id == account_id)) else None
