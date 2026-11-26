@@ -29,22 +29,35 @@ import "../../../models/constants.js" as AppConst
 import "../base"
 
 /**
- * OptionPickerDialog - Searchable single or multi-select modal picker.
- * Renders at the root window level to eliminate nested Flickable scroll conflicts.
+ * OptionPickerDialog - Single shared searchable overlay picker.
+ * Uses plain JS array models, debounced filtering above 80 items, and
+ * discrete keyboard sizing to avoid ListModel churn and 60fps relayouts.
  */
 Item {
     id: pickerOverlay
 
-    property var anchorItem: null
     property string titleText: i18n.dtr("ubtms", "Select Option")
     property var modelData: []
     property int selectedId: -1
     property var selectedIds: []
     property bool multiSelect: false
     property int searchThreshold: 6
-    property bool autoFocusSearch: false
+    property int maxFilteredResults: 200
     property bool isOpen: false
     property alias searchText: searchBar.text
+
+    property var _normalizedOptions: []
+    property var filteredOptions: []
+    property bool _hasMoreMatches: false
+    property int _totalMatchCount: 0
+    property bool _showSearchBar: false
+    property bool _updatingQuery: false
+    property real _frozenKeyboardHeight: 0
+
+    property var _onSelectedCallback: null
+    property var _onMultiToggleCallback: null
+    property var _onMultiClearCallback: null
+    property var _onClosedCallback: null
 
     property color selectedColor: AppConst.Colors.Primary || "#3498db"
     readonly property bool isDarkTheme: (typeof Theme !== "undefined" && Theme.name === "Ubuntu.Components.Themes.SuruDark") || (typeof theme !== "undefined" && theme.name === "Ubuntu.Components.Themes.SuruDark")
@@ -53,49 +66,72 @@ Item {
     readonly property color textColor: isDarkTheme ? "#ebebef" : "#222222"
     readonly property color mutedTextColor: isDarkTheme ? "#9a9aa2" : "#777777"
     readonly property color dividerColor: isDarkTheme ? "#2e2e34" : "#e6e6eb"
-    readonly property color rowHoverColor: isDarkTheme ? "#2b2b31" : "#f5f5f5"
-    readonly property real keyboardHeight: (typeof Qt !== "undefined" && Qt.inputMethod && Qt.inputMethod.visible && Qt.inputMethod.keyboardRectangle) ? Qt.inputMethod.keyboardRectangle.height : 0
-    readonly property bool showSearchBar: _validOptionCount() > searchThreshold
-    readonly property int filteredCount: filteredModel.count
+    readonly property bool showSearchBar: _showSearchBar
+    readonly property int filteredCount: filteredOptions.length
 
     signal optionSelected(int id, string name)
     signal multiItemToggled(int id, string name, bool isSelected)
     signal multiCleared()
     signal closed()
 
-    x: 0
-    y: 0
-    width: parent ? parent.width : 0
-    height: parent ? parent.height : 0
+    anchors.fill: parent
     visible: isOpen
-    z: 10000
+    z: 10050
 
-    ListModel {
-        id: filteredModel
+    function _updateKeyboardOffset() {
+        if (!isOpen || typeof Qt === "undefined" || !Qt.inputMethod || !Qt.inputMethod.visible) {
+            _frozenKeyboardHeight = 0;
+            return;
+        }
+        var rectH = (Qt.inputMethod.keyboardRectangle && Qt.inputMethod.keyboardRectangle.height > 0)
+            ? Qt.inputMethod.keyboardRectangle.height
+            : pickerOverlay.height * 0.42;
+        _frozenKeyboardHeight = rectH;
     }
 
-    function _resolveRootParent() {
-        var root = anchorItem ? anchorItem : pickerOverlay.parent;
-        var guard = 0;
-        while (root && root.parent && guard < 32) {
-            root = root.parent;
-            guard++;
-        }
-        return root;
-    }
-
-    function _validOptionCount() {
-        if (!modelData || !Array.isArray(modelData)) {
-            return 0;
-        }
-        var count = 0;
-        for (var i = 0; i < modelData.length; i++) {
-            var item = modelData[i];
-            if (item && item.name !== undefined && item.name !== null && String(item.name).trim() !== "") {
-                count++;
+    Connections {
+        target: (typeof Qt !== "undefined" && Qt.inputMethod) ? Qt.inputMethod : null
+        onVisibleChanged: {
+            if (pickerOverlay.isOpen) {
+                pickerOverlay._updateKeyboardOffset();
             }
         }
-        return count;
+        onAnimatingChanged: {
+            if (pickerOverlay.isOpen && !Qt.inputMethod.animating) {
+                pickerOverlay._updateKeyboardOffset();
+            }
+        }
+    }
+
+    Timer {
+        id: filterDebounceTimer
+        interval: 90
+        repeat: false
+        onTriggered: pickerOverlay._applyFilter()
+    }
+
+    function _normalizeOptions(rawArray) {
+        if (!rawArray || !Array.isArray(rawArray)) {
+            return [];
+        }
+        var out = [];
+        for (var i = 0; i < rawArray.length; i++) {
+            var item = rawArray[i];
+            if (!item || item.name === undefined || item.name === null) {
+                continue;
+            }
+            var cleanName = String(item.name).trim();
+            if (cleanName === "") {
+                continue;
+            }
+            var itemId = item.id !== undefined ? item.id : (item.itemId !== undefined ? item.itemId : -1);
+            out.push({
+                id: itemId,
+                name: cleanName,
+                lower: cleanName.toLowerCase()
+            });
+        }
+        return out;
     }
 
     function _isSelected(itemId) {
@@ -113,44 +149,55 @@ Item {
         return itemId === selectedId;
     }
 
-    function _rebuildFilteredModel() {
-        filteredModel.clear();
-        if (!modelData || !Array.isArray(modelData)) {
-            return;
-        }
-
+    function _applyFilter() {
+        var source = _normalizedOptions;
         var query = String(searchBar.text || "").trim().toLowerCase();
         var hasQuery = query.length > 0;
 
-        for (var i = 0; i < modelData.length; i++) {
-            var item = modelData[i];
-            if (!item || item.name === undefined || item.name === null) {
+        if (!hasQuery) {
+            _totalMatchCount = source.length;
+            _hasMoreMatches = false;
+            filteredOptions = source;
+            return;
+        }
+
+        var matched = [];
+        var total = 0;
+        var cap = maxFilteredResults > 0 ? maxFilteredResults : 200;
+        for (var i = 0; i < source.length; i++) {
+            var opt = source[i];
+            if (opt.id === -1 && opt.name === "Select") {
                 continue;
             }
-            var cleanName = String(item.name).trim();
-            if (cleanName === "") {
-                continue;
-            }
-            var itemId = item.id !== undefined ? item.id : (item.itemId !== undefined ? item.itemId : -1);
-
-            if (hasQuery) {
-                if (itemId === -1 && cleanName === "Select") {
-                    continue;
-                }
-                if (cleanName.toLowerCase().indexOf(query) === -1) {
-                    continue;
+            if (opt.lower.indexOf(query) !== -1) {
+                total++;
+                if (matched.length < cap) {
+                    matched.push(opt);
                 }
             }
+        }
+        _totalMatchCount = total;
+        _hasMoreMatches = total > cap;
+        filteredOptions = matched;
+        if (optionsListView.count > 0) {
+            optionsListView.positionViewAtBeginning();
+        }
+    }
 
-            filteredModel.append({
-                itemId: itemId,
-                name: cleanName
-            });
+    function _scheduleFilter() {
+        if (_updatingQuery) {
+            return;
+        }
+        if (_normalizedOptions.length <= 80) {
+            filterDebounceTimer.stop();
+            _applyFilter();
+        } else {
+            filterDebounceTimer.restart();
         }
     }
 
     function _scrollToSelection() {
-        if (filteredModel.count === 0) {
+        if (filteredOptions.length === 0) {
             return;
         }
         var targetId = multiSelect ? (selectedIds && selectedIds.length > 0 ? selectedIds[0] : -1) : selectedId;
@@ -158,46 +205,84 @@ Item {
             optionsListView.positionViewAtBeginning();
             return;
         }
-        for (var i = 0; i < filteredModel.count; i++) {
-            if (filteredModel.get(i).itemId === targetId) {
+        for (var i = 0; i < filteredOptions.length; i++) {
+            if (filteredOptions[i].id === targetId) {
                 optionsListView.positionViewAtIndex(i, ListView.Center);
                 return;
             }
         }
     }
 
-    function open() {
-        var resolvedRoot = _resolveRootParent();
-        if (resolvedRoot && pickerOverlay.parent !== resolvedRoot) {
-            pickerOverlay.parent = resolvedRoot;
+    function open(config) {
+        filterDebounceTimer.stop();
+        if (_onClosedCallback) {
+            var prevClosed = _onClosedCallback;
+            _onClosedCallback = null;
+            prevClosed();
         }
-        searchBar.clear();
-        _rebuildFilteredModel();
-        isOpen = true;
-        Qt.callLater(function () {
-            _scrollToSelection();
-            if (autoFocusSearch && showSearchBar) {
-                searchBar.forceActiveFocus();
-            }
-        });
-    }
+        if (config && typeof config === "object") {
+            if (config.titleText !== undefined) titleText = config.titleText;
+            if (config.modelData !== undefined) modelData = config.modelData;
+            multiSelect = !!config.multiSelect;
+            selectedId = config.selectedId !== undefined ? config.selectedId : -1;
+            selectedIds = Array.isArray(config.selectedIds) ? config.selectedIds.slice() : [];
+            if (config.searchThreshold !== undefined) searchThreshold = config.searchThreshold;
+            _onSelectedCallback = typeof config.onSelected === "function" ? config.onSelected : null;
+            _onMultiToggleCallback = typeof config.onMultiToggled === "function" ? config.onMultiToggled : null;
+            _onMultiClearCallback = typeof config.onMultiCleared === "function" ? config.onMultiCleared : null;
+            _onClosedCallback = typeof config.onClosed === "function" ? config.onClosed : null;
+        } else {
+            _onSelectedCallback = null;
+            _onMultiToggleCallback = null;
+            _onMultiClearCallback = null;
+            _onClosedCallback = null;
+        }
 
-    Component.onDestruction: {
-        isOpen = false;
+        _updatingQuery = true;
+        searchBar.clear();
+        _updatingQuery = false;
+
+        _normalizedOptions = _normalizeOptions(modelData);
+        _showSearchBar = _normalizedOptions.length > searchThreshold;
+        _applyFilter();
+        _updateKeyboardOffset();
+        isOpen = true;
+        Qt.callLater(_scrollToSelection);
     }
 
     function close() {
         if (!isOpen) {
             return;
         }
+        filterDebounceTimer.stop();
+        _updatingQuery = true;
         searchBar.clear();
+        _updatingQuery = false;
         isOpen = false;
+        _frozenKeyboardHeight = 0;
+        _normalizedOptions = [];
+        filteredOptions = [];
+        var closedCb = _onClosedCallback;
+        _onSelectedCallback = null;
+        _onMultiToggleCallback = null;
+        _onMultiClearCallback = null;
+        _onClosedCallback = null;
+        if (typeof Qt !== "undefined" && Qt.inputMethod) {
+            Qt.inputMethod.hide();
+        }
+        if (closedCb) {
+            closedCb();
+        }
         closed();
     }
 
     onModelDataChanged: {
         if (isOpen) {
-            _rebuildFilteredModel();
+            _normalizedOptions = _normalizeOptions(modelData);
+            _showSearchBar = _normalizedOptions.length > searchThreshold;
+            _applyFilter();
+        } else {
+            _showSearchBar = (modelData && modelData.length > searchThreshold);
         }
     }
 
@@ -215,10 +300,11 @@ Item {
     // Picker card sheet
     Rectangle {
         id: sheetCard
+        readonly property real availableHeight: Math.max(units.gu(26), pickerOverlay.height - pickerOverlay._frozenKeyboardHeight - units.gu(5))
         width: Math.min(pickerOverlay.width * 0.92, units.gu(58))
-        height: Math.min(Math.max(units.gu(26), pickerOverlay.height - keyboardHeight - units.gu(6)), units.gu(68))
+        height: Math.min(availableHeight, units.gu(66))
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Math.max(units.gu(2), (pickerOverlay.height - keyboardHeight - height) / 2)
+        y: Math.max(units.gu(2), (pickerOverlay.height - pickerOverlay._frozenKeyboardHeight - height) / 2)
         radius: units.gu(1.2)
         color: sheetBgColor
         border.color: borderColor
@@ -270,11 +356,16 @@ Item {
                         spacing: units.gu(0.8)
 
                         TSButton {
+                            id: clearHeaderButton
                             visible: !multiSelect && selectedId > 0
                             text: i18n.dtr("ubtms", "Clear")
+                            width: units.gu(9)
                             height: units.gu(3.6)
                             anchors.verticalCenter: parent.verticalCenter
                             onClicked: {
+                                if (_onSelectedCallback) {
+                                    _onSelectedCallback(-1, "Select");
+                                }
                                 optionSelected(-1, "Select");
                                 pickerOverlay.close();
                             }
@@ -311,13 +402,29 @@ Item {
             TSSearchBar {
                 id: searchBar
                 width: parent.width
-                visible: showSearchBar
+                height: visible ? implicitHeight : 0
+                visible: _showSearchBar
                 topPadding: units.gu(0.8)
                 bottomPadding: units.gu(0.8)
                 horizontalPadding: units.gu(1.2)
                 placeholderText: i18n.dtr("ubtms", "Filter options...")
-                onTextChanged: _rebuildFilteredModel()
-                onCleared: _rebuildFilteredModel()
+                onTextChanged: pickerOverlay._scheduleFilter()
+            }
+
+            // Narrow-down hint when search matches exceed render cap
+            Rectangle {
+                id: capBanner
+                width: parent.width
+                height: visible ? units.gu(3.2) : 0
+                visible: _hasMoreMatches
+                color: isDarkTheme ? "#25252b" : "#f3f4f6"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: i18n.dtr("ubtms", "Showing top %1 of %2 matches").arg(maxFilteredResults).arg(_totalMatchCount)
+                    font.pixelSize: units.gu(1.2)
+                    color: mutedTextColor
+                }
             }
 
             // Options list area
@@ -326,7 +433,7 @@ Item {
                 width: parent.width
                 height: Math.max(
                     units.gu(10),
-                    sheetCard.height - headerBar.height - (searchBar.visible ? searchBar.height : 0) - (footerBar.visible ? footerBar.height : 0)
+                    sheetCard.height - headerBar.height - searchBar.height - capBanner.height - footerBar.height
                 )
 
                 ListView {
@@ -334,7 +441,8 @@ Item {
                     anchors.fill: parent
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
-                    model: filteredModel
+                    cacheBuffer: units.gu(24)
+                    model: pickerOverlay.filteredOptions
 
                     ScrollBar.vertical: ScrollBar {
                         active: true
@@ -345,10 +453,13 @@ Item {
                         id: optionRow
                         width: optionsListView.width
                         height: units.gu(5.4)
-                        readonly property bool rowSelected: pickerOverlay._isSelected(model.itemId)
+                        readonly property var optItem: modelData
+                        readonly property int optId: optItem ? optItem.id : -1
+                        readonly property string optName: optItem ? optItem.name : ""
+                        readonly property bool rowSelected: pickerOverlay._isSelected(optId)
                         color: rowSelected
                             ? Qt.rgba(selectedColor.r, selectedColor.g, selectedColor.b, 0.14)
-                            : (rowTap.containsMouse ? rowHoverColor : "transparent")
+                            : "transparent"
 
                         Row {
                             anchors.fill: parent
@@ -378,7 +489,7 @@ Item {
                             Text {
                                 width: parent.width - units.gu(4.2)
                                 height: parent.height
-                                text: model.name
+                                text: optionRow.optName
                                 color: rowSelected ? selectedColor : textColor
                                 font.pixelSize: units.gu(1.6)
                                 font.bold: rowSelected
@@ -388,14 +499,27 @@ Item {
                         }
 
                         MouseArea {
-                            id: rowTap
                             anchors.fill: parent
-                            hoverEnabled: true
                             onClicked: {
                                 if (multiSelect) {
-                                    multiItemToggled(model.itemId, model.name, !optionRow.rowSelected);
+                                    var nextSel = !optionRow.rowSelected;
+                                    var updated = pickerOverlay.selectedIds ? pickerOverlay.selectedIds.slice() : [];
+                                    var idx = updated.indexOf(optionRow.optId);
+                                    if (nextSel && idx === -1) {
+                                        updated.push(optionRow.optId);
+                                    } else if (!nextSel && idx !== -1) {
+                                        updated.splice(idx, 1);
+                                    }
+                                    pickerOverlay.selectedIds = updated;
+                                    if (_onMultiToggleCallback) {
+                                        _onMultiToggleCallback(optionRow.optId, optionRow.optName, nextSel);
+                                    }
+                                    multiItemToggled(optionRow.optId, optionRow.optName, nextSel);
                                 } else {
-                                    optionSelected(model.itemId, model.name);
+                                    if (_onSelectedCallback) {
+                                        _onSelectedCallback(optionRow.optId, optionRow.optName);
+                                    }
+                                    optionSelected(optionRow.optId, optionRow.optName);
                                     pickerOverlay.close();
                                 }
                             }
@@ -416,7 +540,7 @@ Item {
                     width: parent.width - units.gu(4)
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
-                    visible: filteredModel.count === 0
+                    visible: pickerOverlay.filteredOptions.length === 0
                     text: i18n.dtr("ubtms", "No matching options")
                     font.pixelSize: units.gu(1.5)
                     color: mutedTextColor
@@ -427,7 +551,7 @@ Item {
             Rectangle {
                 id: footerBar
                 width: parent.width
-                height: units.gu(6)
+                height: visible ? units.gu(6) : 0
                 visible: multiSelect
                 color: "transparent"
 
@@ -447,15 +571,23 @@ Item {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                         text: i18n.dtr("ubtms", "Clear All")
+                        width: Math.min(units.gu(13), (parent.width - units.gu(1.5)) / 2)
                         height: units.gu(4)
                         enabled: selectedIds && selectedIds.length > 0
-                        onClicked: pickerOverlay.multiCleared()
+                        onClicked: {
+                            pickerOverlay.selectedIds = [];
+                            if (_onMultiClearCallback) {
+                                _onMultiClearCallback();
+                            }
+                            pickerOverlay.multiCleared();
+                        }
                     }
 
                     TSButton {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         text: i18n.dtr("ubtms", "Done")
+                        width: Math.min(units.gu(11), (parent.width - units.gu(1.5)) / 2)
                         height: units.gu(4)
                         onClicked: pickerOverlay.close()
                     }
