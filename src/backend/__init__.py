@@ -71,6 +71,11 @@ from .sync import (
     sync_lock,
     unregister_account_push,
 )
+from .sync_queue import (
+    flush_sync_queue,
+    get_sync_queue_summary,
+    wake_sync_queue,
+)
 from .voice import (
     cancel_voice_model_download,
     delete_voice_model,
@@ -122,6 +127,9 @@ __all__ = [
     "sync",
     "sync_background",
     "start_sync_in_background",
+    "wake_sync_queue",
+    "flush_sync_queue",
+    "get_sync_queue_summary",
     "sync_lock",
     "sync_in_progress",
     # Voice

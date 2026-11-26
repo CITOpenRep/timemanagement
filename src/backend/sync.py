@@ -27,11 +27,12 @@ import urllib.request
 
 from bus import send
 from common import write_sync_report_to_db
-from config import get_all_accounts, update_last_synced_at, get_setting, set_setting
+from config import get_account_sync_settings, get_all_accounts, update_last_synced_at, get_setting, set_setting
 from logger import setup_logger
 from odoo_client import OdooClient
 from sync_from_odoo import sync_all_from_odoo
 from sync_to_odoo import sync_all_to_odoo
+from .sync_queue import flush_sync_queue, get_sync_queue_summary, wake_sync_queue
 
 log = setup_logger()
 
@@ -43,16 +44,22 @@ _current_push_token = None
 _pending_push_request = None
 
 
-def sync(settings_db, account_id):
+def sync(settings_db, account_id, sync_mode="auto"):
     """
     Perform synchronous bidirectional sync between local database and Odoo.
+    Pushes pending local mutations first, then pulls changes from Odoo.
     """
     send("progress", 0)
     write_sync_report_to_db(
         settings_db, account_id, "In Progress", "Sync job triggered"
     )
     accounts = get_all_accounts(settings_db)
-    selected = accounts[account_id]
+    selected = next(
+        (acc for acc in accounts if acc["id"] == account_id or str(acc["id"]) == str(account_id)),
+        None,
+    )
+    if not selected:
+        selected = accounts[account_id]
     client = OdooClient(
         selected["link"],
         selected["database"],
@@ -73,13 +80,24 @@ def sync(settings_db, account_id):
         except Exception as e:
             log.debug(f"[PUSH] Push device registration skipped: {e}")
 
-    send("progress", 20)
-    log.debug("Syncing from odoo from server: " + selected["link"])
-    sync_all_from_odoo(client, selected["id"], settings_db, account_name=selected.get("name", ""))
+    sync_direction = get_account_sync_settings(settings_db, selected["id"]).get("sync_direction", "both")
 
-    log.debug("Syncing to odoo")
+    send("progress", 20)
+    if sync_direction != "download_only":
+        log.debug("Flushing queued local changes to odoo")
+        flush_sync_queue(settings_db, account_id=selected["id"], client=client, ignore_backoff=True)
+        sync_all_to_odoo(client, selected["id"], settings_db)
+
     send("progress", 50)
-    sync_all_to_odoo(client, selected["id"], settings_db)
+    if sync_direction != "upload_only":
+        log.debug("Syncing from odoo from server: " + selected["link"])
+        sync_all_from_odoo(
+            client,
+            selected["id"],
+            settings_db,
+            account_name=selected.get("name", ""),
+            sync_mode=sync_mode,
+        )
 
     write_sync_report_to_db(
         settings_db, account_id, "Successful", "Sync completed successfully"
@@ -88,9 +106,11 @@ def sync(settings_db, account_id):
     return True
 
 
-def sync_background(settings_db, account_id):
+def sync_background(settings_db, account_id, sync_mode="auto"):
     """
     Perform asynchronous bidirectional sync in a background thread.
+    Pushes queued local changes first so local edits reach Odoo immediately,
+    then pulls delta or full updates depending on sync_mode.
     """
     global sync_in_progress
 
@@ -105,7 +125,7 @@ def sync_background(settings_db, account_id):
         global sync_in_progress
         try:
             send("sync_progress", 0)
-            log.debug(f"[SYNC] Starting background sync to {settings_db}...")
+            log.debug(f"[SYNC] Starting background sync (mode={sync_mode}) to {settings_db}...")
             write_sync_report_to_db(
                 settings_db, account_id, "In Progress", "Sync job triggered"
             )
@@ -148,12 +168,24 @@ def sync_background(settings_db, account_id):
                 except Exception as e:
                     log.debug(f"[PUSH] Push device registration skipped: {e}")
 
-            send("sync_progress", 30)
-            log.debug("Syncing from odoo: ID Is " + selected["link"])
-            sync_all_from_odoo(client, account_id, settings_db, account_name=selected.get("name", ""))
-            send("sync_progress", 50)
-            log.debug("Syncing to odoo")
-            sync_all_to_odoo(client, account_id, settings_db)
+            sync_direction = get_account_sync_settings(settings_db, account_id).get("sync_direction", "both")
+
+            send("sync_progress", 35)
+            if sync_direction != "download_only":
+                log.debug("Syncing queued local changes to odoo first")
+                flush_sync_queue(settings_db, account_id=account_id, client=client, ignore_backoff=True)
+                sync_all_to_odoo(client, account_id, settings_db)
+
+            send("sync_progress", 60)
+            if sync_direction != "upload_only":
+                log.debug("Syncing from odoo: ID Is " + selected["link"])
+                sync_all_from_odoo(
+                    client,
+                    account_id,
+                    settings_db,
+                    account_name=selected.get("name", ""),
+                    sync_mode=sync_mode,
+                )
             send("sync_progress", 90)
 
             log.debug("[SYNC] Background sync completed.")
@@ -179,11 +211,13 @@ def sync_background(settings_db, account_id):
     return True
 
 
-def start_sync_in_background(settings_db, account_id):
+def start_sync_in_background(settings_db, account_id, sync_mode=None):
     """
     Start a background synchronization process.
     """
-    return sync_background(settings_db, account_id)
+    if sync_mode is None:
+        return sync_background(settings_db, account_id)
+    return sync_background(settings_db, account_id, sync_mode=sync_mode)
 
 
 def cleanup_legacy_daemon():
