@@ -715,6 +715,15 @@ Rectangle {
 
     //End functions (Quiet a long one :D )
 
+    function _collapseAllExcept(activeSelector) {
+        var selectors = [account_component, project_component, subproject_compoent, task_component, subtask_component, assignee_component];
+        for (var i = 0; i < selectors.length; i++) {
+            if (selectors[i] && selectors[i] !== activeSelector && typeof selectors[i].collapse === "function") {
+                selectors[i].collapse();
+            }
+        }
+    }
+
     Column {
         id: contentColumn
         width: parent.width
@@ -727,6 +736,7 @@ Rectangle {
             labelText: accountLabelText
             enabledState: !readOnly
             readOnly: readOnly
+            onAboutToExpand: workItemSelector._collapseAllExcept(account_component)
             onSelectionMade: handleSelection(id, name, selectorType)
             Component.onCompleted:
             // Only auto-load accounts for new records (when deferred loading is not planned)
@@ -747,6 +757,7 @@ Rectangle {
             enabledState: !readOnly
             readOnly: readOnly
             visible: showProjectSelector
+            onAboutToExpand: workItemSelector._collapseAllExcept(project_component)
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -787,6 +798,7 @@ Rectangle {
             labelText: subProjectLabelText
             enabledState: !readOnly
             readOnly: readOnly
+            onAboutToExpand: workItemSelector._collapseAllExcept(subproject_compoent)
             onSelectionMade: handleSelection(id, name, selectorType)
             visible: showSubProjectSelector
             Connections {
@@ -813,6 +825,7 @@ Rectangle {
             enabledState: !readOnly
             readOnly: readOnly
             visible: showTaskSelector
+            onAboutToExpand: workItemSelector._collapseAllExcept(task_component)
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -839,6 +852,7 @@ Rectangle {
             enabledState: !readOnly
             readOnly: readOnly
             visible: showSubTaskSelector
+            onAboutToExpand: workItemSelector._collapseAllExcept(subtask_component)
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -865,6 +879,7 @@ Rectangle {
             labelText: assigneeLabelText
             enabledState: !readOnly
             readOnly: readOnly
+            onAboutToExpand: workItemSelector._collapseAllExcept(assignee_component)
             onSelectionMade: handleSelection(id, name, selectorType)
 
             Connections {
@@ -894,6 +909,7 @@ Rectangle {
             readOnly: readOnly
             enabledState: !readOnly
             width: parent.width
+            onOpeningPicker: workItemSelector._collapseAllExcept(null)
 
             onAssigneesChanged: {
                 // Emit signal when assignees change

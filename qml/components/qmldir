@@ -25,6 +25,7 @@ MultiAssigneeSelector 1.0 selectors/MultiAssigneeSelector.qml
 NavigationMenuList 1.0 navigation/NavigationMenuList.qml
 NotificationBell 1.0 feedback/NotificationBell.qml
 NotificationPopup 1.0 feedback/NotificationPopup.qml
+OptionPickerDialog 1.0 dialogs/OptionPickerDialog.qml
 OutlinedTextField 1.0 base/OutlinedTextField.qml
 ProjectDetailsCard 1.0 cards/ProjectDetailsCard.qml
 ProjectList 1.0 visualization/ProjectList.qml

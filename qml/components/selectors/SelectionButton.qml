@@ -22,7 +22,10 @@ Item {
     property bool readOnly: false
     property var modelData: []                   // Data to display in selector
     property int selectedId: -1
+    property alias pickerThreshold: inlineSelector.pickerThreshold
+    property alias useModalPicker: inlineSelector.useModalPicker
     signal selectionMade(int id, string name, string selectorType)
+    signal aboutToExpand()
 
     // Styling properties (kept for compatibility)
     property color bgColor: enabledState ? AppConst.Colors.Button : AppConst.Colors.ButtonDisabled
@@ -56,6 +59,11 @@ Item {
             selectionButton.selectedId = id;
             selectionButton.selectionMade(id, name, selectorType);
         }
+        onAboutToExpand: selectionButton.aboutToExpand()
+    }
+
+    function collapse() {
+        inlineSelector.collapse();
     }
 
     // API for parent to control

@@ -40,8 +40,16 @@ Item {
     property int accountId: -1
     property bool enabledState: true
     property var selectedAssignees: [] // Array of {id, name} objects
+    readonly property var selectedAssigneeIdList: {
+        var ids = [];
+        for (var i = 0; i < selectedAssignees.length; i++) {
+            ids.push(selectedAssignees[i].id);
+        }
+        return ids;
+    }
 
     signal assigneesChanged(var assignees)
+    signal openingPicker()
 
     // Public API
     function setSelectedAssignees(assignees) {
@@ -117,7 +125,13 @@ Item {
 
                 onClicked: {
                     if (!readOnly && enabledState) {
-                        dialogContainer.visible = true;
+                        openingPicker();
+                        if (!assigneePickerLoader.active) {
+                            assigneePickerLoader.active = true;
+                        }
+                        if (assigneePickerLoader.item) {
+                            assigneePickerLoader.item.open();
+                        }
                     }
                 }
             }
@@ -146,10 +160,9 @@ Item {
                             border.color: "#666666"  // Dark grey
                             border.width: 1
 
-                            Row {
+                            Item {
                                 anchors.fill: parent
                                 anchors.margins: units.gu(0.5)
-                                spacing: units.gu(0.5)
 
                                 TSLabel {
                                     id: assigneeLabel
@@ -158,7 +171,9 @@ Item {
                                     color: "white"
                                     fontSize: units.gu(1.5)
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - removeButton.width - units.gu(1)
+                                    anchors.left: parent.left
+                                    anchors.right: removeButton.left
+                                    anchors.rightMargin: units.gu(0.5)
                                     elide: Text.ElideRight // Truncate text if too long
                                     wrapMode: Text.NoWrap
                                 }
@@ -196,9 +211,9 @@ Item {
             return;
         }
         if (index >= 0 && index < selectedAssignees.length) {
-            selectedAssignees.splice(index, 1);
-            selectedAssignees = selectedAssignees; // Trigger change
-            // updateDisplayText();
+            var next = selectedAssignees.slice();
+            next.splice(index, 1);
+            selectedAssignees = next;
             assigneesChanged(selectedAssignees);
         }
     }
@@ -214,223 +229,51 @@ Item {
                 return; // Already selected
             }
         }
-        selectedAssignees.push(assignee);
-        selectedAssignees = selectedAssignees; // Trigger change
-        //   updateDisplayText();
+        var next = selectedAssignees.slice();
+        next.push(assignee);
+        selectedAssignees = next;
         assigneesChanged(selectedAssignees);
     }
 
-    // Modal dialog for selecting multiple assignees
-    // Use Item as a container and position it at the root level
-    Item {
-        id: dialogContainer
-        visible: false
-        z: 1000
+    Loader {
+        id: assigneePickerLoader
+        active: false
+        asynchronous: false
+        source: "../dialogs/OptionPickerDialog.qml"
 
-        // Get the root window/application area
-        parent: {
-            var root = multiAssigneeSelector;
-            while (root.parent) {
-                root = root.parent;
-            }
-            return root;
-        }
+        onLoaded: {
+            item.anchorItem = multiAssigneeSelector;
+            item.titleText = i18n.dtr("ubtms", "Select Assignees");
+            item.modelData = Qt.binding(function () { return multiAssigneeSelector.availableAssignees; });
+            item.selectedIds = Qt.binding(function () { return multiAssigneeSelector.selectedAssigneeIdList; });
+            item.multiSelect = true;
+            item.searchThreshold = 5;
 
-        anchors.fill: parent
-
-        Rectangle {
-            id: assigneeDialog
-            anchors.fill: parent
-            color: "black"
-            opacity: 0.9
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    // Close dialog when clicking outside
-                    dialogContainer.visible = false;
-                }
-            }
-
-            Rectangle {
-                id: dialogContent
-                width: parent.width * 0.8
-                height: parent.height * 0.5
-                anchors.centerIn: parent
-                color: theme.name === "Ubuntu.Components.Themes.SuruDark" ? "#2C2C2C" : "white"
-                radius: units.gu(1)
-                border.color: "#CCCCCC"
-                border.width: 2
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked:
-                    // Prevent closing when clicking inside dialog
-                    {}
-                }
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: units.gu(2)
-                    spacing: units.gu(1)
-
-                    Item {
-                        width: parent.width
-                        height: units.gu(5)
-
-                        Label {
-                            text: i18n.dtr("ubtms", "Select Assignees")
-                            font.bold: true
-                            font.pixelSize: units.gu(2)
-
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
-                        TSButton {
-                            id: closeButton
-                            text: "x"
-                            width: units.gu(4)
-                            height: units.gu(4)
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            onClicked: {
-                                dialogContainer.visible = false;
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        width: parent.width * 0.8
-                        height: units.gu(30)
-                        border.color: "#CCCCCC"
-                        border.width: 1
-                        color: "transparent"
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        Flickable {
-                            id: assigneeFlickable
-                            anchors.fill: parent
-                            anchors.margins: units.gu(1)
-                            contentHeight: assigneeColumn.height
-                            clip: true
-
-                            Column {
-                                id: assigneeColumn
-                                width: parent.width
-                                spacing: units.gu(0.5)
-
-                                Repeater {
-                                    model: availableAssignees.length
-
-                                    delegate: Item {
-                                        width: assigneeColumn.width
-                                        height: units.gu(5)
-
-                                        property var assignee: availableAssignees[index]
-                                        property bool isSelected: {
-                                            for (let i = 0; i < selectedAssignees.length; i++) {
-                                                if (selectedAssignees[i].id === assignee.id) {
-                                                    return true;
-                                                }
-                                            }
-                                            return false;
-                                        }
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: isSelected ? "#bbb8b8" : "transparent"  // Light grey
-                                            border.color: "#999999"  // Grey
-                                            border.width: 1
-                                            radius: units.gu(0.5)
-
-                                            Row {
-                                                anchors.left: parent.left
-                                                anchors.leftMargin: units.gu(1)
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                spacing: units.gu(1)
-
-                                                Rectangle {
-                                                    id: checkbox
-                                                    width: units.gu(3)
-                                                    height: units.gu(3)
-                                                    color: isSelected ? "#3498db" : "transparent"
-                                                    border.color: "#666666"
-                                                    border.width: 1
-                                                    radius: units.gu(0.3)
-                                                    anchors.verticalCenter: parent.verticalCenter
-
-                                                    Text {
-                                                        text: "✓"
-                                                        color: "white"
-                                                        font.bold: true
-                                                        anchors.centerIn: parent
-                                                        visible: isSelected
-                                                    }
-                                                }
-
-                                                TSLabel {
-                                                    text: assignee.name
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                }
-                                            }
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                enabled: !readOnly
-                                                onClicked: {
-                                                    if (!readOnly) {
-                                                        if (isSelected) {
-                                                            // Find and remove
-                                                            for (let i = 0; i < selectedAssignees.length; i++) {
-                                                                if (selectedAssignees[i].id === assignee.id) {
-                                                                    removeAssignee(i);
-                                                                    break;
-                                                                }
-                                                            }
-                                                        } else {
-                                                            addAssignee(assignee);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Row {
-                        width: parent.width * .5
-                        spacing: units.gu(1)
-
-                        TSButton {
-                            id: clearButton
-                            text: i18n.dtr("ubtms", "Clear All")
-                            enabled: !readOnly
-                            onClicked: {
-                                if (!readOnly) {
-                                    selectedAssignees = [];
-                                    //updateDisplayText();
-                                    assigneesChanged(selectedAssignees);
-                                }
-                            }
-                        }
-
-                        TSButton {
-                            id: doneButton
-                            text: i18n.dtr("ubtms", "Done")
-                            onClicked: {
-                                dialogContainer.visible = false;
-                            }
+            item.multiItemToggled.connect(function (id, name, shouldSelect) {
+                if (shouldSelect) {
+                    addAssignee({
+                        id: id,
+                        name: name
+                    });
+                } else {
+                    for (let i = 0; i < selectedAssignees.length; i++) {
+                        if (selectedAssignees[i].id === id) {
+                            removeAssignee(i);
+                            break;
                         }
                     }
                 }
-            }
+            });
+
+            item.multiCleared.connect(function () {
+                if (!readOnly) {
+                    selectedAssignees = [];
+                    assigneesChanged(selectedAssignees);
+                }
+            });
         }
     }
 
     Component.onCompleted:
-    //updateDisplayText();
     {}
 }

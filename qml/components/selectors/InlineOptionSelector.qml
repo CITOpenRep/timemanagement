@@ -30,6 +30,8 @@ Item {
     property real maxExpandedHeight: units.gu(40)
     property bool collapsed: true
     property int visibleItemCount: 5  // Number of items visible when expanded
+    property int pickerThreshold: 6
+    property bool useModalPicker: true
     z: !collapsed ? 9999 : 1
 
     readonly property bool isDarkTheme: (typeof Theme !== "undefined" && Theme.name === "Ubuntu.Components.Themes.SuruDark") || (typeof theme !== "undefined" && theme.name === "Ubuntu.Components.Themes.SuruDark")
@@ -68,6 +70,7 @@ Item {
     readonly property color effectiveHeaderTextColor: headerTextColor !== undefined ? headerTextColor : (collapsed ? effectiveTextColor : effectiveDropdownTextColor)
 
     signal selectionMade(int id, string name, string selectorType)
+    signal aboutToExpand()
 
     // Internal model
     ListModel {
@@ -129,6 +132,50 @@ Item {
 
     Behavior on height {
         NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+    }
+
+    onCollapsedChanged: {
+        if (!collapsed) {
+            Qt.callLater(_scrollToSelected);
+        }
+    }
+
+    function _scrollToSelected() {
+        if (optionsModel.count === 0) {
+            return;
+        }
+        if (selectedId === -1) {
+            optionsList.positionViewAtBeginning();
+            return;
+        }
+        for (var i = 0; i < optionsModel.count; i++) {
+            if (optionsModel.get(i).itemId === selectedId) {
+                optionsList.positionViewAtIndex(i, ListView.Center);
+                return;
+            }
+        }
+    }
+
+    Loader {
+        id: pickerLoader
+        active: false
+        asynchronous: false
+        source: "../dialogs/OptionPickerDialog.qml"
+
+        onLoaded: {
+            item.anchorItem = inlineSelector;
+            item.titleText = Qt.binding(function () { return inlineSelector.labelText; });
+            item.modelData = Qt.binding(function () { return inlineSelector.modelData; });
+            item.selectedId = Qt.binding(function () { return inlineSelector.selectedId; });
+            item.multiSelect = false;
+            item.searchThreshold = Qt.binding(function () { return inlineSelector.pickerThreshold; });
+            item.optionSelected.connect(function (id, name) {
+                inlineSelector.selectedId = id;
+                inlineSelector.selectedName = name;
+                inlineSelector.selectionMade(id, name, selectorType);
+                inlineSelector.collapsed = true;
+            });
+        }
     }
 
     Rectangle {
@@ -200,7 +247,12 @@ Item {
                     enabled: enabledState && !readOnly
                     onClicked: {
                         if (optionsModel.count > 0) {
-                            collapsed = !collapsed;
+                            aboutToExpand();
+                            if (useModalPicker && optionsModel.count > pickerThreshold) {
+                                openPicker();
+                            } else {
+                                collapsed = !collapsed;
+                            }
                         }
                     }
                 }
@@ -221,6 +273,7 @@ Item {
                 height: parent.height - headerRow.height - 1
                 visible: !collapsed
                 clip: true
+                boundsBehavior: Flickable.StopAtBounds
                 model: optionsModel
                 
                 ScrollBar.vertical: ScrollBar {
@@ -348,11 +401,28 @@ Item {
     }
 
     function expand() {
+        aboutToExpand();
         collapsed = false;
+    }
+
+    function openPicker() {
+        if (optionsModel.count > 0) {
+            aboutToExpand();
+            collapsed = true;
+            if (!pickerLoader.active) {
+                pickerLoader.active = true;
+            }
+            if (pickerLoader.item) {
+                pickerLoader.item.open();
+            }
+        }
     }
 
     function collapse() {
         collapsed = true;
+        if (pickerLoader.item) {
+            pickerLoader.item.close();
+        }
     }
 
     function clear() {
