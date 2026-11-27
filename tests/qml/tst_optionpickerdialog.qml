@@ -321,7 +321,25 @@ MainView {
             verify(clearAllBtn.x + clearAllBtn.width <= doneBtn.x);
 
             mouseClick(doneBtn, doneBtn.width / 2, doneBtn.height / 2);
-            compare(multiPicker.isOpen, false);
+            tryCompare(multiPicker, "isOpen", false, 500);
+        }
+
+        function test_keyboardOverlapKeepsActionsAboveKeyboard() {
+            multiPicker.open({
+                titleText: "Select Assignees",
+                modelData: sampleUsers,
+                multiSelect: true,
+                selectedIds: [1],
+                searchThreshold: 3
+            });
+            compare(multiPicker.isOpen, true);
+            multiPicker._frozenKeyboardHeight = multiPicker.height * 0.45;
+            waitForRendering(multiPicker);
+
+            var doneBtn = _findButtonByText(multiPicker, "Done");
+            verify(doneBtn !== null);
+            var doneBottom = doneBtn.mapToItem(multiPicker, 0, doneBtn.height).y;
+            verify(doneBottom <= multiPicker.height - multiPicker._frozenKeyboardHeight);
         }
     }
 }
