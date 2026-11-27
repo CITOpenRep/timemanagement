@@ -44,6 +44,7 @@ MainView {
     property alias startupStatusIndicator: globalWidgets.startupStatusIndicator
     property alias startupManager: startupManager
     property alias syncStateStore: syncStateStore
+    property alias optionPicker: globalWidgets.optionPicker
 
     property int currentAccountId: -1
     property string currentAccountName: ""

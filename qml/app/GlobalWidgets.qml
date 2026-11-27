@@ -15,6 +15,7 @@ Item {
     property alias accountPicker: accountPicker
     property alias infobar: infobar
     property alias startupStatusIndicator: startupStatusIndicator
+    property alias optionPicker: optionPicker
 
     anchors.fill: parent
 
@@ -87,6 +88,10 @@ Item {
 
     NotificationPopup {
         id: notifPopup
+    }
+
+    OptionPickerDialog {
+        id: optionPicker
     }
 
     StartupStatusIndicator {
