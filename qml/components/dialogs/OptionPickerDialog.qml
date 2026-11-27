@@ -24,6 +24,7 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.3
 import Lomiri.Components 1.3
 import "../../../models/constants.js" as AppConst
 import "../base"
@@ -92,6 +93,11 @@ Item {
     Connections {
         target: (typeof Qt !== "undefined" && Qt.inputMethod) ? Qt.inputMethod : null
         onVisibleChanged: {
+            if (pickerOverlay.isOpen) {
+                pickerOverlay._updateKeyboardOffset();
+            }
+        }
+        onKeyboardRectangleChanged: {
             if (pickerOverlay.isOpen) {
                 pickerOverlay._updateKeyboardOffset();
             }
@@ -300,11 +306,11 @@ Item {
     // Picker card sheet
     Rectangle {
         id: sheetCard
-        readonly property real availableHeight: Math.max(units.gu(26), pickerOverlay.height - pickerOverlay._frozenKeyboardHeight - units.gu(5))
+        readonly property real availableHeight: Math.max(units.gu(18), pickerOverlay.height - pickerOverlay._frozenKeyboardHeight - units.gu(3))
         width: Math.min(pickerOverlay.width * 0.92, units.gu(58))
         height: Math.min(availableHeight, units.gu(66))
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Math.max(units.gu(2), (pickerOverlay.height - pickerOverlay._frozenKeyboardHeight - height) / 2)
+        y: Math.max(units.gu(1.5), (pickerOverlay.height - pickerOverlay._frozenKeyboardHeight - height) / 2)
         radius: units.gu(1.2)
         color: sheetBgColor
         border.color: borderColor
@@ -349,7 +355,7 @@ Item {
                         elide: Text.ElideRight
                     }
 
-                    Row {
+                    RowLayout {
                         id: headerActions
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
@@ -359,9 +365,9 @@ Item {
                             id: clearHeaderButton
                             visible: !multiSelect && selectedId > 0
                             text: i18n.dtr("ubtms", "Clear")
-                            width: units.gu(9)
-                            height: units.gu(3.6)
-                            anchors.verticalCenter: parent.verticalCenter
+                            Layout.preferredWidth: units.gu(9)
+                            Layout.preferredHeight: units.gu(3.6)
+                            Layout.alignment: Qt.AlignVCenter
                             onClicked: {
                                 if (_onSelectedCallback) {
                                     _onSelectedCallback(-1, "Select");
@@ -371,11 +377,39 @@ Item {
                             }
                         }
 
+                        TSButton {
+                            id: clearAllHeaderButton
+                            visible: multiSelect
+                            enabled: selectedIds && selectedIds.length > 0
+                            text: i18n.dtr("ubtms", "Clear All")
+                            Layout.preferredWidth: units.gu(10)
+                            Layout.preferredHeight: units.gu(3.6)
+                            Layout.alignment: Qt.AlignVCenter
+                            onClicked: {
+                                pickerOverlay.selectedIds = [];
+                                if (_onMultiClearCallback) {
+                                    _onMultiClearCallback();
+                                }
+                                pickerOverlay.multiCleared();
+                            }
+                        }
+
+                        TSButton {
+                            id: doneHeaderButton
+                            visible: multiSelect
+                            text: i18n.dtr("ubtms", "Done")
+                            Layout.preferredWidth: units.gu(8)
+                            Layout.preferredHeight: units.gu(3.6)
+                            Layout.alignment: Qt.AlignVCenter
+                            onClicked: pickerOverlay.close()
+                        }
+
                         MouseArea {
                             id: closeTapArea
-                            width: units.gu(4)
-                            height: units.gu(4)
-                            anchors.verticalCenter: parent.verticalCenter
+                            visible: !multiSelect
+                            Layout.preferredWidth: units.gu(4)
+                            Layout.preferredHeight: units.gu(3.6)
+                            Layout.alignment: Qt.AlignVCenter
                             cursorShape: Qt.PointingHandCursor
                             onClicked: pickerOverlay.close()
 
@@ -432,8 +466,8 @@ Item {
                 id: listArea
                 width: parent.width
                 height: Math.max(
-                    units.gu(10),
-                    sheetCard.height - headerBar.height - searchBar.height - capBanner.height - footerBar.height
+                    0,
+                    sheetCard.height - headerBar.height - searchBar.height - capBanner.height
                 )
 
                 ListView {
@@ -544,53 +578,6 @@ Item {
                     text: i18n.dtr("ubtms", "No matching options")
                     font.pixelSize: units.gu(1.5)
                     color: mutedTextColor
-                }
-            }
-
-            // Footer actions for multi-select mode
-            Rectangle {
-                id: footerBar
-                width: parent.width
-                height: visible ? units.gu(6) : 0
-                visible: multiSelect
-                color: "transparent"
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    anchors.top: parent.top
-                    color: dividerColor
-                }
-
-                Item {
-                    anchors.fill: parent
-                    anchors.leftMargin: units.gu(1.5)
-                    anchors.rightMargin: units.gu(1.5)
-
-                    TSButton {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: i18n.dtr("ubtms", "Clear All")
-                        width: Math.min(units.gu(13), (parent.width - units.gu(1.5)) / 2)
-                        height: units.gu(4)
-                        enabled: selectedIds && selectedIds.length > 0
-                        onClicked: {
-                            pickerOverlay.selectedIds = [];
-                            if (_onMultiClearCallback) {
-                                _onMultiClearCallback();
-                            }
-                            pickerOverlay.multiCleared();
-                        }
-                    }
-
-                    TSButton {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: i18n.dtr("ubtms", "Done")
-                        width: Math.min(units.gu(11), (parent.width - units.gu(1.5)) / 2)
-                        height: units.gu(4)
-                        onClicked: pickerOverlay.close()
-                    }
                 }
             }
         }
